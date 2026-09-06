@@ -1,60 +1,225 @@
 # Architecture
 
-Draught uses a functional core with an imperative shell. Domain values and state transitions are plain data and pure functions. Processes exist only for runtime state, concurrency, isolation, cancellation, or resource ownership.
+Draught is a layered, local-first agent runtime built as a functional core with an imperative shell. Domain values, policies, and state transitions are plain data and pure functions. Processes exist only where the runtime needs concurrency, isolation, cancellation, supervision, or ownership of a resource.
 
-## Module boundaries
+## Internal layers
 
-Each feature owns a focused namespace and directory. Provider implementations receive their own subdirectory so adapter details cannot leak into the core.
+Dependencies point inward. The domain does not know which CLI, model provider, persistence backend, web client, or operating-system adapter is in use.
 
-```text
-lib/draught/
-|-- conversation/           messages, content parts, roles, and usage values
-|-- provider.ex             provider behaviour and public contracts
-|-- provider/
-|   |-- capabilities.ex     provider capability values and validation
-|   |-- request.ex          canonical provider request
-|   |-- response.ex         canonical provider response
-|   |-- open_ai/            OpenAI-compatible transport and translation
-|   `-- ollama/             Ollama configuration and capability presets
-|-- execution/              pure provider-tool state transitions and limits
-|-- session/                lifecycle, events, streaming, and cancellation
-|-- tool.ex                 tool behaviour and public contracts
-|-- tool/
-|   |-- call.ex             canonical tool invocation
-|   |-- result.ex           canonical tool result
-|   |-- built_in/           read, search, patch, and command implementations
-|   `-- approval/           risk classification and approval policy
-|-- workspace/              canonical path resolution and confinement
-|-- journal/                versioned local events, checkpoints, and replay
-|-- telemetry/              sanitized event definitions and emission
-`-- cli/                    argument parsing, rendering, and user interaction
+```mermaid
+flowchart TB
+  subgraph Interfaces[Interfaces]
+    CLI[Agentic CLI]
+    API[Elixir API]
+  end
+
+  subgraph Application[Application orchestration]
+    Commands[Commands]
+    Sessions[Session coordinator]
+    Runtime[Execution runtime]
+  end
+
+  subgraph Domain[Functional domain core]
+    Conversation[Conversation values]
+    ProviderContracts[Provider contracts]
+    ToolContracts[Tool contracts]
+    Execution[Execution state transitions]
+    Policy[Capability and approval policy]
+    Events[Canonical events]
+    Errors[Normalized errors]
+  end
+
+  subgraph Ports[Effect ports]
+    ProviderPort[Provider port]
+    ToolPort[Tool port]
+    JournalPort[Journal port]
+    WorkspacePort[Workspace port]
+    WebPort[Web access port]
+  end
+
+  subgraph Adapters[Edge adapters]
+    Providers[Model providers]
+    Tools[Built-in and external tools]
+    Journal[Local journal]
+    Workspace[Filesystem and process access]
+    Web[Search and fetch clients]
+  end
+
+  CLI --> Commands
+  API --> Commands
+  Commands --> Sessions
+  Sessions --> Runtime
+  Runtime --> Conversation
+  Runtime --> ProviderContracts
+  Runtime --> ToolContracts
+  Runtime --> Execution
+  Runtime --> Policy
+  Runtime --> Events
+  Runtime --> Errors
+  Runtime --> ProviderPort
+  Runtime --> ToolPort
+  Sessions --> JournalPort
+  ToolContracts --> WorkspacePort
+  Policy --> WebPort
+  ProviderPort -. implemented by .-> Providers
+  ToolPort -. implemented by .-> Tools
+  JournalPort -. implemented by .-> Journal
+  WorkspacePort -. implemented by .-> Workspace
+  WebPort -. implemented by .-> Web
 ```
 
-Directories are created when their first real module is introduced. Empty namespaces and generic `Utils`, `Helpers`, or `Common` modules are not used.
+The layers have distinct responsibilities:
 
-Directory and module namespaces stay aligned. Canonical values use contextual names such as `Draught.Conversation.Message`, `Draught.Provider.Capabilities`, `Draught.Tool.Call`, and `Draught.Session.Event`; flat names such as `Draught.Message`, `Draught.ToolCall`, and `Draught.Event` are avoided.
+| Layer | Owns | Must not own |
+| --- | --- | --- |
+| Interfaces | Input parsing, rendering, interactive approvals, machine-readable output | Provider payloads, execution decisions, durable state |
+| Application orchestration | Session lifecycle, effect sequencing, cancellation, supervision | Provider-specific translation, policy hidden in processes |
+| Functional domain core | Canonical values, invariants, policies, state transitions, event semantics | Network, filesystem, environment, clocks, global mutable state |
+| Effect ports | Project-owned behaviours for external capabilities | Concrete vendor or operating-system details |
+| Edge adapters | Translation and bounded interaction with external systems | Domain policy or cross-adapter coordination |
 
-## Dependency direction
+## Agent execution
 
-- `Draught` is the narrow application-facing facade.
-- The CLI calls public Draught APIs and never reaches into adapters or process internals.
-- Conversation and contract modules depend only on closely related value modules and the Elixir standard library.
-- Execution transitions depend on canonical context contracts, not provider or tool implementations.
-- Providers and tools implement behaviours defined at the boundary and translate external values immediately.
-- Session processes coordinate effects but delegate decisions and transitions to pure functions.
-- Req, Jason, filesystem, operating-system, and persistence APIs stay behind project-owned adapters.
+The runtime is the only layer that coordinates a model with tools. Model output is treated as a proposal: it cannot directly invoke an effect, grant itself capabilities, or bypass approval policy.
 
-Dependencies point inward toward stable contracts. A provider may depend on `Draught.Provider` and domain values; the domain never depends on a provider.
+```mermaid
+sequenceDiagram
+  actor User
+  participant Interface as CLI or Elixir API
+  participant Session as Session coordinator
+  participant Runtime as Execution runtime
+  participant Provider as Provider boundary
+  participant Policy as Capability and approval policy
+  participant Tool as Tool boundary
+  participant Journal as Journal boundary
 
-## API rules
+  User->>Interface: Submit intent
+  Interface->>Session: Start or continue session
+  Session->>Runtime: Execute canonical request
+  Runtime->>Provider: Complete or stream request
+  Provider-->>Runtime: Content delta or tool proposal
+  Runtime-->>Session: Publish canonical event
+  Session->>Journal: Append canonical session event
 
-- Prefer one module per file and one reason to change per module.
-- Keep public APIs small; make implementation modules private by convention unless callers need a stable contract.
-- Represent expected failures with tagged tuples and unexpected faults with process exits.
-- Pass explicit data through pure functions instead of reading process dictionaries, application environment, or global state inside the core.
-- Use behaviours at effect boundaries, not between every pair of pure modules.
-- Keep provider-specific structs, payloads, and errors inside that provider's namespace.
-- Add a process only when the runtime needs state, concurrency, isolation, cancellation, or supervision.
-- Supervise every long-lived process and every production task.
+  alt Provider returns a final response
+    Provider-->>Runtime: Canonical response
+    Runtime-->>Session: Complete
+  else Provider proposes a tool call
+    Runtime->>Policy: Evaluate capability, risk, and approval
+    alt Allowed
+      Policy-->>Runtime: Approved bounded invocation
+      Runtime->>Tool: Execute canonical call
+      Tool-->>Runtime: Canonical result
+      Runtime->>Provider: Continue with tool result
+    else Denied
+      Policy-->>Runtime: Normalized policy error
+      Runtime-->>Session: Fail safely
+    end
+  end
+```
 
-Tests mirror the source layout. Pure modules receive deterministic unit tests; adapters receive contract tests; process modules receive lifecycle and failure tests.
+The application layer may use supervised processes, but it delegates decisions to pure functions. That keeps retries, cancellation, replay, and state transitions testable without starting a process.
+
+## Provider boundary
+
+Providers exchange only canonical Draught values. Provider-specific request bodies, response objects, exceptions, headers, credentials, and stack traces never cross the adapter boundary.
+
+```mermaid
+sequenceDiagram
+  participant Runtime
+  participant Facade as Draught.Provider
+  participant Adapter as Provider adapter
+  participant Sink as Event consumer
+
+  Runtime->>Facade: stream(adapter, request, sink)
+  Facade->>Facade: Validate and reconstruct request
+  Facade->>Adapter: stream(canonical request, guarded sink)
+
+  loop Zero or more nonterminal events
+    Adapter-->>Facade: Delta or tool-call event
+    Facade->>Facade: Validate event
+    Facade-->>Sink: Canonical nonterminal event
+  end
+
+  Adapter-->>Facade: ok response or normalized error
+  Facade->>Facade: Validate result
+  Facade-->>Sink: Exactly one completed or failed event
+  Facade-->>Runtime: Same canonical result
+```
+
+The provider facade owns terminal delivery. An adapter may emit only deltas and tool calls. If the consumer returns `:halt`, the facade aborts adapter emission immediately and returns a canonical cancellation error. This central ownership prevents missing, duplicated, contradictory, or out-of-order terminal events.
+
+Provider adapters are explicitly injected as `{module, config}`. The deterministic fake adapter is an immutable collection of exact request routes, with no process or global state.
+
+## Contracts and trust boundaries
+
+Every value that crosses a boundary is reconstructed through a canonical constructor. Constructors whitelist keys without creating atoms, validate nested structs again, and return structured validation errors. JSON-compatible tool arguments and schemas have bounded depth, collection width, byte size, string size, and string-only object keys.
+
+Normalized failures carry only a closed category, safe code and message, optional hint, and retryability. Expected failures use tagged tuples. Unexpected defects may crash the owning supervised process so the supervision tree can restore a known state.
+
+```mermaid
+flowchart LR
+  Untrusted[Untrusted external value] --> Decode[Bounded decoding]
+  Decode --> Construct[Canonical constructor]
+  Construct -->|invalid| SafeError[Structured safe error]
+  Construct -->|valid| Policy[Capability and policy checks]
+  Policy -->|denied| SafeError
+  Policy -->|allowed| Core[Functional domain core]
+  Core --> Event[Canonical event]
+  Event --> ContentPolicy[CLI or journal content policy]
+  Event --> Projection[Bounded metadata projection]
+  Projection --> Telemetry[Telemetry]
+```
+
+Canonical events provide one vocabulary for the CLI, telemetry, and persistence layers without exposing provider or tool types. Events may contain model text, reasoning, and tool content. The CLI and journal apply explicit display and retention policies, while telemetry receives only derived, bounded measurements and sanitized metadata.
+
+## Web access and indirect prompt injection
+
+Web access is a separately controlled capability and is disabled by default. Search and fetch permissions are independent. Retrieved content is untrusted data with provenance, never an instruction source or authority grant.
+
+```mermaid
+flowchart TB
+  Proposal[Model proposes web access] --> Enabled{Capability enabled?}
+  Enabled -->|No| Denied[Normalized policy error]
+  Enabled -->|Yes| Policy[Evaluate operation and approval policy]
+  Policy -->|Denied| Denied
+  Policy -->|Allowed| Guard[Bounded isolated web client]
+  Guard --> Network[DNS and redirect checks]
+  Network --> Content[Size and content-type limits]
+  Content --> Provenance[Attach source provenance and untrusted label]
+  Provenance --> Context[Provide data to the model]
+  Context --> Proposal
+
+  Context -. cannot grant .-> Policy
+  Context -. cannot alter .-> Enabled
+```
+
+The web adapter must reject private, loopback, link-local, and cloud metadata destinations across initial resolution and redirects. It receives no ambient cookies, credentials, or proxy authority. Classifiers may add warnings or require stronger approval, but they cannot be the sole security boundary.
+
+## State and durability
+
+One session coordinator owns the live lifecycle of a session. Durable history is represented as versioned canonical events and checkpoints rather than process memory. Replay rebuilds state by applying the same pure transitions used during live execution.
+
+The runtime will preserve these invariants:
+
+- One accepted input produces at most one active execution step per session.
+- Every stream has exactly one terminal outcome.
+- Cancellation is explicit, observable, and cannot be mistaken for success.
+- Tool calls are identified so retries and replay can prevent duplicate effects.
+- Journal writes contain validated canonical data under an explicit retention policy, never raw provider payloads, tool internals, or credentials.
+- A process restart recovers from durable state or fails explicitly; it never guesses hidden state.
+
+## API and dependency rules
+
+- Interfaces call public application APIs and never reach into adapters or process internals.
+- Domain code receives explicit values and never reads process dictionaries, application environment, or global state.
+- Provider and tool implementations translate external values immediately and keep vendor types inside the adapter.
+- Behaviours are used at effect boundaries, not between every pair of pure modules.
+- Long-lived processes and production tasks are supervised.
+- Private functions follow public functions, and namespaces reflect architectural ownership rather than generic utility groupings.
+
+## Delivery status
+
+The canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are the current foundation. The supervised process foundation is also present. Session lifecycle orchestration, execution coordination, provider integrations, tool execution, journaling, the CLI, and web access are introduced in later roadmap slices. Diagrams describe the intended stable boundaries; each slice must preserve dependency direction as those layers become executable.
+
+Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

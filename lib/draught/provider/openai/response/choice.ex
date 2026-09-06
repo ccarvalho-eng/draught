@@ -4,8 +4,8 @@ defmodule Draught.Provider.OpenAI.Response.Choice do
   """
 
   alias Draught.Error.Normalized
+  alias Draught.Provider.OpenAI.Protocol
   alias Draught.Provider.OpenAI.Response.Message
-  alias Draught.Provider.OpenAI.Response.Protocol
 
   @finish_reasons %{
     "content_filter" => :content_filter,

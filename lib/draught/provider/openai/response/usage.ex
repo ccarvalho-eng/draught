@@ -4,7 +4,7 @@ defmodule Draught.Provider.OpenAI.Response.Usage do
   """
 
   alias Draught.Error.Normalized
-  alias Draught.Provider.OpenAI.Response.Protocol
+  alias Draught.Provider.OpenAI.Protocol
   alias Draught.Provider.Usage
 
   @doc "Decodes optional token usage and supported detail fields."

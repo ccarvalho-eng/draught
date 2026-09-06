@@ -4,8 +4,8 @@ defmodule Draught.Provider.OpenAI.Response.Decoder do
   """
 
   alias Draught.Error.Normalized
+  alias Draught.Provider.OpenAI.Protocol
   alias Draught.Provider.OpenAI.Response.Choice
-  alias Draught.Provider.OpenAI.Response.Protocol
   alias Draught.Provider.OpenAI.Response.Usage
   alias Draught.Provider.Response
 

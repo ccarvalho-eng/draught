@@ -2,6 +2,7 @@
 /cover/
 /deps/
 /doc/
+/tmp/
 /priv/plts/
 /.elixir_ls/
 /.lexical/

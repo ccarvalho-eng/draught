@@ -27,7 +27,8 @@ The project is in pre-alpha development. Provider contracts and OpenAI-compatibl
 | Canonical provider-neutral contracts | Complete |
 | OpenAI-compatible and Ollama providers | Complete |
 | Provider-neutral tool registry and execution contract | Complete |
-| Workspace confinement and bounded runner | Planned |
+| Workspace confinement | Complete |
+| Bounded agent runner | Planned |
 | Durable sessions and telemetry | Planned |
 | Agentic CLI and one-command distribution | Planned |
 
@@ -57,6 +58,8 @@ The included fake is pure and route-based. It provides deterministic offline tes
 The [Ollama provider guide](docs/providers/ollama.md) documents model selection, capability checks, configuration, failures, and the manual smoke procedure.
 
 The [tool execution guide](docs/tools.md) documents definitions, registry lookup, risk policy, parameter schemas, structured results, and the executor boundary.
+
+The [workspace confinement guide](docs/workspace-confinement.md) documents lexical validation, symlink handling, read and write resolution, containment checks, and operating-system isolation boundaries.
 
 See the [architecture guide](docs/architecture.md) for the internal layers, dependency rules, runtime flows, effect boundaries, and contract invariants.
 

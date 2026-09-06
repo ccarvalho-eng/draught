@@ -1,0 +1,12 @@
+/_build/
+/cover/
+/deps/
+/doc/
+/priv/plts/
+/.elixir_ls/
+/.lexical/
+/.codex/
+/.DS_Store
+/erl_crash.dump
+*.ez
+draught-*.tar

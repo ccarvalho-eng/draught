@@ -1,6 +1,6 @@
-defmodule Draught.Provider.OpenAI.Response.Protocol do
+defmodule Draught.Provider.OpenAI.Protocol do
   @moduledoc """
-  Constructs safe protocol failures for rejected compatible-provider payloads.
+  Constructs safe failures for rejected OpenAI-compatible data and configuration.
   """
 
   alias Draught.Error.Normalized
@@ -9,10 +9,13 @@ defmodule Draught.Provider.OpenAI.Response.Protocol do
   @doc "Returns a non-retryable protocol error without retaining rejected input."
   @spec error(String.t(), String.t()) :: {:error, Normalized.t()}
   def error(code, message) do
-    {:ok, normalized} =
-      Normalized.new(:protocol, code, message, retryable: false)
+    normalized(:protocol, code, message)
+  end
 
-    {:error, normalized}
+  @doc "Returns a non-retryable provider configuration error."
+  @spec configuration(String.t(), String.t()) :: {:error, Normalized.t()}
+  def configuration(code, message) do
+    normalized(:configuration, code, message)
   end
 
   @doc "Converts a canonical-constructor result into a safe protocol result."
@@ -25,5 +28,10 @@ defmodule Draught.Provider.OpenAI.Response.Protocol do
 
   def canonical({:error, %Error{}}, code, message) do
     error(code, message)
+  end
+
+  defp normalized(kind, code, message) do
+    {:ok, normalized} = Normalized.new(kind, code, message, retryable: false)
+    {:error, normalized}
   end
 end

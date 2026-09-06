@@ -5,7 +5,7 @@ defmodule Draught.Provider.OpenAI.Response.Message do
 
   alias Draught.Conversation.Message.Assistant
   alias Draught.Error.Normalized
-  alias Draught.Provider.OpenAI.Response.Protocol
+  alias Draught.Provider.OpenAI.Protocol
   alias Draught.Provider.OpenAI.Response.ToolCall
 
   @doc "Decodes a provider assistant message for a normalized finish reason."

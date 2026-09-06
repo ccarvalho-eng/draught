@@ -4,7 +4,7 @@ defmodule Draught.Provider.OpenAI.Response.ToolCall do
   """
 
   alias Draught.Error.Normalized
-  alias Draught.Provider.OpenAI.Response.Protocol
+  alias Draught.Provider.OpenAI.Protocol
   alias Draught.Tool.Call
 
   @doc "Decodes an optional ordered list of provider tool calls."

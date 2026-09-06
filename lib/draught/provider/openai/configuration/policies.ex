@@ -3,20 +3,22 @@ defmodule Draught.Provider.OpenAI.Configuration.Policies do
   Validates timeout, retry, and reasoning compatibility policies.
   """
 
+  alias Draught.Provider.OpenAI.Configuration.Limits
   alias Draught.Provider.OpenAI.Configuration.Reasoning
   alias Draught.Provider.OpenAI.Configuration.Retry
   alias Draught.Provider.OpenAI.Configuration.Timeouts
   alias Draught.Validation.Error
 
-  @type t :: {Timeouts.t(), Retry.t(), :none | :reasoning | :reasoning_content}
+  @type t :: {Timeouts.t(), Retry.t(), Limits.t(), :none | :reasoning | :reasoning_content}
 
   @doc "Builds the validated policy group."
   @spec new(map()) :: Error.result(t())
   def new(attributes) do
     with {:ok, timeouts} <- timeouts(attributes),
          {:ok, retry} <- retry(attributes),
+         {:ok, limits} <- limits(attributes),
          {:ok, reasoning_field} <- reasoning_field(attributes) do
-      {:ok, {timeouts, retry, reasoning_field}}
+      {:ok, {timeouts, retry, limits, reasoning_field}}
     end
   end
 
@@ -30,6 +32,12 @@ defmodule Draught.Provider.OpenAI.Configuration.Policies do
     attributes
     |> Map.get(:retry, %{})
     |> normalize_nested(Retry, :retry)
+  end
+
+  defp limits(attributes) do
+    attributes
+    |> Map.get(:limits, %{})
+    |> normalize_nested(Limits, :limits)
   end
 
   defp normalize_nested(%{__struct__: module} = value, module, key) do

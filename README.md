@@ -7,15 +7,17 @@
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 
-The project is in pre-alpha development. Its public alpha will provide a polished local-first agent experience: one-command installation, guided provider setup, an OpenAI-compatible Ollama adapter, a bounded tool loop, workspace confinement, explicit approval for risky actions, and resumable local sessions.
+The project is in pre-alpha development. The planned public-alpha scope includes one-command installation, guided provider setup, an OpenAI-compatible Ollama adapter, a bounded tool loop, workspace confinement, explicit approval for risky actions, and resumable local sessions.
 
-## Design goals
+## Design constraints
 
-- **Simple by default.** A useful first run should not require knowledge of OTP, provider internals, or system dependency management.
-- **Generic at the boundary.** Providers and clients exchange stable Draught contracts instead of vendor payloads.
-- **Functional at the core.** Domain values and transitions are pure; processes exist only for state, concurrency, isolation, cancellation, or resource ownership.
-- **Safe under automation.** Tool access, web access, budgets, timeouts, and mutations are explicit capabilities enforced outside model output.
-- **Observable without leakage.** Events support CLI rendering, telemetry, and durable replay without carrying credentials or raw provider internals.
+| Concern | Constraint |
+| --- | --- |
+| Setup | The first-run path must not require knowledge of OTP, provider internals, or system dependency management. |
+| Provider integration | Providers and clients exchange Draught contracts instead of vendor payloads. |
+| Runtime design | Domain values and transitions are pure. Processes are limited to state, concurrency, isolation, cancellation, or resource ownership. |
+| Authorization | Tool access, web access, budgets, timeouts, and mutations are explicit capabilities enforced independently of model output. |
+| Observability | Telemetry excludes credentials, message content, and raw provider values. Content-bearing events are handled by explicit CLI and journal policies. |
 
 ## Project status
 
@@ -67,7 +69,7 @@ Install dependencies:
 mix setup
 ```
 
-Run the fast quality gate:
+Run the development quality gate:
 
 ```sh
 mix quality
@@ -79,7 +81,7 @@ Run the complete pre-commit gate:
 mix precommit
 ```
 
-The complete gate enforces formatting, warnings, dependency hygiene, compile-cycle detection, every compatible Credo and ExSlop check, zero-clone ExDNA analysis, strict Reach smells, tests and coverage, Dialyzer, documentation coverage, HexDocs generation, and package assembly.
+The pre-commit gate runs formatting, warnings, dependency hygiene, compile-cycle detection, every compatible Credo and ExSlop check, zero-clone ExDNA analysis, strict Reach smells, tests and coverage, Dialyzer, documentation coverage, HexDocs generation, and package assembly.
 
 ## Contributing
 

@@ -113,7 +113,7 @@ sequenceDiagram
       Runtime->>Provider: Continue with tool result
     else Denied
       Policy-->>Runtime: Normalized policy error
-      Runtime-->>Session: Fail safely
+      Runtime-->>Session: Return normalized failure
     end
   end
 ```
@@ -220,6 +220,6 @@ The runtime will preserve these invariants:
 
 ## Delivery status
 
-The canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are the current foundation. The supervised process foundation is also present. Session lifecycle orchestration, execution coordination, provider integrations, tool execution, journaling, the CLI, and web access are introduced in later roadmap slices. Diagrams describe the intended stable boundaries; each slice must preserve dependency direction as those layers become executable.
+Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. The application supervision tree is also present. Session lifecycle orchestration, execution coordination, provider integrations, tool execution, journaling, the CLI, and web access are planned in later roadmap slices. The diagrams describe target boundaries; each slice must preserve dependency direction as those layers become executable.
 
 Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

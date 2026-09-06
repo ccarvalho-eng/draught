@@ -26,31 +26,35 @@ defmodule Draught.Provider.Response do
   def new(attributes) do
     with {:ok, normalized} <-
            Attributes.normalize(attributes, [:message, :finish_reason, :usage]),
-         {:ok, message} <- message(normalized),
          {:ok, finish_reason} <- finish_reason(normalized),
+         {:ok, message} <- message(normalized, finish_reason),
          {:ok, usage} <- usage(normalized),
          :ok <- validate_finish_reason(message, finish_reason) do
       {:ok, %__MODULE__{message: message, finish_reason: finish_reason, usage: usage}}
     end
   end
 
-  defp message(attributes) do
+  defp message(attributes, finish_reason) do
     with {:ok, value} <- Attributes.fetch_required(attributes, :message) do
-      normalize_message(value)
+      normalize_message(value, finish_reason)
     end
   end
 
-  defp normalize_message(%Assistant{} = message) do
+  defp normalize_message(%Assistant{content: [], tool_calls: []}, :content_filter) do
+    {:ok, Assistant.filtered()}
+  end
+
+  defp normalize_message(%Assistant{} = message, _finish_reason) do
     message
     |> Map.from_struct()
     |> Assistant.new()
   end
 
-  defp normalize_message(message) when is_map(message) or is_list(message) do
+  defp normalize_message(message, _finish_reason) when is_map(message) or is_list(message) do
     Assistant.new(message)
   end
 
-  defp normalize_message(_message) do
+  defp normalize_message(_message, _finish_reason) do
     Error.single([:message], :invalid_type, "must be an assistant message")
   end
 
@@ -76,6 +80,10 @@ defmodule Draught.Provider.Response do
   end
 
   defp validate_finish_reason(%Assistant{tool_calls: [_call | _rest]}, :tool_calls) do
+    :ok
+  end
+
+  defp validate_finish_reason(%Assistant{content: [], tool_calls: []}, :content_filter) do
     :ok
   end
 

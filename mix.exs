@@ -97,7 +97,7 @@ defmodule Draught.MixProject do
       {:doctor, "~> 0.23.0", only: [:dev, :test], runtime: false},
       {:ex_dna, "~> 1.5", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.34", only: [:dev, :test], runtime: false},
-      {:ex_ast, "== 0.12.0", only: [:dev, :test], runtime: false},
+      {:ex_ast, "== 0.12.10", only: [:dev, :test], runtime: false},
       {:ex_slop, "~> 0.4.2", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test},
       {:mix_audit, "~> 2.1", only: [:dev, :test], runtime: false},

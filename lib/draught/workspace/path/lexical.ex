@@ -101,7 +101,7 @@ defmodule Draught.Workspace.Path.Lexical do
 
   defp safe_relative(path, root) do
     case Path.safe_relative(path, root) do
-      {:ok, relative} -> {:ok, relative}
+      {:ok, _relative} -> {:ok, path}
       :error -> Error.single([:path], :invalid_value, "must remain inside the workspace")
     end
   end

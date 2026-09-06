@@ -68,13 +68,19 @@ defmodule Draught.MixProject do
         "README.md",
         "docs/architecture.md",
         "docs/tools.md",
+        "docs/workspace-confinement.md",
         "docs/providers/ollama.md",
         "CHANGELOG.md",
         "CONTRIBUTING.md",
         "SECURITY.md"
       ],
       groups_for_extras: [
-        Guides: ["docs/architecture.md", "docs/tools.md", "docs/providers/ollama.md"]
+        Guides: [
+          "docs/architecture.md",
+          "docs/tools.md",
+          "docs/workspace-confinement.md",
+          "docs/providers/ollama.md"
+        ]
       ]
     ]
   end

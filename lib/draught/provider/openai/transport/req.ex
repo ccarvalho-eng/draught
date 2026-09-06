@@ -6,9 +6,9 @@ defmodule Draught.Provider.OpenAI.Transport.Req do
   @behaviour Draught.Provider.OpenAI.Transport
 
   alias Draught.Provider.OpenAI.Transport.Failure
-  alias Draught.Provider.OpenAI.Transport.Req.Body
   alias Draught.Provider.OpenAI.Transport.Request
   alias Draught.Provider.OpenAI.Transport.Response
+  alias Draught.Transport.Response.Body
 
   @complete_body_key :draught_openai_complete_body
   @stream_state_key :draught_openai_stream_state
@@ -145,8 +145,8 @@ defmodule Draught.Provider.OpenAI.Transport.Req do
     {:ok, transport_response(status, body)}
   end
 
-  defp complete_body_result({:error, %Failure{}} = result, _status) do
-    result
+  defp complete_body_result({:error, :too_large}, _status) do
+    {:error, Failure.new(:response_too_large)}
   end
 
   defp stream_result({:ok, response}, initial, _marker) do

@@ -1,5 +1,7 @@
 defmodule Draught.Provider.OpenAI.Stream.ToolCalls do
-  @moduledoc false
+  @moduledoc """
+  Assembles bounded streamed tool-call fragments into canonical calls.
+  """
 
   alias Draught.Provider.OpenAI.Protocol
   alias Draught.Provider.OpenAI.Stream.ToolCall.Fragment
@@ -9,12 +11,12 @@ defmodule Draught.Provider.OpenAI.Stream.ToolCalls do
   @enforce_keys [:partials, :argument_bytes, :max_calls, :max_arguments_bytes]
   defstruct [:partials, :argument_bytes, :max_calls, :max_arguments_bytes]
 
-  @type t :: %__MODULE__{
-          partials: %{non_neg_integer() => Partial.t()},
-          argument_bytes: non_neg_integer(),
-          max_calls: pos_integer(),
-          max_arguments_bytes: pos_integer()
-        }
+  @opaque t :: %__MODULE__{
+            partials: %{non_neg_integer() => Partial.t()},
+            argument_bytes: non_neg_integer(),
+            max_calls: pos_integer(),
+            max_arguments_bytes: pos_integer()
+          }
 
   @doc "Initializes bounded streamed tool-call assembly state."
   @spec new(map() | keyword()) :: {:ok, t()} | {:error, Draught.Error.Normalized.t()}
@@ -42,6 +44,12 @@ defmodule Draught.Provider.OpenAI.Stream.ToolCalls do
 
   def append(%__MODULE__{}, _fragments) do
     Protocol.error("invalid_tool_call_fragment", "Tool call fragments must be a list")
+  end
+
+  @doc "Returns whether no tool-call fragments have been retained."
+  @spec empty?(t()) :: boolean()
+  def empty?(%__MODULE__{partials: partials}) do
+    map_size(partials) == 0
   end
 
   @doc "Finalizes indexed fragments as ordered provider-neutral tool calls."

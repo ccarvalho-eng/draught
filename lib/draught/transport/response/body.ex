@@ -1,9 +1,7 @@
-defmodule Draught.Provider.OpenAI.Transport.Req.Body do
+defmodule Draught.Transport.Response.Body do
   @moduledoc """
-  Retains a complete response body within a fixed byte limit.
+  Retains an HTTP response body within a fixed byte limit.
   """
-
-  alias Draught.Provider.OpenAI.Transport.Failure
 
   @enforce_keys [:chunks, :bytes, :maximum_bytes]
   defstruct [:chunks, :bytes, :maximum_bytes, :failure]
@@ -12,10 +10,10 @@ defmodule Draught.Provider.OpenAI.Transport.Req.Body do
           chunks: [binary()],
           bytes: non_neg_integer(),
           maximum_bytes: pos_integer(),
-          failure: Failure.t() | nil
+          failure: :too_large | nil
         }
 
-  @doc "Initializes empty bounded body retention."
+  @doc "Initializes empty bounded response retention."
   @spec new(pos_integer()) :: t()
   def new(maximum_bytes) do
     %__MODULE__{chunks: [], bytes: 0, maximum_bytes: maximum_bytes}
@@ -28,10 +26,10 @@ defmodule Draught.Provider.OpenAI.Transport.Req.Body do
     push_result(bytes <= body.maximum_bytes, body, chunk, bytes)
   end
 
-  @doc "Returns the assembled body or its sanitized retention failure."
-  @spec finish(t()) :: {:ok, binary()} | {:error, Failure.t()}
-  def finish(%__MODULE__{failure: %Failure{} = failure}) do
-    {:error, failure}
+  @doc "Returns the assembled body or its bounded-retention failure."
+  @spec finish(t()) :: {:ok, binary()} | {:error, :too_large}
+  def finish(%__MODULE__{failure: :too_large}) do
+    {:error, :too_large}
   end
 
   def finish(%__MODULE__{chunks: chunks}) do
@@ -48,7 +46,6 @@ defmodule Draught.Provider.OpenAI.Transport.Req.Body do
   end
 
   defp push_result(false, %__MODULE__{} = body, _chunk, _bytes) do
-    failure = Failure.new(:response_too_large)
-    {:halt, %__MODULE__{body | chunks: [], bytes: 0, failure: failure}}
+    {:halt, %__MODULE__{body | chunks: [], bytes: 0, failure: :too_large}}
   end
 end

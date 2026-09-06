@@ -163,6 +163,16 @@ defmodule Draught.Provider.ValuesTest do
 
       invalid = %Assistant{content: [], tool_calls: []}
       assert {:error, %Error{}} = Response.new(message: invalid, finish_reason: :stop)
+
+      filtered_message = Assistant.filtered()
+
+      assert {:ok, filtered_response} =
+               Response.new(message: filtered_message, finish_reason: :content_filter)
+
+      assert filtered_response.message == filtered_message
+
+      assert {:error, %Error{}} =
+               Response.new(message: filtered_message, finish_reason: :length)
     end
   end
 

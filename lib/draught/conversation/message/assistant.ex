@@ -31,6 +31,12 @@ defmodule Draught.Conversation.Message.Assistant do
     end
   end
 
+  @doc "Builds the empty placeholder used when a provider filters its entire response."
+  @spec filtered() :: t()
+  def filtered do
+    %__MODULE__{content: [], tool_calls: []}
+  end
+
   defp content(attributes) do
     with {:ok, text_parts} <- content_parts(Map.get(attributes, :content), :text),
          {:ok, reasoning_parts} <- content_parts(Map.get(attributes, :reasoning), :reasoning) do

@@ -1,0 +1,57 @@
+defmodule Draught.Tool.Execution.Outcome do
+  @moduledoc false
+
+  alias Draught.Error.Normalized
+  alias Draught.Tool.Call
+  alias Draught.Tool.Execution.Failure
+  alias Draught.Tool.Result
+  alias Draught.Validation.Error
+
+  @doc "Converts a prepared execution outcome into a canonical tool result."
+  @spec from_execution(
+          {:ok, String.t()} | {:error, Normalized.t()} | {:error, Error.t()},
+          Call.t()
+        ) :: Result.t()
+  def from_execution({:ok, content}, %Call{} = call) do
+    success(call, content)
+  end
+
+  def from_execution({:error, %Normalized{} = error}, %Call{} = call) do
+    failure(call, error)
+  end
+
+  def from_execution({:error, %Error{} = error}, %Call{} = call) do
+    error
+    |> Failure.invalid_arguments()
+    |> then(&failure(call, &1))
+  end
+
+  @doc "Builds a canonical successful result for a call."
+  @spec success(Call.t(), String.t()) :: Result.t()
+  def success(%Call{} = call, content) do
+    {:ok, result} =
+      Result.new(
+        call_id: call.id,
+        name: call.name,
+        content: content,
+        status: :success
+      )
+
+    result
+  end
+
+  @doc "Builds a canonical error result for a call."
+  @spec failure(Call.t(), Normalized.t()) :: Result.t()
+  def failure(%Call{} = call, %Normalized{} = error) do
+    {:ok, result} =
+      Result.new(
+        call_id: call.id,
+        name: call.name,
+        content: "",
+        status: :error,
+        error: error
+      )
+
+    result
+  end
+end

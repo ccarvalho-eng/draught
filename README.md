@@ -7,7 +7,7 @@
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 
-The project is in pre-alpha development. The planned public-alpha scope includes one-command installation, guided provider setup, an OpenAI-compatible Ollama adapter, a bounded tool loop, workspace confinement, explicit approval for risky actions, and resumable local sessions.
+The project is in pre-alpha development. Provider contracts and OpenAI-compatible execution are implemented. The remaining public-alpha scope includes the tool loop, workspace confinement, approval policy, local sessions, the CLI, and distribution.
 
 ## Design constraints
 
@@ -25,7 +25,7 @@ The project is in pre-alpha development. The planned public-alpha scope includes
 | --- | --- |
 | Project foundation and quality gates | Complete |
 | Canonical provider-neutral contracts | Complete |
-| OpenAI-compatible and Ollama providers | Planned |
+| OpenAI-compatible and Ollama providers | Complete |
 | Workspace-safe tools and bounded runner | Planned |
 | Durable sessions and telemetry | Planned |
 | Agentic CLI and one-command distribution | Planned |
@@ -52,6 +52,8 @@ Draught.Provider.complete({Draught.Provider.Fake, fake}, request)
 ```
 
 The included fake is pure and route-based. It provides deterministic offline tests without processes, global configuration, or network access.
+
+The [Ollama provider guide](docs/providers/ollama.md) documents model selection, capability checks, configuration, failures, and the manual smoke procedure.
 
 See the [architecture guide](docs/architecture.md) for the internal layers, dependency rules, runtime flows, effect boundaries, and contract invariants.
 
@@ -85,7 +87,7 @@ The pre-commit gate runs formatting, warnings, dependency hygiene, compile-cycle
 
 ## Contributing
 
-Contributions are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and enforced quality standards.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and enforced quality standards.
 
 ## License
 

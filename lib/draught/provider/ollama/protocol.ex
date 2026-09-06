@@ -2,6 +2,7 @@ defmodule Draught.Provider.Ollama.Protocol do
   @moduledoc false
 
   alias Draught.Error.Normalized
+  alias Draught.Provider.Capabilities
   alias Draught.Provider.Ollama.Discovery.HTTP.Failure
 
   @doc "Returns a sanitized malformed-discovery error."
@@ -59,6 +60,45 @@ defmodule Draught.Provider.Ollama.Protocol do
       "invalid_ollama_discovery_http",
       "Ollama discovery HTTP module is invalid"
     )
+  end
+
+  @doc "Returns an error when no local model can be selected."
+  @spec no_models() :: {:error, Normalized.t()}
+  def no_models do
+    error(
+      :configuration,
+      "ollama_no_models",
+      "Ollama has no installed models",
+      hint: "Install a model with `ollama pull <model>`."
+    )
+  end
+
+  @doc "Returns an error when automatic selection is ambiguous."
+  @spec model_required() :: {:error, Normalized.t()}
+  def model_required do
+    error(
+      :configuration,
+      "ollama_model_required",
+      "More than one Ollama model is installed",
+      hint: "Set the model explicitly."
+    )
+  end
+
+  @doc "Returns an error for a missing model capability."
+  @spec unsupported(Capabilities.feature()) :: {:error, Normalized.t()}
+  def unsupported(feature) do
+    error(
+      :capability,
+      "ollama_unsupported_#{feature}",
+      "The selected Ollama model does not support #{feature}",
+      hint: "Select a model that advertises the required capability."
+    )
+  end
+
+  @doc "Returns an error for an invalid Ollama runtime value."
+  @spec invalid_runtime() :: {:error, Normalized.t()}
+  def invalid_runtime do
+    error(:configuration, "invalid_ollama_runtime", "Ollama runtime is invalid")
   end
 
   @doc "Returns a sanitized HTTP-status error."

@@ -5,6 +5,7 @@ defmodule Draught.Provider.OpenAI.Configuration do
 
   alias Draught.Provider.OpenAI.Configuration.Builder
   alias Draught.Provider.OpenAI.Configuration.Credential
+  alias Draught.Provider.OpenAI.Configuration.Limits
   alias Draught.Provider.OpenAI.Configuration.Retry
   alias Draught.Provider.OpenAI.Configuration.Timeouts
   alias Draught.Validation.Error
@@ -15,6 +16,7 @@ defmodule Draught.Provider.OpenAI.Configuration do
             headers: %{},
             timeouts: %Timeouts{},
             retry: %Retry{},
+            limits: %Limits{},
             reasoning_field: :none
 
   @type reasoning_field :: :none | :reasoning | :reasoning_content
@@ -25,6 +27,7 @@ defmodule Draught.Provider.OpenAI.Configuration do
           headers: %{optional(String.t()) => String.t()},
           timeouts: Timeouts.t(),
           retry: Retry.t(),
+          limits: Limits.t(),
           reasoning_field: reasoning_field()
         }
 

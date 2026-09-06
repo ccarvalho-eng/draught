@@ -3,6 +3,7 @@ defmodule Draught.Provider.OpenAI.ConfigurationTest do
 
   alias Draught.Provider.OpenAI.Configuration
   alias Draught.Provider.OpenAI.Configuration.Credential
+  alias Draught.Provider.OpenAI.Configuration.Limits
   alias Draught.Provider.OpenAI.Configuration.Retry
   alias Draught.Provider.OpenAI.Configuration.Timeouts
   alias Draught.Validation.Error
@@ -43,6 +44,15 @@ defmodule Draught.Provider.OpenAI.ConfigurationTest do
              }
 
       assert configuration.retry == %Retry{max_attempts: 3, fixed_delay_ms: 250}
+
+      assert configuration.limits == %Limits{
+               max_response_bytes: 16_777_216,
+               max_event_bytes: 1_048_576,
+               max_output_bytes: 16_777_216,
+               max_output_fragments: 65_536,
+               max_calls: 128,
+               max_arguments_bytes: 4_194_304
+             }
     end
 
     test "normalizes endpoint, model, credential, headers, timeouts, and retry settings" do
@@ -54,7 +64,8 @@ defmodule Draught.Provider.OpenAI.ConfigurationTest do
                  headers: %{"X-Title" => "private-title", "x-trace" => "enabled"},
                  reasoning_field: :reasoning_content,
                  timeouts: %{connect_ms: 500, receive_ms: 1_000, request_ms: 2_000},
-                 retry: %{max_attempts: 2, fixed_delay_ms: 0}
+                 retry: %{max_attempts: 2, fixed_delay_ms: 0},
+                 limits: %{max_response_bytes: 2_048, max_output_fragments: 16}
                )
 
       assert configuration.base_url == "http://localhost:11434/v1"
@@ -64,6 +75,8 @@ defmodule Draught.Provider.OpenAI.ConfigurationTest do
       assert configuration.reasoning_field == :reasoning_content
       assert configuration.timeouts.receive_ms == 1_000
       assert configuration.retry.max_attempts == 2
+      assert configuration.limits.max_response_bytes == 2_048
+      assert configuration.limits.max_output_fragments == 16
       refute inspect(configuration) =~ "ollama-local"
       refute inspect(configuration) =~ "private-title"
     end
@@ -133,6 +146,11 @@ defmodule Draught.Provider.OpenAI.ConfigurationTest do
         [retry: %{max_attempts: 0}],
         [retry: %{max_attempts: 5}],
         [retry: %{fixed_delay_ms: 5_001}],
+        [limits: %{max_response_bytes: 0}],
+        [limits: %{max_event_bytes: 8_388_609}],
+        [limits: %{max_output_fragments: 1_048_577}],
+        [limits: %{max_calls: 1_025}],
+        [limits: %{unknown: 1}],
         [reasoning_field: :unknown],
         [model: ""]
       ]

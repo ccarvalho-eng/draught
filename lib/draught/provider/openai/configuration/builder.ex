@@ -9,7 +9,7 @@ defmodule Draught.Provider.OpenAI.Configuration.Builder do
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
 
-  @keys [:base_url, :model, :credential, :headers, :timeouts, :retry, :reasoning_field]
+  @keys [:base_url, :model, :credential, :headers, :timeouts, :retry, :limits, :reasoning_field]
 
   @doc "Builds configuration from its independently validated groups."
   @spec new(map() | keyword()) :: Error.result(Configuration.t())
@@ -23,7 +23,7 @@ defmodule Draught.Provider.OpenAI.Configuration.Builder do
 
   defp build(
          {base_url, model, credential, headers},
-         {timeouts, retry, reasoning_field}
+         {timeouts, retry, limits, reasoning_field}
        ) do
     {:ok,
      %Configuration{
@@ -33,6 +33,7 @@ defmodule Draught.Provider.OpenAI.Configuration.Builder do
        headers: headers,
        timeouts: timeouts,
        retry: retry,
+       limits: limits,
        reasoning_field: reasoning_field
      }}
   end

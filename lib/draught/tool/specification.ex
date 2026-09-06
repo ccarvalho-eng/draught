@@ -4,6 +4,7 @@ defmodule Draught.Tool.Specification do
   """
 
   alias Draught.Tool.Name
+  alias Draught.Tool.Schema
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
   alias Draught.Validation.JSON
@@ -33,10 +34,7 @@ defmodule Draught.Tool.Specification do
 
   defp input_schema(attributes) do
     with {:ok, schema} <- Attributes.fetch_required(attributes, :input_schema) do
-      case JSON.validate_object(schema, [:input_schema]) do
-        :ok -> {:ok, schema}
-        {:error, _error} = result -> result
-      end
+      Schema.validate(schema)
     end
   end
 end

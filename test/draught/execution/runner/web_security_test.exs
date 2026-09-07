@@ -126,7 +126,7 @@ defmodule Draught.Execution.Runner.WebSecurityTest do
       configuration(provider, registry, context, limits(tool_timeout_ms: 250))
 
     task = Task.async(fn -> Runner.run(runner_configuration, first_request) end)
-    assert_receive {:web_search_started, web_process}
+    assert_receive {:web_search_started, web_process}, 1_000
     monitor = Process.monitor(web_process)
     assert Task.await(task) == {:ok, final}
     assert_receive {:DOWN, ^monitor, :process, ^web_process, :killed}

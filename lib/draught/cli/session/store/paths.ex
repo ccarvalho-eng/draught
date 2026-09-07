@@ -3,7 +3,11 @@ defmodule Draught.CLI.Session.Store.Paths do
 
   alias Draught.Session.Identifier
   alias Draught.Validation.Error
+  alias Draught.Workspace.Filesystem.Local
+  alias Draught.Workspace.Path.Canonical
   alias Draught.Workspace.Path.Resolver
+
+  @filesystem {Local, nil}
 
   @enforce_keys [
     :binding,
@@ -39,8 +43,9 @@ defmodule Draught.CLI.Session.Store.Paths do
   def new(workspace, identifier, environment) when is_map(environment) do
     with {:ok, id} <- Identifier.new(identifier),
          {:ok, canonical_workspace} <- Resolver.resolve(workspace, ".", :read),
-         {:ok, state_home} <- state_home(environment) do
-      build(canonical_workspace, id, state_home)
+         {:ok, state_home} <- state_home(environment),
+         {:ok, canonical_state_home} <- canonical_state_home(state_home) do
+      build(canonical_workspace, id, canonical_state_home)
     end
   end
 
@@ -71,6 +76,16 @@ defmodule Draught.CLI.Session.Store.Paths do
     case absolute_path(Map.get(environment, "XDG_STATE_HOME")) do
       {:ok, path} -> {:ok, path}
       :error -> home_state(environment)
+    end
+  end
+
+  defp canonical_state_home(path) do
+    case Canonical.resolve(@filesystem, path, :write) do
+      {:ok, canonical} ->
+        {:ok, canonical}
+
+      {:error, _reason} ->
+        Error.single([:state_home], :invalid_value, "cannot be resolved safely")
     end
   end
 

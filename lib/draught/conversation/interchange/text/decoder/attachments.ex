@@ -2,6 +2,7 @@ defmodule Draught.Conversation.Interchange.Text.Decoder.Attachments do
   @moduledoc false
 
   alias Draught.Conversation.Attachment
+  alias Draught.Conversation.Document.Collection
   alias Draught.Validation.Error
 
   @maximum_encoded_bytes div(Attachment.max_bytes() + 2, 3) * 4
@@ -91,8 +92,11 @@ defmodule Draught.Conversation.Interchange.Text.Decoder.Attachments do
       |> Map.put(:content, content)
 
     case Attachment.new(attributes) do
-      {:ok, rebuilt} -> {:cont, {:ok, [rebuilt | restored]}}
-      {:error, %Error{} = error} -> {:halt, {:error, prefix_error(error, index)}}
+      {:ok, rebuilt} ->
+        {:cont, {:ok, [rebuilt | restored]}}
+
+      {:error, %Error{} = error} ->
+        {:halt, {:error, Collection.prefix_error(error, [:attachments, index])}}
     end
   end
 
@@ -106,15 +110,6 @@ defmodule Draught.Conversation.Interchange.Text.Decoder.Attachments do
       :unknown_key,
       "raw attachment content is not supported by the text format"
     )
-  end
-
-  defp prefix_error(%Error{violations: violations}, index) do
-    prefixed =
-      Enum.map(violations, fn violation ->
-        %{violation | path: [:attachments, index | violation.path]}
-      end)
-
-    Error.new(prefixed)
   end
 
   defp reverse_attachments({:ok, attachments}) do

@@ -31,7 +31,7 @@ The project is in pre-alpha development. Provider integrations, tool contracts, 
 | Bounded agent runner | Complete |
 | Supervised session lifecycle | Complete |
 | Versioned local journals and replay | Complete |
-| Portable conversation interchange | Text format complete; attachment bundles planned |
+| Portable conversation interchange | Complete |
 | Privacy-safe telemetry | Complete |
 | Agentic CLI and one-command distribution | Planned |
 

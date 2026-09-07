@@ -7,6 +7,7 @@ defmodule Draught.Session do
   """
 
   alias Draught.Error.Normalized
+  alias Draught.Session.Failure
   alias Draught.Session.Identifier
   alias Draught.Session.Journal.Replay
   alias Draught.Session.LocalJournal
@@ -32,6 +33,26 @@ defmodule Draught.Session do
     with {:ok, canonical} <- Identifier.new(identifier) do
       Client.call(canonical, {:run, request, subscriber})
     end
+  end
+
+  @doc "Starts one turn whose runner events require explicit subscriber acknowledgement."
+  @spec run_observed(term(), term(), pid()) :: operation_result(pos_integer())
+  def run_observed(identifier, request, subscriber \\ self()) do
+    with {:ok, canonical} <- Identifier.new(identifier) do
+      Client.call(canonical, {:run_observed, request, subscriber})
+    end
+  end
+
+  @doc "Acknowledges one runner event delivered by `run_observed/3`."
+  @spec acknowledge(pid(), reference(), :ok | :halt) :: :ok | {:error, Normalized.t()}
+  def acknowledge(session, acknowledgement, result)
+      when is_pid(session) and is_reference(acknowledgement) and result in [:ok, :halt] do
+    send(session, {:runner_ack, acknowledgement, result})
+    :ok
+  end
+
+  def acknowledge(_session, _acknowledgement, _result) do
+    {:error, Failure.invalid_acknowledgement()}
   end
 
   @doc "Returns a responsive snapshot of the session lifecycle state."

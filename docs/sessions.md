@@ -25,6 +25,14 @@ Start an asynchronous turn and subscribe the calling process to its events:
 
 `run/3` accepts an explicit subscriber PID when events belong to another process. A subscriber must be alive when the turn starts.
 
+Interface implementations that must stop upstream work after an output failure use `run_observed/3`. Its runner events include a single-use acknowledgement reference:
+
+```elixir
+{:draught_session, session_id, {:runner, turn_id, runner_event, acknowledgement}}
+```
+
+Call `Draught.Session.acknowledge(session, acknowledgement, :ok)` to allow the runner to continue, or use `:halt` to stop it. Cancellation, timeout, or session shutdown also resolves the pending delivery as a halt. This acknowledged form is intended for bounded interface adapters; ordinary application subscribers use `run/3` and receive the asynchronous three-element runner event.
+
 `start/3` accepts `:journal`, `:turn_timeout_ms`, and `:lifecycle` options. Lifecycle settings contain an optional `:owner` PID and a `:restart` value of `:transient` or `:temporary`. The defaults create an unowned transient session. An owner-bound session stops when its owner exits; temporary sessions are not restarted by the dynamic supervisor.
 
 Status includes the effective `search` and `fetch` permission states for the session. Interfaces can render these values before starting a turn without inspecting adapter configuration.
@@ -42,6 +50,8 @@ Session events are tagged with the canonical session identifier:
 Turn identifiers increase monotonically within a running session. The session emits one terminal event for an accepted turn. The nested runner terminal event is not forwarded separately.
 
 Runner events preserve the order described in the [agent runner guide](runner.md). They can contain conversation and tool content and must not be treated as telemetry-safe values.
+
+In acknowledged streaming mode, provider deltas and tool-call events are delivered synchronously to the subscriber before the retained provider result. These transient provider events are not appended to the journal. Provider results and tool results are appended before subscriber delivery, and the terminal outcome is appended before the terminal session event. A subscriber that rejects a runner event stops the active stream rather than allowing the provider to run ahead. The provider and whole-turn deadlines bound a subscriber that never acknowledges.
 
 ## Cancellation and timeout rules
 
@@ -67,9 +77,12 @@ sequenceDiagram
   Session-->>Caller: accepted turn identifier
   Session-->>Caller: turn_started
   Turn->>Effect: start bounded work
-  Effect-->>Turn: canonical result
-  Turn-->>Session: runner event or terminal result
-  Session-->>Caller: ordered runner event
+  Effect-->>Turn: transient event or canonical result
+  Turn->>Session: token-scoped synchronous runner event
+  Session-->>Caller: ordered event with acknowledgement
+  Caller-->>Session: continue or halt
+  Session-->>Turn: resolve synchronous runner sink
+  Turn-->>Session: terminal result
   Session-->>Caller: one turn_terminal
 
   alt cancellation or whole-turn timeout

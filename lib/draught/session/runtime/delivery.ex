@@ -11,4 +11,19 @@ defmodule Draught.Session.Runtime.Delivery do
     send(subscriber, {:draught_session, session_id, event})
     :ok
   end
+
+  @doc "Delivers one tagged runner event carrying its single-use acknowledgement reference."
+  @spec acknowledged_event(pid(), String.t(), Event.t(), reference()) :: :ok
+  def acknowledged_event(subscriber, session_id, event, acknowledgement) do
+    send(
+      subscriber,
+      {:draught_session, session_id, append_acknowledgement(event, acknowledgement)}
+    )
+
+    :ok
+  end
+
+  defp append_acknowledgement({:runner, turn_id, event}, acknowledgement) do
+    {:runner, turn_id, event, acknowledgement}
+  end
 end

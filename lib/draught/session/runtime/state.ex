@@ -71,6 +71,15 @@ defmodule Draught.Session.Runtime.State do
     %{state | active: active, next_turn_id: active.id + 1}
   end
 
+  @doc "Replaces the active turn after an internal delivery-state transition."
+  @spec update_active(t(), ActiveTurn.t()) :: t()
+  def update_active(
+        %__MODULE__{active: %ActiveTurn{id: id}} = state,
+        %ActiveTurn{id: id} = active
+      ) do
+    %{state | active: active}
+  end
+
   @doc "Applies the pure transition from an active turn to idle."
   @spec finish_turn(t(), Draught.Execution.Runner.result()) :: t()
   def finish_turn(%__MODULE__{} = state, outcome) do

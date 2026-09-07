@@ -1,6 +1,6 @@
 # Getting started
 
-This guide covers building the executable from a source checkout, configuring a local Ollama profile, selecting a model, running diagnostics, and executing one anonymous task. Interactive input and persistent CLI sessions are not available in this slice.
+This guide covers building the executable from a source checkout, configuring a local Ollama profile, selecting a model, running diagnostics, and executing anonymous or named tasks. Interactive input is not available yet.
 
 ## 1. Build the executable
 
@@ -29,7 +29,7 @@ ollama pull qwen3
 ollama list
 ```
 
-Draught's built-in `ollama` profile connects to `http://localhost:11434`. The selected model must report chat and tool-call capabilities through Ollama's discovery API. The current one-shot command uses completion rather than streaming.
+Draught's built-in `ollama` profile connects to `http://localhost:11434`. The selected model must report chat, streaming, and tool-call capabilities through Ollama's discovery API.
 
 ## 3. Check the environment
 
@@ -88,7 +88,7 @@ If more than one compatible Ollama model is installed, select one explicitly:
 ./draught --model qwen3 "inspect this workspace"
 ```
 
-The command creates a temporary supervised session, executes one turn, waits for its terminal result, and stops the session. It does not create a session journal. Text output contains the final visible assistant text; `--output jsonl` returns one final task record. Incremental streaming is not available.
+The command creates a temporary supervised session, executes one turn, streams visible assistant text, waits for its terminal result, and stops the session. It does not create a session journal. On an interactive terminal, a compact bounded activity indicator is displayed while the provider has not produced visible output. `--color never`, redirected or narrow output, and `--output jsonl` disable the indicator. JSONL emits ordered event records followed by exactly one terminal record.
 
 The default `ask` risk mode permits read operations. Effectful operations require approval, but this anonymous command has no interactive approval prompt, so those operations are returned to the model as approval-required results. See [Configuration](configuration.md#task-risk-modes) before enabling effectful tools.
 
@@ -106,7 +106,7 @@ Continue from its successful assistant response:
 ./draught --resume review "continue this work"
 ```
 
-The session retains the complete provider conversation in the user state directory and remains bound to its original provider connection and exact model. Use a different identifier to start unrelated work.
+The session retains the complete provider conversation in the user state directory and remains bound to its original provider connection, exact model, and negotiated capabilities. Resume rejects incompatible changes before provider execution. Use a different identifier to start unrelated work.
 
 ## 7. Current execution limits
 
@@ -119,6 +119,6 @@ The following forms remain explicit unavailable results:
 ./draught "search the web" --web
 ```
 
-Interactive input, prompt-free resume, incremental streaming, and enabled web execution depend on later capability work. Each anonymous task starts without prior conversation state.
+Interactive input, prompt-free resume, and enabled web execution depend on later capability work. Each anonymous task starts without prior conversation state.
 
 See [CLI](cli.md) for command and exit behavior and [Ollama provider](providers/ollama.md) for discovery details.

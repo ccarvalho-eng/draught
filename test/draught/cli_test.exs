@@ -7,6 +7,8 @@ defmodule Draught.CLITest do
   alias Draught.Conversation
   alias Draught.Conversation.Message.Tool
   alias Draught.Error.Normalized
+  alias Draught.Event.Provider.Delta
+  alias Draught.Event.Provider.ToolCall
   alias Draught.Provider.Capabilities
   alias Draught.Provider.Ollama.Discovery.HTTP.Failure
   alias Draught.Provider.Response
@@ -39,14 +41,19 @@ defmodule Draught.CLITest do
     end
 
     @impl Draught.CLI.System.Adapter
+    def write(stream, content, %{write: :closed} = configuration) do
+      send(configuration.owner, {:cli_write_attempt, stream, IO.iodata_to_binary(content)})
+      {:error, :closed}
+    end
+
     def write(stream, content, configuration) do
       send(configuration.owner, {:cli_output, stream, IO.iodata_to_binary(content)})
       :ok
     end
 
     @impl Draught.CLI.System.Adapter
-    def tty?(_stream, _configuration) do
-      false
+    def tty?(_stream, configuration) do
+      configuration.tty
     end
 
     @impl Draught.CLI.System.Adapter
@@ -69,9 +76,11 @@ defmodule Draught.CLITest do
   defmodule StaticProvider do
     @behaviour Draught.Provider
 
+    alias Draught.CLITest
+
     @impl Draught.Provider
     def capabilities(_configuration) do
-      Capabilities.new(chat: true, tool_calls: true)
+      Capabilities.new(chat: true, streaming: true, tool_calls: true)
     end
 
     @impl Draught.Provider
@@ -84,8 +93,12 @@ defmodule Draught.CLITest do
     end
 
     @impl Draught.Provider
-    def stream(_request, _configuration, _sink) do
-      {:error, :not_used}
+    def stream(_request, {:error, _error} = result, sink) do
+      CLITest.emit_provider_result(result, sink)
+    end
+
+    def stream(_request, response, sink) do
+      CLITest.emit_provider_result({:ok, response}, sink)
     end
   end
 
@@ -121,7 +134,7 @@ defmodule Draught.CLITest do
 
     @impl Draught.Provider
     def capabilities(_owner) do
-      Capabilities.new(chat: true, tool_calls: true)
+      Capabilities.new(chat: true, streaming: true, tool_calls: true)
     end
 
     @impl Draught.Provider
@@ -136,8 +149,8 @@ defmodule Draught.CLITest do
     end
 
     @impl Draught.Provider
-    def stream(_request, _owner, _sink) do
-      {:error, :not_used}
+    def stream(request, owner, _sink) do
+      complete(request, owner)
     end
   end
 
@@ -150,12 +163,50 @@ defmodule Draught.CLITest do
     end
   end
 
+  defmodule GatedProvider do
+    @behaviour Draught.Provider
+
+    alias Draught.CLITest
+
+    @impl Draught.Provider
+    def capabilities(_configuration) do
+      Capabilities.new(chat: true, streaming: true, tool_calls: true)
+    end
+
+    @impl Draught.Provider
+    def complete(_request, _configuration) do
+      {:error, :unexpected_completion}
+    end
+
+    @impl Draught.Provider
+    def stream(_request, {owner, response}, sink) do
+      send(owner, {:gated_provider_started, self()})
+      first = CLITest.delta("first")
+      :ok = sink.(first)
+      send(owner, :gated_provider_advanced)
+      second = CLITest.delta("second")
+      :ok = sink.(second)
+      {:ok, response}
+    end
+  end
+
+  defmodule GatedProviderFactory do
+    @behaviour Draught.CLI.Task.Provider.Adapter
+
+    @impl Draught.CLI.Task.Provider.Adapter
+    def build(_configuration, provider_configuration) do
+      Selection.new({GatedProvider, provider_configuration}, "free-model")
+    end
+  end
+
   defmodule ScriptedProvider do
     @behaviour Draught.Provider
 
+    alias Draught.CLITest
+
     @impl Draught.Provider
     def capabilities(_owner) do
-      Capabilities.new(chat: true, tool_calls: true)
+      Capabilities.new(chat: true, streaming: true, tool_calls: true)
     end
 
     @impl Draught.Provider
@@ -168,8 +219,10 @@ defmodule Draught.CLITest do
     end
 
     @impl Draught.Provider
-    def stream(_request, _owner, _sink) do
-      {:error, :not_used}
+    def stream(request, owner, sink) do
+      request
+      |> complete(owner)
+      |> CLITest.emit_provider_result(sink)
     end
   end
 
@@ -194,9 +247,50 @@ defmodule Draught.CLITest do
     end
 
     @impl Draught.Provider.OpenAI.Transport
-    def stream(_request, _configuration, state, _reducer) do
-      {:error, :not_used, state}
+    def stream(request, {owner, chunks}, state, reducer) do
+      send(owner, {:completion_request, request})
+
+      {updated, _emitted} =
+        Enum.reduce_while(chunks, {state, false}, fn chunk, {current, emitted} ->
+          case reducer.(chunk, current) do
+            {:cont, next, output} -> {:cont, {next, emitted or output}}
+            {:halt, next, output} -> {:halt, {next, emitted or output}}
+          end
+        end)
+
+      {:ok, %Response{status: 200}, updated}
     end
+  end
+
+  @spec emit_provider_result(Draught.Provider.provider_result(Response.t()), function()) ::
+          Draught.Provider.provider_result(Response.t())
+  def emit_provider_result({:ok, %Response{} = response} = result, sink) do
+    Enum.each(response.message.tool_calls, fn call ->
+      {:ok, event} = ToolCall.new(call: call)
+      :ok = sink.(event)
+    end)
+
+    Enum.each(response.message.content, fn
+      %Conversation.Content.Text{text: text} ->
+        {:ok, event} = Delta.new(kind: :text, content: text)
+        :ok = sink.(event)
+
+      _content ->
+        :ok
+    end)
+
+    result
+  end
+
+  def emit_provider_result(result, _sink) do
+    result
+  end
+
+  @doc false
+  @spec delta(String.t()) :: Delta.t()
+  def delta(content) do
+    {:ok, event} = Delta.new(kind: :text, content: content)
+    event
   end
 
   test "renders help and version without loading configuration" do
@@ -327,7 +421,8 @@ defmodule Draught.CLITest do
     assert {:ok, response} = Response.new(message: assistant, finish_reason: :stop)
 
     assert CLI.run(["inspect this project"], dependencies(provider_response: response)) == 0
-    assert_receive {:cli_output, :stdout, "Inspection complete\n"}
+    assert_receive {:cli_output, :stdout, "Inspection complete"}
+    assert_receive {:cli_output, :stdout, "\n"}
   end
 
   test "maps supervised session cancellation to the CLI exit boundary" do
@@ -348,6 +443,64 @@ defmodule Draught.CLITest do
     assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}, @receive_timeout
     assert_receive {:cli_output, :stderr, output}, @receive_timeout
     assert output =~ "session_cancelled"
+  end
+
+  test "shows activity while an interactive one-shot command is waiting" do
+    identifier = "indicator-smoke-#{System.unique_integer([:positive, :monotonic])}"
+
+    dependencies =
+      dependencies(
+        provider_factory: {BlockingProviderFactory, self()},
+        identifier: fn -> {:ok, identifier} end,
+        tty: true
+      )
+
+    task = Task.async(fn -> CLI.run(["inspect this project"], dependencies) end)
+
+    assert_receive {:blocking_provider_started, _provider}, @receive_timeout
+    assert_receive {:cli_output, :stdout, indicator}, @receive_timeout
+    assert indicator =~ "Working"
+    assert indicator =~ <<27>>
+
+    assert :ok = Session.cancel(identifier)
+    assert Task.await(task) == 130
+  end
+
+  test "color never suppresses activity controls on a text TTY" do
+    identifier = "indicator-color-#{System.unique_integer([:positive, :monotonic])}"
+
+    dependencies =
+      dependencies(
+        provider_factory: {BlockingProviderFactory, self()},
+        identifier: fn -> {:ok, identifier} end,
+        tty: true
+      )
+
+    task = Task.async(fn -> CLI.run(["inspect", "--color", "never"], dependencies) end)
+
+    assert_receive {:blocking_provider_started, _provider}, @receive_timeout
+    refute_receive {:cli_output, :stdout, _indicator}, 250
+    assert :ok = Session.cancel(identifier)
+    assert Task.await(task) == 130
+  end
+
+  test "a closed output stream halts the provider before its next event" do
+    final = response("firstsecond")
+
+    dependencies =
+      dependencies(
+        provider_factory: {GatedProviderFactory, {self(), final}},
+        write: :closed
+      )
+
+    task = Task.async(fn -> CLI.run(["inspect"], dependencies) end)
+
+    assert_receive {:gated_provider_started, provider}, @receive_timeout
+    provider_monitor = Process.monitor(provider)
+    assert_receive {:cli_write_attempt, :stdout, "first"}, @receive_timeout
+    assert Task.await(task) == 70
+    refute_receive :gated_provider_advanced
+    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, _reason}, @receive_timeout
   end
 
   test "denies an effectful tool through the CLI entry boundary" do
@@ -372,7 +525,13 @@ defmodule Draught.CLITest do
     send(second_provider, {:scripted_provider_result, {:ok, final}})
 
     assert Task.await(task) == 0
-    assert_receive {:cli_output, :stdout, "The edit was denied\n"}, @receive_timeout
+    assert_receive {:cli_output, :stdout, "[tool] replace_in_file requested\n"}, @receive_timeout
+
+    assert_receive {:cli_output, :stdout, "[tool] replace_in_file error (tool_risk_denied)\n"},
+                   @receive_timeout
+
+    assert_receive {:cli_output, :stdout, "The edit was denied"}, @receive_timeout
+    assert_receive {:cli_output, :stdout, "\n"}, @receive_timeout
   end
 
   @tag :tmp_dir
@@ -410,35 +569,38 @@ defmodule Draught.CLITest do
     send(third_provider, {:scripted_provider_result, {:ok, response("Updated and verified")}})
 
     assert Task.await(task) == 0
-    assert_receive {:cli_output, :stdout, "Updated and verified\n"}, @receive_timeout
+
+    assert receive_outputs(6) == [
+             {:stdout, "[tool] replace_in_file requested\n"},
+             {:stdout, "[tool] replace_in_file success\n"},
+             {:stdout, "[tool] read_file requested\n"},
+             {:stdout, "[tool] read_file success\n"},
+             {:stdout, "Updated and verified"},
+             {:stdout, "\n"}
+           ]
   end
 
   test "auto-selects one compatible Ollama model for a complete CLI task" do
     queue_list(["qwen3"])
     queue_model(["completion", "tools"])
 
-    body =
-      Jason.encode!(%{
-        "choices" => [
-          %{
-            "finish_reason" => "stop",
-            "index" => 0,
-            "message" => %{"content" => "Local task complete", "role" => "assistant"}
-          }
-        ]
-      })
+    chunks = [
+      sse(%{"content" => "Local task complete", "role" => "assistant"}, "stop"),
+      "data: [DONE]\n\n"
+    ]
 
     provider =
       {Draught.CLI.Task.Provider.Local,
        [
          discovery_http: DiscoveryHTTP,
-         provider_transport: {CompletionTransport, {self(), body}}
+         provider_transport: {CompletionTransport, {self(), chunks}}
        ]}
 
     assert CLI.run(["inspect this project"], dependencies(provider_factory: provider)) == 0
     assert_receive {:completion_request, request}
     assert request.body["model"] == "qwen3"
-    assert_receive {:cli_output, :stdout, "Local task complete\n"}
+    assert_receive {:cli_output, :stdout, "Local task complete"}
+    assert_receive {:cli_output, :stdout, "\n"}
   end
 
   test "renders one-shot task results as JSONL" do
@@ -450,14 +612,15 @@ defmodule Draught.CLITest do
              dependencies(provider_response: response)
            ) == 0
 
-    assert_receive {:cli_output, :stdout, output}
+    [delta, terminal] = receive_outputs(2)
+    assert {:stdout, delta_output} = delta
+    assert {:stdout, terminal_output} = terminal
 
-    decoded =
-      output
-      |> String.trim()
-      |> Jason.decode!()
+    assert %{"type" => "event", "event" => "text_delta", "content" => "done"} =
+             Jason.decode!(delta_output)
 
-    assert %{"type" => "task", "status" => "ok", "content" => "done"} = decoded
+    assert %{"type" => "terminal", "status" => "ok", "content_streamed" => true} =
+             Jason.decode!(terminal_output)
   end
 
   @tag :tmp_dir
@@ -470,10 +633,12 @@ defmodule Draught.CLITest do
     dependencies = dependencies(cwd: workspace, environment: environment)
 
     assert CLI.run(["inspect", "--session", "named"], dependencies) == 0
-    assert_receive {:cli_output, :stdout, "unused\n"}
+    assert_receive {:cli_output, :stdout, "unused"}
+    assert_receive {:cli_output, :stdout, "\n"}
 
     assert CLI.run(["continue", "--resume", "named"], dependencies) == 0
-    assert_receive {:cli_output, :stdout, "unused\n"}
+    assert_receive {:cli_output, :stdout, "unused"}
+    assert_receive {:cli_output, :stdout, "\n"}
 
     assert CLI.run(["inspect", "--session", "named"], dependencies) == 5
     assert_receive {:cli_output, :stderr, session_output}
@@ -532,7 +697,7 @@ defmodule Draught.CLITest do
              dependencies(provider_factory: {FailingProviderFactory, unavailable})
            ) == 3
 
-    assert_receive {:cli_output, :stderr, provider_output}
+    assert_receive {:cli_output, :stdout, provider_output}
     assert Jason.decode!(provider_output)["category"] == "provider"
 
     assert CLI.run(
@@ -540,7 +705,7 @@ defmodule Draught.CLITest do
              dependencies(provider_response: {:error, unavailable})
            ) == 4
 
-    assert_receive {:cli_output, :stderr, execution_output}
+    assert_receive {:cli_output, :stdout, execution_output}
     assert Jason.decode!(execution_output)["category"] == "execution"
 
     assert CLI.run(
@@ -548,7 +713,7 @@ defmodule Draught.CLITest do
              dependencies(identifier: fn -> {:error, :unavailable} end)
            ) == 5
 
-    assert_receive {:cli_output, :stderr, session_output}
+    assert_receive {:cli_output, :stdout, session_output}
     assert Jason.decode!(session_output)["category"] == "session"
   end
 
@@ -564,7 +729,7 @@ defmodule Draught.CLITest do
     dependencies = dependencies(identifier: fn -> {:ok, "../invalid"} end)
 
     assert CLI.run(["inspect", "--output", "jsonl"], dependencies) == 5
-    assert_receive {:cli_output, :stderr, output}
+    assert_receive {:cli_output, :stdout, output}
 
     assert %{"category" => "session", "code" => "invalid_setup"} =
              Jason.decode!(output)
@@ -630,7 +795,9 @@ defmodule Draught.CLITest do
          owner: self(),
          cwd: Keyword.get(options, :cwd, "/workspace"),
          environment: Keyword.get(options, :environment, %{}),
-         files: Keyword.get(options, :files, %{})
+         files: Keyword.get(options, :files, %{}),
+         tty: Keyword.get(options, :tty, false),
+         write: Keyword.get(options, :write, :ok)
        }}
 
     {:ok, dependencies} =
@@ -648,6 +815,13 @@ defmodule Draught.CLITest do
 
   defp queue(response) do
     send(self(), {:discovery_response, response})
+  end
+
+  defp receive_outputs(count) do
+    Enum.map(1..count, fn _index ->
+      assert_receive {:cli_output, stream, content}, @receive_timeout
+      {stream, content}
+    end)
   end
 
   defp queue_list(models) do
@@ -704,5 +878,15 @@ defmodule Draught.CLITest do
     {:ok, assistant} = Conversation.assistant(content: content)
     {:ok, response} = Response.new(message: assistant, finish_reason: :stop)
     response
+  end
+
+  defp sse(delta, finish_reason) do
+    payload = %{
+      "choices" => [
+        %{"delta" => delta, "finish_reason" => finish_reason, "index" => 0}
+      ]
+    }
+
+    "data: #{Jason.encode!(payload)}\n\n"
   end
 end

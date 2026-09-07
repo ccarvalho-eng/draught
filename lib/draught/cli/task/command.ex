@@ -1,6 +1,6 @@
 defmodule Draught.CLI.Task.Command do
   @moduledoc """
-  Executes anonymous or named task invocations and emits their terminal CLI result.
+  Executes anonymous or named task invocations and emits their ordered CLI stream.
   """
 
   alias Draught.CLI.Command
@@ -11,9 +11,10 @@ defmodule Draught.CLI.Task.Command do
   alias Draught.CLI.Task
   alias Draught.CLI.Task.Command.Result
   alias Draught.CLI.Task.Named
+  alias Draught.CLI.Task.Stream
   alias Draught.CLI.Writer
 
-  @doc "Runs one anonymous or named task command and emits its terminal result."
+  @doc "Runs one anonymous or named task command and emits its ordered result stream."
   @spec run(Command.Invocation.t(), Dependencies.t()) :: non_neg_integer()
   def run(%Command.Invocation{prompt: prompt} = invocation, dependencies)
       when is_binary(prompt) do
@@ -29,8 +30,9 @@ defmodule Draught.CLI.Task.Command do
   defp execute(invocation, %Dependencies{} = dependencies) do
     case Loader.load(invocation, dependencies.system) do
       {:ok, configuration, workspace} ->
-        result = task(invocation, configuration, workspace, dependencies)
-        Result.emit(result, invocation, dependencies)
+        stream = Stream.new(invocation.output, dependencies.system, color: invocation.color)
+        {result, observed} = task(invocation, configuration, workspace, dependencies, stream)
+        Result.emit(result, observed)
 
       {:error, %Error{} = error} ->
         error
@@ -43,26 +45,35 @@ defmodule Draught.CLI.Task.Command do
          %Command.Invocation{session: nil, resume: nil} = invocation,
          configuration,
          workspace,
-         dependencies
+         dependencies,
+         stream
        ) do
-    Task.run(invocation.prompt, configuration, workspace, dependencies.task)
+    Task.run_observed(
+      invocation.prompt,
+      configuration,
+      workspace,
+      dependencies.task,
+      stream
+    )
   end
 
   defp task(
          %Command.Invocation{session: identifier} = invocation,
          configuration,
          workspace,
-         dependencies
+         dependencies,
+         stream
        )
        when is_binary(identifier) do
-    Named.run(
+    Named.run_observed(
       :create,
       identifier,
       invocation.prompt,
       configuration,
       workspace,
       environment(dependencies.system),
-      dependencies.task
+      dependencies.task,
+      stream
     )
   end
 
@@ -70,17 +81,19 @@ defmodule Draught.CLI.Task.Command do
          %Command.Invocation{resume: identifier} = invocation,
          configuration,
          workspace,
-         dependencies
+         dependencies,
+         stream
        )
        when is_binary(identifier) do
-    Named.run(
+    Named.run_observed(
       :resume,
       identifier,
       invocation.prompt,
       configuration,
       workspace,
       environment(dependencies.system),
-      dependencies.task
+      dependencies.task,
+      stream
     )
   end
 

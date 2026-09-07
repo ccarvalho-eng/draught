@@ -2,6 +2,7 @@ defmodule Draught.Session.JournalIntegrationTest do
   use ExUnit.Case, async: true
 
   alias Draught.Conversation
+  alias Draught.Event.Provider.Delta
   alias Draught.Execution.Runner.Limits
   alias Draught.Provider
   alias Draught.Provider.Capabilities
@@ -23,7 +24,7 @@ defmodule Draught.Session.JournalIntegrationTest do
 
     @impl Provider
     def capabilities(_configuration) do
-      Capabilities.new(chat: true, tool_calls: true)
+      Capabilities.new(chat: true, streaming: true, tool_calls: true)
     end
 
     @impl Provider
@@ -36,9 +37,123 @@ defmodule Draught.Session.JournalIntegrationTest do
     end
 
     @impl Provider
-    def stream(_request, _configuration, _sink) do
-      {:error, :not_used}
+    def stream(request, configuration, sink) do
+      send(configuration.owner, {:journal_stream_started, self(), request})
+
+      receive do
+        {:stream, events, response} ->
+          Enum.each(events, sink)
+          {:ok, response}
+
+        {:stream_then_wait, event} ->
+          :ok = sink.(event)
+          send(configuration.owner, {:journal_stream_waiting, self()})
+
+          receive do
+            {:finish_stream, response} -> {:ok, response}
+          end
+      end
     end
+  end
+
+  test "delivers transient provider events without journaling them", %{tmp_dir: workspace} do
+    id = unique_id()
+    provider_configuration = secret_provider_configuration()
+    configuration = runner_configuration(workspace, provider_configuration, :stream)
+    request = request("stream")
+    final = response("done")
+    {:ok, delta} = Delta.new(kind: :text, content: "transient-only")
+
+    assert {:ok, _session} = Session.start(id, configuration)
+    assert {:ok, 1} = Session.run(id, request, self())
+    assert_receive {:journal_stream_started, provider, ^request}, @receive_timeout
+    send(provider, {:stream, [delta], final})
+
+    assert_receive {:draught_session, ^id, {:runner, 1, {:provider_event, 1, ^delta}}},
+                   @receive_timeout
+
+    assert_receive {:draught_session, ^id, {:runner, 1, {:provider_result, 1, {:ok, ^final}}}},
+                   @receive_timeout
+
+    assert_receive {:draught_session, ^id, {:turn_terminal, 1, {:ok, ^final}}}, @receive_timeout
+    assert :ok = Session.stop(id)
+
+    persisted =
+      workspace
+      |> journal_path(id)
+      |> File.read!()
+
+    refute persisted =~ "provider_event"
+    refute persisted =~ "transient-only"
+
+    assert {:ok, replay} = Session.replay(workspace, id)
+    expected_messages = Enum.concat(request.messages, [final.message])
+    assert replay.messages == expected_messages
+    assert {:completed, 1, {:ok, ^final}} = replay.terminal
+  end
+
+  test "cancellation halts an acknowledged stream before a later turn", %{tmp_dir: workspace} do
+    id = unique_id()
+    configuration = runner_configuration(workspace, secret_provider_configuration(), :stream)
+    first_request = request("cancel while streaming")
+    first_delta = delta("partial-visible-output")
+
+    assert {:ok, session} = Session.start(id, configuration)
+    assert {:ok, 1} = Session.run_observed(id, first_request, self())
+    assert_receive {:draught_session, ^id, {:turn_started, 1}}, @receive_timeout
+    assert_receive {:journal_stream_started, provider, ^first_request}, @receive_timeout
+    provider_monitor = Process.monitor(provider)
+    send(provider, {:stream_then_wait, first_delta})
+
+    assert_receive {:draught_session, ^id,
+                    {:runner, 1, {:provider_event, 1, ^first_delta}, first_acknowledgement}},
+                   @receive_timeout
+
+    token = :sys.get_state(session).active.token
+    assert :ok = Session.cancel(id)
+
+    assert_receive {:draught_session, ^id, {:turn_terminal, 1, {:error, cancellation}}},
+                   @receive_timeout
+
+    assert cancellation.code == "session_cancelled"
+    refute_receive {:draught_session, ^id, {:turn_terminal, 1, _outcome}}, 50
+    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, _reason}, @receive_timeout
+    refute_receive {:journal_stream_waiting, ^provider}
+
+    records = journal_records(workspace, id)
+    record_types = Enum.map(records, & &1["type"])
+    assert record_types == ["turn_started", "turn_terminal"]
+
+    persisted =
+      workspace
+      |> journal_path(id)
+      |> File.read!()
+
+    refute persisted =~ "partial-visible-output"
+
+    stale_event = {:provider_event, 1, first_delta}
+    assert GenServer.call(session, {:runner_event, token, stale_event}) == :halt
+    refute_receive {:draught_session, ^id, {:runner, 1, _event}}, 50
+
+    second_request = request("continue")
+    final = response("continued")
+    assert {:ok, 2} = Session.run_observed(id, second_request, self())
+    assert_receive {:draught_session, ^id, {:turn_started, 2}}, @receive_timeout
+    assert_receive {:journal_stream_started, second_provider, ^second_request}, @receive_timeout
+    send(second_provider, {:stream, [], final})
+
+    assert_receive {:draught_session, ^id,
+                    {:runner, 2, {:provider_result, 1, {:ok, ^final}}, acknowledgement}},
+                   @receive_timeout
+
+    assert :ok = Session.acknowledge(session, first_acknowledgement, :ok)
+    refute_receive {:draught_session, ^id, {:turn_terminal, 2, _outcome}}, 50
+    assert :ok = Session.acknowledge(session, acknowledgement, :ok)
+    assert_receive {:draught_session, ^id, {:turn_terminal, 2, {:ok, ^final}}}, @receive_timeout
+    assert :ok = Session.stop(id)
+
+    assert {:ok, replay} = Session.replay(workspace, id)
+    assert {:completed, 2, {:ok, ^final}} = replay.terminal
   end
 
   test "replays canonical state and continues turn identifiers after restart", %{
@@ -141,7 +256,7 @@ defmodule Draught.Session.JournalIntegrationTest do
     assert {:completed, 2, {:ok, ^final}} = final_replay.terminal
   end
 
-  defp runner_configuration(workspace, provider_configuration) do
+  defp runner_configuration(workspace, provider_configuration, provider_mode \\ :complete) do
     {:ok, registry} = Registry.new([])
     {:ok, policy} = Policy.new(allowed_risks: [:read])
     {:ok, context} = Context.new(workspace: workspace, policy: policy)
@@ -149,6 +264,7 @@ defmodule Draught.Session.JournalIntegrationTest do
 
     [
       provider: {ControlledProvider, provider_configuration},
+      provider_mode: provider_mode,
       registry: registry,
       tool_context: context,
       limits: limits
@@ -174,6 +290,18 @@ defmodule Draught.Session.JournalIntegrationTest do
 
     {:ok, response} = Response.new(message: assistant, finish_reason: :stop, usage: usage)
     response
+  end
+
+  defp delta(content) do
+    {:ok, event} = Delta.new(kind: :text, content: content)
+    event
+  end
+
+  defp journal_records(workspace, id) do
+    workspace
+    |> journal_path(id)
+    |> File.stream!()
+    |> Enum.map(&Jason.decode!/1)
   end
 
   defp secret_provider_configuration do

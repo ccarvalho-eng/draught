@@ -13,4 +13,35 @@ defmodule Draught.CLI.Output.Sanitizer do
     |> String.replace(@ansi_sequence, "")
     |> String.replace(@unsafe_controls, "")
   end
+
+  @doc "Removes unsafe controls and returns at most the requested UTF-8 byte prefix."
+  @spec text(String.t(), pos_integer()) :: String.t()
+  def text(value, maximum_bytes) when is_binary(value) and maximum_bytes > 0 do
+    value
+    |> text()
+    |> bounded(maximum_bytes)
+  end
+
+  defp bounded(value, maximum_bytes) when byte_size(value) <= maximum_bytes do
+    value
+  end
+
+  defp bounded(value, maximum_bytes) do
+    value
+    |> binary_part(0, maximum_bytes)
+    |> valid_prefix()
+  end
+
+  defp valid_prefix(value) do
+    valid_prefix(String.valid?(value), value)
+  end
+
+  defp valid_prefix(true, value) do
+    value
+  end
+
+  defp valid_prefix(false, value) do
+    shortened = binary_part(value, 0, byte_size(value) - 1)
+    valid_prefix(shortened)
+  end
 end

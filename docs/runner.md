@@ -13,6 +13,7 @@
 | `tool_context` | A canonical workspace, execution policy, and approval policy |
 | `limits` | A `Draught.Execution.Runner.Limits` value |
 | `sink` | A unary function that handles each runner event and returns `:ok` |
+| `provider_mode` | `:complete` by default, or `:stream` for ordered nonterminal provider events |
 
 The runner reconstructs these values at entry. It replaces any tool specifications on the request with specifications derived from the injected registry, preventing a provider-visible tool list from diverging from the executable catalog. Runner tool time and output limits replace the corresponding values in the execution policy; allowed risk classes and the approval adapter are preserved.
 
@@ -65,7 +66,11 @@ sequenceDiagram
   Runner->>Runner: reconstruct inputs and derive tool specifications
 
   loop within maximum iterations
-    Runner->>Provider: bounded completion
+    Runner->>Provider: bounded completion or stream
+    opt streaming mode
+      Provider-->>Runner: validated text, reasoning, or tool-call event
+      Runner->>Sink: provider_event
+    end
     Provider-->>Runner: canonical response or failure
     Runner->>Sink: provider_result
 
@@ -101,7 +106,7 @@ The defaults and accepted maxima are:
 | Provider iterations | 12 | 100 | Stops before another provider request would exceed the limit |
 | Provider time | 120,000 ms | 600,000 ms | Terminates the run when one provider completion exceeds the limit |
 | Tool time | 30,000 ms | 600,000 ms | Produces one recoverable error result when one tool exceeds the limit |
-| Retained output | 1 MiB | 16 MiB | Bounds each canonical provider response and tool result |
+| Retained output | 1 MiB | 16 MiB | Bounds each canonical provider response, cumulative transient provider stream, and tool result |
 
 The runner terminates with a normalized error when a provider call fails, a provider task terminates, provider time or output is exceeded, the iteration limit is reached, or a semantic tool batch repeats. Duplicate detection compares the ordered tool names and argument maps without provider-generated call identifiers.
 
@@ -112,6 +117,7 @@ Tool denials, unknown tools, invalid arguments, executor failures, tool timeouts
 The runner emits events synchronously in execution order:
 
 ```elixir
+{:provider_event, iteration, delta_or_tool_call}
 {:provider_result, iteration, {:ok, response}}
 {:provider_result, iteration, {:error, error}}
 {:tool_result, iteration, result}
@@ -119,6 +125,10 @@ The runner emits events synchronously in execution order:
 {:terminal, {:error, error}}
 ```
 
-The sink is observational and cannot modify runner state or grant capabilities. It must return `:ok`. Runner events may contain conversation or tool content and therefore are not telemetry-safe by default. Telemetry and persistence layers must project or retain them under their own explicit content policies.
+`provider_event` is emitted only in explicit streaming mode. The runner relays validated text deltas, reasoning deltas, and complete tool-call events synchronously before the retained provider result. Provider terminal events are consumed by the provider facade and are not duplicated in the runner stream.
 
-Configuration or request validation can fail before execution begins; those failures return directly and do not emit runtime events. Streaming, user cancellation, durable session ownership, and replay are outside this runner contract and are handled by later application layers.
+The stream relay uses one absolute provider deadline and a cumulative byte budget. The provider cannot advance past an event until the runner sink acknowledges it. Timeout, owner exit, output overflow, sink cancellation, or provider failure terminates the supervised provider task before the runner continues.
+
+The sink is observational and cannot modify runner state or grant capabilities. It must return `:ok`. Runner events may contain conversation, reasoning, tool arguments, or tool output and therefore are not telemetry-safe or directly display-safe. Interfaces, telemetry, and persistence layers must apply their own explicit projection or retention policy.
+
+Configuration or request validation can fail before execution begins; those failures return directly and do not emit runtime events. User-facing stream projection, user cancellation, durable session ownership, and replay are outside this runner contract and are handled by application layers.

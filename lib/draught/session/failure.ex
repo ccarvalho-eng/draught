@@ -57,6 +57,16 @@ defmodule Draught.Session.Failure do
     error(:configuration, "invalid_subscriber", "Session subscriber must be a live process")
   end
 
+  @doc "Builds an invalid runner-event acknowledgement failure."
+  @spec invalid_acknowledgement() :: Normalized.t()
+  def invalid_acknowledgement do
+    error(
+      :configuration,
+      "invalid_session_acknowledgement",
+      "Session acknowledgement must identify a live event and return :ok or :halt"
+    )
+  end
+
   @doc "Builds an explicit turn-cancellation outcome."
   @spec cancelled() :: Normalized.t()
   def cancelled do

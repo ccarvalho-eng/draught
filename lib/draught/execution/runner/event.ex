@@ -4,13 +4,15 @@ defmodule Draught.Execution.Runner.Event do
   """
 
   alias Draught.Error.Normalized
+  alias Draught.Event
   alias Draught.Provider.Response
   alias Draught.Tool.Result
 
   @type provider_result :: {:ok, Response.t()} | {:error, Normalized.t()}
   @type terminal_result :: provider_result()
   @type t ::
-          {:provider_result, pos_integer(), provider_result()}
+          {:provider_event, pos_integer(), Event.nonterminal()}
+          | {:provider_result, pos_integer(), provider_result()}
           | {:tool_result, pos_integer(), Result.t()}
           | {:terminal, terminal_result()}
 

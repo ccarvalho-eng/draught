@@ -14,6 +14,7 @@ defmodule Draught.SessionTest do
   alias Draught.Tool.Execution.Context
   alias Draught.Tool.Execution.Policy
   alias Draught.Tool.Registry
+  alias Draught.Web.Capability
 
   @receive_timeout 1_000
   @moduletag :tmp_dir
@@ -61,6 +62,15 @@ defmodule Draught.SessionTest do
     end
   end
 
+  defmodule SearchAdapter do
+    @behaviour Draught.Web.Search.Adapter
+
+    @impl Draught.Web.Search.Adapter
+    def search(_query, _policy, _configuration) do
+      {:ok, []}
+    end
+  end
+
   test "rejects a duplicate session identifier", %{tmp_dir: workspace} do
     id = unique_id()
     configuration = runner_configuration(workspace, {ControlledProvider, self()})
@@ -93,6 +103,21 @@ defmodule Draught.SessionTest do
     assert status.phase == :idle
     assert status.active_turn_id == nil
     assert status.last_outcome == {:ok, final}
+    assert status.web == %{fetch: :disabled, search: :disabled}
+  end
+
+  test "status exposes the effective per-session web permissions", %{tmp_dir: workspace} do
+    id = unique_id()
+    {:ok, web} = Capability.new(policy: [search: true], search: {SearchAdapter, nil})
+    {:ok, policy} = Policy.new(allowed_risks: [:read, :network])
+    {:ok, context} = Context.new(workspace: workspace, policy: policy, web: web)
+
+    configuration =
+      runner_configuration(workspace, {ControlledProvider, self()}, context: context)
+
+    start_session(id, configuration)
+
+    assert {:ok, %Status{web: %{fetch: :disabled, search: :enabled}}} = Session.status(id)
   end
 
   test "accepts only one concurrent turn and keeps status responsive", %{tmp_dir: workspace} do
@@ -272,7 +297,12 @@ defmodule Draught.SessionTest do
   defp runner_configuration(workspace, provider, options \\ []) do
     registry = Keyword.get_lazy(options, :registry, fn -> registry([]) end)
     {:ok, policy} = Policy.new(allowed_risks: [:read])
-    {:ok, context} = Context.new(workspace: workspace, policy: policy)
+
+    context =
+      Keyword.get_lazy(options, :context, fn ->
+        {:ok, value} = Context.new(workspace: workspace, policy: policy)
+        value
+      end)
 
     {:ok, limits} =
       Limits.new(provider_timeout_ms: 5_000, tool_timeout_ms: 5_000)

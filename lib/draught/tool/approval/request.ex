@@ -15,6 +15,7 @@ defmodule Draught.Tool.Approval.Request do
   @maximum_target_bytes 512
   @maximum_summary_bytes 1_024
   @control_bytes ~r/[\x00-\x1F\x7F]/
+  @unicode_display_controls ~r/[\x{0080}-\x{009F}\x{061C}\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2060}-\x{206F}\x{FEFF}]/u
 
   @enforce_keys [:call_id, :tool, :target, :arguments_summary, :risk]
   defstruct [:call_id, :tool, :target, :arguments_summary, :risk]
@@ -60,14 +61,35 @@ defmodule Draught.Tool.Approval.Request do
 
   defp bounded_string(attributes, key, maximum) do
     with {:ok, value} <- Value.required_string(attributes, key),
-         true <- byte_size(value) <= maximum,
-         false <- Regex.match?(@control_bytes, value) do
+         :ok <- validate_size(value, key, maximum),
+         :ok <- validate_display_characters(value, key) do
       {:ok, value}
-    else
-      true -> Error.single([key], :invalid_value, "must not contain control characters")
-      false -> Error.single([key], :too_large, "exceeds the maximum byte size")
-      {:error, %Error{}} = result -> result
     end
+  end
+
+  defp validate_size(value, _key, maximum) when byte_size(value) <= maximum do
+    :ok
+  end
+
+  defp validate_size(_value, key, _maximum) do
+    Error.single([key], :too_large, "exceeds the maximum byte size")
+  end
+
+  defp validate_display_characters(value, key) do
+    safe? =
+      String.valid?(value) and
+        not Regex.match?(@control_bytes, value) and
+        not Regex.match?(@unicode_display_controls, value)
+
+    validate_display_result(safe?, key)
+  end
+
+  defp validate_display_result(true, _key) do
+    :ok
+  end
+
+  defp validate_display_result(false, key) do
+    Error.single([key], :invalid_value, "must not contain control characters")
   end
 
   defp risk(attributes) do

@@ -59,6 +59,50 @@ defmodule Draught.Conversation.Interchange.TextTest do
     assert representative_document() == document
   end
 
+  test "retains sanitized web provenance when tool content is redacted" do
+    {:ok, document} =
+      Document.new(
+        messages: [
+          %{
+            "role" => "assistant",
+            "tool_calls" => [
+              %{
+                "id" => "web-1",
+                "name" => "web_fetch",
+                "arguments" => %{"url" => "https://example.com/page"}
+              }
+            ]
+          },
+          %{
+            "role" => "tool",
+            "result" => %{
+              "call_id" => "web-1",
+              "name" => "web_fetch",
+              "content" => "private page content",
+              "status" => "success",
+              "provenance" => %{
+                "origin" => "web",
+                "trust" => "untrusted",
+                "sources" => ["https://example.com/page?private=query#section"]
+              }
+            }
+          }
+        ]
+      )
+
+    assert {:ok, encoded} = Text.encode(document)
+    refute encoded =~ "private page content"
+    refute encoded =~ "private=query"
+    refute encoded =~ "#section"
+
+    assert {:ok, decoded} = Text.decode(encoded)
+    assert [_assistant, %Tool{} = tool] = decoded.messages
+    assert tool.result.content == "[tool result redacted]"
+    assert tool.result.provenance.origin == :web
+    assert tool.result.provenance.trust == :untrusted
+    assert tool.result.provenance.sources == ["https://example.com/page"]
+  end
+
   test "keeps sensitive payloads out of the readable narrative even when retained" do
     document = representative_document()
 

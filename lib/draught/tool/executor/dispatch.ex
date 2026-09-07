@@ -4,25 +4,25 @@ defmodule Draught.Tool.Executor.Dispatch do
   alias Draught.Error.Normalized
   alias Draught.Tool.Execution.Context
   alias Draught.Tool.Execution.Failure
+  alias Draught.Tool.Output
 
   @result_error_kinds [:cancellation, :policy, :timeout, :tool]
 
   @doc "Invokes an executor and validates its bounded canonical result."
   @spec execute({module(), term()}, Draught.Tool.Call.t(), Context.t()) ::
-          {:ok, String.t()} | {:error, Normalized.t()}
+          {:ok, Output.t()} | {:error, Normalized.t()}
   def execute({module, configuration}, call, %Context{} = context) do
     module
     |> then(& &1.execute(call, context, configuration))
     |> normalize(context.policy.max_output_bytes)
   end
 
-  defp normalize({:ok, content}, maximum_bytes)
-       when is_binary(content) and byte_size(content) <= maximum_bytes do
-    valid_content(content)
+  defp normalize({:ok, %Output{} = output}, maximum_bytes) do
+    normalize_output(output, maximum_bytes)
   end
 
-  defp normalize({:ok, content}, _maximum_bytes) when is_binary(content) do
-    {:error, Failure.tool_output_too_large()}
+  defp normalize({:ok, content}, maximum_bytes) when is_binary(content) do
+    normalize_output(%Output{content: content, provenance: nil}, maximum_bytes)
   end
 
   defp normalize({:error, %Normalized{} = error}, _maximum_bytes) do
@@ -33,18 +33,22 @@ defmodule Draught.Tool.Executor.Dispatch do
     {:error, Failure.invalid_tool_result()}
   end
 
-  defp valid_content(content) do
-    content
-    |> String.valid?()
-    |> valid_content_result(content)
-  end
+  defp normalize_output(%Output{} = output, maximum_bytes) do
+    canonical =
+      output
+      |> Map.from_struct()
+      |> Output.new()
 
-  defp valid_content_result(true, content) do
-    {:ok, content}
-  end
+    case canonical do
+      {:ok, %Output{content: content} = normalized} when byte_size(content) <= maximum_bytes ->
+        {:ok, normalized}
 
-  defp valid_content_result(false, _content) do
-    {:error, Failure.invalid_tool_result()}
+      {:ok, %Output{}} ->
+        {:error, Failure.tool_output_too_large()}
+
+      {:error, _error} ->
+        {:error, Failure.invalid_tool_result()}
+    end
   end
 
   defp normalize_error(error) do

@@ -3,32 +3,33 @@ defmodule Draught.Tool.Execution.Context do
   Explicit workspace and policy passed to each tool invocation.
   """
 
-  alias Draught.Tool.Approval.Policy.Adapter
-  alias Draught.Tool.Approval.Policy.Default
+  alias Draught.Tool.Execution.Context.Approval
   alias Draught.Tool.Execution.Policy
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
   alias Draught.Validation.Value
+  alias Draught.Web.Capability
 
-  @default_approval {Default, nil}
-
-  @enforce_keys [:workspace, :policy, :approval]
-  defstruct [:workspace, :policy, :approval]
+  @enforce_keys [:workspace, :policy, :approval, :web]
+  defstruct [:workspace, :policy, :approval, :web]
 
   @type t :: %__MODULE__{
           workspace: String.t(),
           policy: Policy.t(),
-          approval: Draught.Tool.Approval.policy()
+          approval: Draught.Tool.Approval.policy(),
+          web: Capability.t()
         }
 
   @doc "Builds an execution context with an absolute workspace path."
   @spec new(map() | keyword()) :: Error.result(t())
   def new(attributes) do
-    with {:ok, normalized} <- Attributes.normalize(attributes, [:workspace, :policy, :approval]),
+    with {:ok, normalized} <-
+           Attributes.normalize(attributes, [:workspace, :policy, :approval, :web]),
          {:ok, workspace} <- workspace(normalized),
          {:ok, policy} <- policy(normalized),
-         {:ok, approval} <- approval(normalized) do
-      {:ok, %__MODULE__{workspace: workspace, policy: policy, approval: approval}}
+         {:ok, approval} <- Approval.normalize(normalized),
+         {:ok, web} <- web(normalized) do
+      {:ok, %__MODULE__{workspace: workspace, policy: policy, approval: approval, web: web}}
     end
   end
 
@@ -68,12 +69,17 @@ defmodule Draught.Tool.Execution.Context do
     end
   end
 
-  defp approval(attributes) do
-    approval = Map.get(attributes, :approval, @default_approval)
+  defp web(%{web: %Capability{} = capability}) do
+    capability
+    |> Map.from_struct()
+    |> Capability.new()
+  end
 
-    case Adapter.validate(approval) do
-      {:ok, _module, _configuration} -> {:ok, approval}
-      {:error, _error} -> Error.single([:approval], :invalid_value, "must be an approval policy")
-    end
+  defp web(%{web: capability}) do
+    Capability.new(capability)
+  end
+
+  defp web(_attributes) do
+    Capability.new()
   end
 end

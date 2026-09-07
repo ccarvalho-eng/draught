@@ -25,6 +25,8 @@ Start an asynchronous turn and subscribe the calling process to its events:
 
 `run/3` accepts an explicit subscriber PID when events belong to another process. A subscriber must be alive when the turn starts.
 
+Status includes the effective `search` and `fetch` permission states for the session. Interfaces can render these values before starting a turn without inspecting adapter configuration.
+
 ## Events
 
 Session events are tagged with the canonical session identifier:

@@ -2,7 +2,7 @@ defmodule Draught.Execution.Runner.ToolExecution do
   @moduledoc false
 
   alias Draught.Error.Normalized
-  alias Draught.Execution.Runner.BoundedTask
+  alias Draught.Execution.BoundedTask
   alias Draught.Execution.Runner.Configuration
   alias Draught.Execution.Runner.Failure.Runtime
   alias Draught.Execution.Runner.Sink

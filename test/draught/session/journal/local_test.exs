@@ -10,6 +10,7 @@ defmodule Draught.Session.Journal.LocalTest do
   alias Draught.Session.Journal.Record
   alias Draught.Tool.Call
   alias Draught.Tool.Result
+  alias Draught.Tool.Result.Provenance
 
   @moduletag :tmp_dir
   @timestamp ~U[2026-09-07 01:02:03Z]
@@ -111,6 +112,52 @@ defmodule Draught.Session.Journal.LocalTest do
     assert first_call.arguments == %{"path" => "kept-argument"}
 
     assert Enum.at(replayed.messages, 2).result.content == "kept-output"
+  end
+
+  test "retains untrusted provenance when tool output is omitted", %{tmp_dir: workspace} do
+    configuration = configuration(workspace, "web-provenance")
+    request = request("inspect")
+    tool_call = call("call-1", %{"path" => "private-value"})
+    tool_response = response_with_tool(tool_call)
+
+    {:ok, provenance} =
+      Provenance.new(
+        origin: :web,
+        trust: :untrusted,
+        sources: ["https://example.com/page?private=query#fragment"]
+      )
+
+    {:ok, tool_result} =
+      Result.new(
+        call_id: "call-1",
+        name: "read_file",
+        content: "untrusted private output",
+        provenance: provenance,
+        status: :success
+      )
+
+    final_response = response("done", nil)
+    {:ok, handle, _replay} = Local.open(configuration)
+
+    _completed =
+      append_all(handle, [
+        {:turn_started, 1, "provider", request},
+        {:provider_result, 1, 1, {:ok, tool_response}},
+        {:tool_result, 1, 1, tool_result},
+        {:provider_result, 1, 2, {:ok, final_response}},
+        {:turn_terminal, 1, {:ok, final_response}}
+      ])
+
+    assert {:ok, replayed} = Local.replay(configuration)
+    replayed_result = Enum.at(replayed.messages, 2).result
+    assert replayed_result.content == ""
+    assert replayed_result.provenance.trust == :untrusted
+    assert replayed_result.provenance.origin == :web
+    assert replayed_result.provenance.sources == ["https://example.com/page"]
+
+    journal = File.read!(configuration.paths.journal)
+    refute journal =~ "untrusted private output"
+    refute journal =~ "private=query"
   end
 
   test "an incomplete final record fails without changing journal bytes", %{tmp_dir: workspace} do

@@ -1,10 +1,10 @@
-defmodule Draught.Execution.Runner.BoundedTask do
+defmodule Draught.Execution.BoundedTask do
   @moduledoc false
 
   alias Draught.Error.Normalized
-  alias Draught.Execution.Runner.BoundedTask.OwnerGuard
+  alias Draught.Execution.BoundedTask.OwnerGuard
 
-  @doc "Runs one effect in the execution task supervisor with a fixed timeout."
+  @doc "Runs one supervised effect with a fixed timeout and owner-death cleanup."
   @spec run((-> term()), pos_integer(), Normalized.t(), Normalized.t()) :: term()
   def run(effect, timeout_ms, timeout_error, crash_error) when is_function(effect, 0) do
     owner = self()

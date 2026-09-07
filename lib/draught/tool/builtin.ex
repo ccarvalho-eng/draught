@@ -3,29 +3,24 @@ defmodule Draught.Tool.Builtin do
   Constructs the standard Draught coding-tool catalog.
   """
 
-  alias Draught.Tool.Builtin.ListDirectory
-  alias Draught.Tool.Builtin.ReadFile
-  alias Draught.Tool.Builtin.ReplaceInFile
-  alias Draught.Tool.Builtin.RunCommand
-  alias Draught.Tool.Builtin.SearchWorkspace
+  alias Draught.Tool.Builtin.Builders
   alias Draught.Tool.Definition
   alias Draught.Tool.Registry
   alias Draught.Validation.Error
 
-  @builders [ReadFile, ListDirectory, SearchWorkspace, ReplaceInFile, RunCommand]
-
   @doc "Builds the standard definitions in stable declaration order."
-  @spec definitions() :: Error.result([Definition.t()])
-  def definitions do
-    @builders
+  @spec definitions(keyword()) :: Error.result([Definition.t()])
+  def definitions(options \\ []) do
+    options
+    |> Builders.modules()
     |> Enum.reduce_while({:ok, []}, &build/2)
     |> reverse()
   end
 
   @doc "Builds an immutable registry containing the standard tools."
-  @spec registry() :: Error.result(Registry.t())
-  def registry do
-    with {:ok, definitions} <- definitions() do
+  @spec registry(keyword()) :: Error.result(Registry.t())
+  def registry(options \\ []) do
+    with {:ok, definitions} <- definitions(options) do
       Registry.new(definitions)
     end
   end

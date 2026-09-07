@@ -1,4 +1,4 @@
-defmodule Draught.Execution.Runner.BoundedTask.OwnerGuard do
+defmodule Draught.Execution.BoundedTask.OwnerGuard do
   @moduledoc false
 
   @supervisor Draught.Execution.TaskSupervisor

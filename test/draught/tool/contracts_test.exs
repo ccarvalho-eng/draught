@@ -5,6 +5,7 @@ defmodule Draught.Tool.ContractsTest do
   alias Draught.Tool.Call
   alias Draught.Tool.Name
   alias Draught.Tool.Result
+  alias Draught.Tool.Result.Provenance
   alias Draught.Tool.Specification
   alias Draught.Validation.Error
 
@@ -88,5 +89,29 @@ defmodule Draught.Tool.ContractsTest do
                status: :error,
                error: transport
              )
+  end
+
+  test "reconstructs bounded untrusted web provenance" do
+    assert {:ok, provenance} =
+             Provenance.new(
+               origin: :web,
+               trust: :untrusted,
+               sources: ["https://example.com/page?private=query#fragment"]
+             )
+
+    assert provenance.sources == ["https://example.com/page"]
+
+    assert {:ok, result} =
+             Result.new(
+               call_id: "call-1",
+               name: "web_fetch",
+               content: "external data",
+               provenance: provenance
+             )
+
+    assert result.provenance == provenance
+
+    assert {:error, %Error{}} =
+             Provenance.new(origin: :web, trust: :trusted, sources: ["https://example.com"])
   end
 end

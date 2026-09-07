@@ -19,7 +19,7 @@ Prompts, source files, command output, credentials, and session contents must no
 
 ### Web access and prompt injection
 
-Web search and page fetching are planned opt-in capabilities and will remain disabled unless the effective configuration enables them. Search and fetch permissions are independent. Every request and redirect must pass network policy, address validation, content-type checks, size limits, redirect limits, and time budgets.
+Web search and page fetching are opt-in capabilities and remain disabled unless the effective configuration enables them. Search and fetch permissions are independent. The guarded web core enforces capability, result, provenance, and fetch-transport boundaries; CLI controls are not yet available. Every request and redirect handled by the included fetch transport must pass network policy, address validation, content-type checks, size limits, redirect limits, and time budgets.
 
 Fetched content is data, not instruction. Prompt-injection detection may provide warnings, but it is not an authorization boundary. Draught relies on least privilege, isolated clients without ambient credentials, typed tool calls, deterministic policy checks, human approval for risky actions, and bounded agent execution.
 

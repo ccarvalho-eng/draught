@@ -5,6 +5,7 @@ defmodule Draught.Session.Journal.Codec.Tool do
   alias Draught.Session.Journal.Retention
   alias Draught.Tool.Call
   alias Draught.Tool.Result
+  alias Draught.Tool.Result.Provenance
 
   @doc "Encodes a tool call under the configured retention policy."
   @spec encode_call(Call.t(), Retention.t()) :: map()
@@ -39,6 +40,7 @@ defmodule Draught.Session.Journal.Codec.Tool do
       "content_retained" => retention.tool_output == :retain,
       "error" => encode_optional_error(result.error),
       "name" => result.name,
+      "provenance" => encode_provenance(result.provenance),
       "status" => Atom.to_string(result.status)
     }
   end
@@ -47,11 +49,13 @@ defmodule Draught.Session.Journal.Codec.Tool do
   @spec decode_result(term()) :: {:ok, Result.t()} | :error
   def decode_result(data) when is_map(data) do
     with {:ok, status} <- status(Map.get(data, "status")),
-         {:ok, error} <- decode_optional_error(Map.get(data, "error")) do
+         {:ok, error} <- decode_optional_error(Map.get(data, "error")),
+         {:ok, provenance} <- decode_provenance(Map.get(data, "provenance")) do
       data
       |> Map.take(["call_id", "content", "name"])
       |> Map.put("status", status)
       |> Map.put("error", error)
+      |> Map.put("provenance", provenance)
       |> Result.new()
       |> result()
     end
@@ -83,6 +87,33 @@ defmodule Draught.Session.Journal.Codec.Tool do
 
   defp decode_optional_error(data) do
     Error.decode(data)
+  end
+
+  defp encode_provenance(nil) do
+    nil
+  end
+
+  defp encode_provenance(%Provenance{} = provenance) do
+    %{
+      "origin" => Atom.to_string(provenance.origin),
+      "sources" => provenance.sources,
+      "trust" => Atom.to_string(provenance.trust)
+    }
+  end
+
+  defp decode_provenance(nil) do
+    {:ok, nil}
+  end
+
+  defp decode_provenance(data) when is_map(data) do
+    data
+    |> Map.take(["origin", "sources", "trust"])
+    |> Provenance.new()
+    |> result()
+  end
+
+  defp decode_provenance(_data) do
+    :error
   end
 
   defp status("success") do

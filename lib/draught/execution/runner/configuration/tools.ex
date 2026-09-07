@@ -41,7 +41,12 @@ defmodule Draught.Execution.Runner.Configuration.Tools do
 
     with {:ok, canonical} <- canonical_result,
          {:ok, policy} <- policy(canonical, limits) do
-      Context.new(workspace: canonical.workspace, policy: policy, approval: canonical.approval)
+      Context.new(
+        workspace: canonical.workspace,
+        policy: policy,
+        approval: canonical.approval,
+        web: canonical.web
+      )
     end
   end
 

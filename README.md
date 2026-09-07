@@ -7,7 +7,7 @@
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 
-The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, local journals, conversation interchange, and sanitized telemetry are implemented. The remaining public-alpha scope includes the CLI, web access, and distribution.
+The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, local journals, conversation interchange, the guarded web core, and sanitized telemetry are implemented. The remaining public-alpha scope includes the CLI and distribution.
 
 ## Design constraints
 
@@ -15,6 +15,7 @@ The project is in pre-alpha development. Provider integrations, tool contracts, 
 | --- | --- |
 | Setup | The first-run path must not require knowledge of OTP, provider internals, or system dependency management. |
 | Provider integration | Providers and clients exchange Draught contracts instead of vendor payloads. |
+| Local models | Agentic work must be available through locally hosted models without requiring a paid model API. |
 | Runtime design | Domain values and transitions are pure. Processes are limited to state, concurrency, isolation, cancellation, or resource ownership. |
 | Authorization | Tool access, web access, budgets, timeouts, and mutations are explicit capabilities enforced independently of model output. |
 | Observability | Telemetry excludes credentials, message content, and raw provider values. Content-bearing events are handled by explicit CLI and journal policies. |
@@ -33,6 +34,8 @@ The project is in pre-alpha development. Provider integrations, tool contracts, 
 | Versioned local journals and replay | Complete |
 | Portable conversation interchange | Complete |
 | Privacy-safe telemetry | Complete |
+| Guarded web core and provenance | Complete |
+| CLI web configuration and status | Planned |
 | Agentic CLI and one-command distribution | Planned |
 
 The [GitHub milestones](https://github.com/ccarvalho-eng/draught/milestones) are the authoritative implementation roadmap. APIs may change before the first tagged alpha.
@@ -68,13 +71,14 @@ The included fake is pure and route-based. It provides deterministic offline tes
 - [Session journals](docs/session-journals.md)
 - [Conversation interchange](docs/conversation-interchange.md)
 - [Telemetry](docs/telemetry.md)
+- [Web access](docs/web-access.md)
 - [Workspace confinement](docs/workspace-confinement.md)
 
 ## Security
 
 Draught treats model output and external content as untrusted. Provider responses do not grant tool permissions; every action remains subject to typed argument validation, capability checks, risk policy, budgets, timeouts, workspace rules, and user approval.
 
-Web access will be disabled by default and explicitly configurable. Search results and fetched pages will retain provenance and remain untrusted data, with bounded content handling and network controls. See the [security policy](SECURITY.md) for the trust model and vulnerability reporting process.
+Web access is disabled by default and explicitly configurable. Search results and fetched pages retain sanitized provenance and remain untrusted data, with bounded content handling and network controls. See the [web access guide](docs/web-access.md) for controls and limitations, and the [security policy](SECURITY.md) for the trust model and vulnerability reporting process.
 
 ## Development
 

@@ -15,7 +15,9 @@ defmodule Draught.TelemetryTest do
   alias Draught.Tool.Definition
   alias Draught.Tool.Execution.Context
   alias Draught.Tool.Execution.Policy
+  alias Draught.Tool.Output
   alias Draught.Tool.Registry
+  alias Draught.Tool.Result.Provenance
 
   @receive_timeout 1_000
   @moduletag :tmp_dir
@@ -172,6 +174,68 @@ defmodule Draught.TelemetryTest do
 
     assert exception == %{exception_kind: :error, outcome: :exception}
     refute inspect(exception) =~ secret
+  end
+
+  test "projects web trust without exposing provenance sources" do
+    token = attach(:tool)
+
+    {:ok, provenance} =
+      Provenance.new(
+        origin: :web,
+        trust: :untrusted,
+        sources: ["https://example.com/private?secret=value"]
+      )
+
+    {:ok, output} = Output.new(content: "external data", provenance: provenance)
+    registry = registry(%{output: output})
+
+    assert {:ok, result} = Tool.execute(registry, call("private query"), context())
+    assert result.provenance.trust == :untrusted
+
+    assert_receive {Capture, ^token, [:draught, :tool, :execution, :start], _, %{}},
+                   @receive_timeout
+
+    assert_receive {Capture, ^token, [:draught, :tool, :execution, :stop], _, metadata},
+                   @receive_timeout
+
+    assert metadata == %{error_kind: nil, origin: :web, outcome: :ok, trust: :untrusted}
+    refute inspect(metadata) =~ "example.com"
+    refute inspect(metadata) =~ "private query"
+  end
+
+  test "identifies failed web operations without exposing outbound data" do
+    token = attach(:tool)
+
+    {:ok, definition} =
+      Definition.new(
+        name: "web_search",
+        description: "Test web search",
+        input_schema: %{
+          "type" => "object",
+          "additionalProperties" => false,
+          "properties" => %{},
+          "required" => []
+        },
+        risk: :network,
+        executor: {TestExecutor, %{output: "unused"}}
+      )
+
+    {:ok, registry} = Registry.new([definition])
+    {:ok, policy} = Policy.new(allowed_risks: [:read])
+    {:ok, web_context} = Context.new(workspace: "/workspace/project", policy: policy)
+    call = %{id: "private-call-id", name: "web_search", arguments: %{}}
+
+    assert {:ok, result} = Tool.execute(registry, call, web_context)
+    assert result.status == :error
+
+    assert_receive {Capture, ^token, [:draught, :tool, :execution, :start], _, %{}},
+                   @receive_timeout
+
+    assert_receive {Capture, ^token, [:draught, :tool, :execution, :stop], _, metadata},
+                   @receive_timeout
+
+    assert metadata == %{error_kind: :policy, origin: :web, outcome: :error, trust: :untrusted}
+    refute inspect(metadata) =~ "private-call-id"
   end
 
   test "pairs one session turn span through asynchronous completion", %{tmp_dir: workspace} do

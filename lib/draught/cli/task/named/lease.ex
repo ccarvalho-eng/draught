@@ -16,7 +16,7 @@ defmodule Draught.CLI.Task.Named.Lease do
   end
 
   @doc "Runs an operation and definitively releases its store lease."
-  @spec run_opened(Store.Handle.t(), (-> Draught.CLI.Task.result())) :: Draught.CLI.Task.result()
+  @spec run_opened(Store.Handle.t(), (-> term())) :: term()
   def run_opened(store, operation) do
     pair =
       try do

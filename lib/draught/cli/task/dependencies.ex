@@ -3,6 +3,7 @@ defmodule Draught.CLI.Task.Dependencies do
   Holds effect boundaries used by one-shot task execution.
   """
 
+  alias Draught.CLI.Session.Identifier
   alias Draught.CLI.Task.Provider.Local
   alias Draught.Provider.OpenAI.Transport
   alias Draught.Validation.Attributes
@@ -19,7 +20,8 @@ defmodule Draught.CLI.Task.Dependencies do
   @spec new(map() | keyword(), module()) :: Error.result(t())
   def new(attributes, discovery_http) do
     with {:ok, normalized} <- Attributes.normalize(attributes, [:identifier, :provider]),
-         {:ok, identifier} <- identifier(Map.get(normalized, :identifier, &default_identifier/0)),
+         {:ok, identifier} <-
+           identifier(Map.get(normalized, :identifier, &Identifier.generate/0)),
          {:ok, provider} <-
            provider(
              Map.get(normalized, :provider, {
@@ -61,10 +63,5 @@ defmodule Draught.CLI.Task.Dependencies do
 
   defp invalid_provider do
     Error.single([:provider], :invalid_value, "must implement the task provider boundary")
-  end
-
-  defp default_identifier do
-    value = System.unique_integer([:positive, :monotonic])
-    {:ok, "task-#{value}"}
   end
 end

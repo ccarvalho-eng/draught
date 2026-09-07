@@ -80,7 +80,7 @@ The layers have distinct responsibilities:
 
 ### CLI task boundaries
 
-The CLI separates argument and configuration handling from terminal, filesystem, provider, and session effects. Anonymous and named commands share task preparation, the supervised session runtime, and one safe event projection. Interactive input remains outside the current implementation.
+The CLI separates argument and configuration handling from terminal, filesystem, provider, and session effects. Anonymous, named, and interactive commands share task preparation, the supervised session runtime, and one safe event projection. Interactive parsing and lifecycle state remain terminal-independent; the terminal input and Owl rendering edges are adapters.
 
 ```mermaid
 flowchart LR
@@ -103,6 +103,11 @@ flowchart LR
   Task --> Named[Named create or resume lifecycle]
   Anonymous --> Session[Supervised session]
   Named --> Session
+  Router --> Interactive[Interactive controller]
+  Interactive --> Input[Bounded interactive parser]
+  Interactive --> Selection
+  Interactive --> Named
+  Interactive --> State[Pure shell lifecycle state]
   Session --> Runner[Bounded agent runner]
   Runner --> Selection
   Runner --> Tools[Confined tool boundary]
@@ -114,12 +119,12 @@ flowchart LR
   Session --> Projector[Safe ordered task projector]
   Projector --> Render
   Render --> System[System output adapter]
-
-  Router -. not connected .-> Interactive[Interactive session shell]
+  Interactive --> Render
+  Interactive --> Terminal[Terminal input and restoration adapter]
   Task -. rejected .-> Web[Enabled web execution]
 ```
 
-The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. Anonymous and named lifecycles both supervise one runner turn; only the named lifecycle attaches durable storage. The projector reduces content-bearing runtime events to a closed public vocabulary before pure renderers encode them. The system adapter owns terminal output, and the executable entry point owns process termination.
+The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. Anonymous and named lifecycles both supervise one runner turn; only the named lifecycle attaches durable storage. The interactive controller retains one pure shell state, classifies each input before dispatch, and sends task prompts through the named lifecycle. The projector reduces content-bearing runtime events to a closed public vocabulary before pure renderers encode them. Owl is confined to the interactive presentation adapter. The system adapter owns terminal output, the terminal adapter owns line input and cleanup, and the executable entry point owns process termination.
 
 The CLI streaming boundary preserves these invariants:
 
@@ -315,6 +320,6 @@ The runtime will preserve these invariants:
 
 ## Delivery status
 
-Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. The CLI implements bounded parsing, configuration resolution, help, version, doctor, incremental text and JSONL task projection, anonymous tasks, and durable named-session resume. Interactive input and enabled web execution remain planned. The diagrams distinguish connected boundaries from explicitly planned ones.
+Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. The CLI implements bounded parsing, configuration resolution, help, version, doctor, incremental text and JSONL task projection, anonymous tasks, durable named-session resume, and the initial interactive prompt loop. Interactive approvals, session-management commands, active-turn cancellation, and enabled web execution remain planned. The diagrams distinguish connected boundaries from explicitly planned ones.
 
 Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

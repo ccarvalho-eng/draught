@@ -49,7 +49,8 @@ defmodule Draught.Web.Fetch.Transport.Connection.MintTest do
             "HTTP/1.1 200 OK\r\ncontent-type: text/plain\r\nconnection: close\r\n\r\n"
           )
 
-        :ok = :gen_tcp.send(socket, String.duplicate("x", 64))
+        result = :gen_tcp.send(socket, String.duplicate("x", 64))
+        assert result in [:ok, {:error, :closed}]
       end)
 
     target = target(context.port)

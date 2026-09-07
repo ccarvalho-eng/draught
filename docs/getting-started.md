@@ -1,6 +1,6 @@
 # Getting started
 
-This guide covers building the executable from a source checkout, configuring a local Ollama profile, selecting a model, running diagnostics, and executing anonymous or named tasks. Interactive input is not available yet.
+This guide covers building the executable from a source checkout, configuring a local Ollama profile, selecting a model, running diagnostics, and executing anonymous, named, or interactive tasks.
 
 ## 1. Build the executable
 
@@ -108,17 +108,33 @@ Continue from its successful assistant response:
 
 The session retains the complete provider conversation in the user state directory and remains bound to its original provider connection, exact model, and negotiated capabilities. Resume rejects incompatible changes before provider execution. Use a different identifier to start unrelated work.
 
-## 7. Current execution limits
+## 7. Use the interactive prompt
+
+Run Draught without a task argument from an interactive terminal:
+
+```shell
+./draught
+```
+
+Startup resolves the same configuration as a one-shot task, discovers the effective model, generates one session identifier, and displays the provider, model, workspace, session, and web state before accepting input. Ordinary text starts the first durable named turn and subsequent successful turns resume that session. `/help`, `/status`, `/doctor`, and `/exit` are available in the prompt loop. Entering `/` displays the command index. End of input and `/exit` restore the terminal and print `Session ID: ID`.
+
+Start the shell with an explicit identifier or resume target when needed:
+
+```shell
+./draught --session review
+./draught --resume review
+```
+
+Prompt-free interactive use requires a terminal and text output. A headless `--session` or `--resume` invocation still requires a task argument. Use one-shot mode and `--output jsonl` for automation.
+
+## 8. Current execution limits
 
 The following forms remain explicit unavailable results:
 
 ```shell
-./draught
-./draught interactive
-./draught --resume SESSION_ID
 ./draught "search the web" --web
 ```
 
-Interactive input, prompt-free resume, and enabled web execution depend on later capability work. Each anonymous task starts without prior conversation state.
+Interactive approval prompts, session selection and archive commands, direct commands, file selection, and enabled web execution depend on later capability work. Effectful tool requests continue to use the configured non-interactive approval policy until the interactive approval broker is connected. Each anonymous task starts without prior conversation state.
 
 See [CLI](cli.md) for command and exit behavior and [Ollama provider](providers/ollama.md) for discovery details.

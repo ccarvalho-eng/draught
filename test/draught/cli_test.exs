@@ -3,8 +3,12 @@ defmodule Draught.CLITest do
 
   alias Draught.CLI
   alias Draught.CLI.Dependencies
+  alias Draught.CLI.Task.Provider.Selection
+  alias Draught.Conversation
+  alias Draught.Error.Normalized
+  alias Draught.Provider.Capabilities
   alias Draught.Provider.Ollama.Discovery.HTTP.Failure
-  alias Draught.Provider.Ollama.Discovery.HTTP.Response
+  alias Draught.Provider.Response
 
   defmodule SystemAdapter do
     @behaviour Draught.CLI.System.Adapter
@@ -54,6 +58,73 @@ defmodule Draught.CLITest do
       receive do
         {:discovery_response, response} -> response
       end
+    end
+  end
+
+  defmodule StaticProvider do
+    @behaviour Draught.Provider
+
+    @impl Draught.Provider
+    def capabilities(_configuration) do
+      Capabilities.new(chat: true, tool_calls: true)
+    end
+
+    @impl Draught.Provider
+    def complete(_request, {:error, error}) do
+      {:error, error}
+    end
+
+    def complete(_request, response) do
+      {:ok, response}
+    end
+
+    @impl Draught.Provider
+    def stream(_request, _configuration, _sink) do
+      {:error, :not_used}
+    end
+  end
+
+  defmodule ProviderFactory do
+    @behaviour Draught.CLI.Task.Provider.Adapter
+
+    @impl Draught.CLI.Task.Provider.Adapter
+    def build(_configuration, response) do
+      Selection.new({StaticProvider, response}, "free-model")
+    end
+  end
+
+  defmodule FailingProviderFactory do
+    @behaviour Draught.CLI.Task.Provider.Adapter
+
+    @impl Draught.CLI.Task.Provider.Adapter
+    def build(_configuration, error) do
+      {:error, error}
+    end
+  end
+
+  defmodule InvalidProviderFactory do
+    @behaviour Draught.CLI.Task.Provider.Adapter
+
+    @impl Draught.CLI.Task.Provider.Adapter
+    def build(_configuration, _dependency) do
+      {:ok, :invalid_selection}
+    end
+  end
+
+  defmodule CompletionTransport do
+    @behaviour Draught.Provider.OpenAI.Transport
+
+    alias Draught.Provider.OpenAI.Transport.Response
+
+    @impl Draught.Provider.OpenAI.Transport
+    def complete(request, {owner, body}) do
+      send(owner, {:completion_request, request})
+      {:ok, %Response{status: 200, body: body}}
+    end
+
+    @impl Draught.Provider.OpenAI.Transport
+    def stream(_request, _configuration, state, _reducer) do
+      {:error, :not_used, state}
     end
   end
 
@@ -168,10 +239,155 @@ defmodule Draught.CLITest do
     refute_receive {:cli_output, :stdout, _content}
   end
 
-  test "agent commands fail explicitly until the execution slice is connected" do
-    assert CLI.run(["inspect this project"], dependencies()) == 4
+  test "runs a credential-free one-shot task through the session boundary" do
+    assert {:ok, assistant} = Conversation.assistant(content: "Inspection complete")
+    assert {:ok, response} = Response.new(message: assistant, finish_reason: :stop)
+
+    assert CLI.run(["inspect this project"], dependencies(provider_response: response)) == 0
+    assert_receive {:cli_output, :stdout, "Inspection complete\n"}
+  end
+
+  test "auto-selects one compatible Ollama model for a complete CLI task" do
+    queue_list(["qwen3"])
+    queue_model(["completion", "tools"])
+
+    body =
+      Jason.encode!(%{
+        "choices" => [
+          %{
+            "finish_reason" => "stop",
+            "index" => 0,
+            "message" => %{"content" => "Local task complete", "role" => "assistant"}
+          }
+        ]
+      })
+
+    provider =
+      {Draught.CLI.Task.Provider.Local,
+       [
+         discovery_http: DiscoveryHTTP,
+         provider_transport: {CompletionTransport, {self(), body}}
+       ]}
+
+    assert CLI.run(["inspect this project"], dependencies(provider_factory: provider)) == 0
+    assert_receive {:completion_request, request}
+    assert request.body["model"] == "qwen3"
+    assert_receive {:cli_output, :stdout, "Local task complete\n"}
+  end
+
+  test "renders one-shot task results as JSONL" do
+    assert {:ok, assistant} = Conversation.assistant(content: "done")
+    assert {:ok, response} = Response.new(message: assistant, finish_reason: :stop)
+
+    assert CLI.run(
+             ["inspect", "--output", "jsonl"],
+             dependencies(provider_response: response)
+           ) == 0
+
+    assert_receive {:cli_output, :stdout, output}
+
+    decoded =
+      output
+      |> String.trim()
+      |> Jason.decode!()
+
+    assert %{"type" => "task", "status" => "ok", "content" => "done"} = decoded
+  end
+
+  test "keeps persistent and enabled-web task modes explicitly unavailable" do
+    assert CLI.run(["inspect", "--session", "named"], dependencies()) == 5
+    assert_receive {:cli_output, :stderr, session_output}
+    assert session_output =~ "not available"
+
+    assert CLI.run(["inspect", "--web"], dependencies()) == 4
+    assert_receive {:cli_output, :stderr, web_output}
+    assert web_output =~ "Web execution"
+  end
+
+  test "uses stable provider, execution, and session exits" do
+    {:ok, unavailable} =
+      Normalized.new(
+        :transport,
+        "provider_unavailable",
+        "Provider is unavailable",
+        retryable: true
+      )
+
+    assert CLI.run(
+             ["inspect"],
+             dependencies(provider_factory: {FailingProviderFactory, unavailable})
+           ) == 3
+
+    assert_receive {:cli_output, :stderr, provider_output}
+    assert provider_output =~ "provider_unavailable"
+
+    assert CLI.run(
+             ["inspect"],
+             dependencies(provider_response: {:error, unavailable})
+           ) == 4
+
+    assert_receive {:cli_output, :stderr, execution_output}
+    assert execution_output =~ "provider_unavailable"
+
+    assert CLI.run(
+             ["inspect"],
+             dependencies(identifier: fn -> {:error, :unavailable} end)
+           ) == 5
+
+    assert_receive {:cli_output, :stderr, session_output}
+    assert session_output =~ "invalid_task_identifier"
+  end
+
+  test "identifies provider, execution, and session failures in JSONL" do
+    {:ok, unavailable} =
+      Normalized.new(
+        :transport,
+        "provider_unavailable",
+        "Provider is unavailable",
+        retryable: true
+      )
+
+    assert CLI.run(
+             ["inspect", "--output", "jsonl"],
+             dependencies(provider_factory: {FailingProviderFactory, unavailable})
+           ) == 3
+
+    assert_receive {:cli_output, :stderr, provider_output}
+    assert Jason.decode!(provider_output)["category"] == "provider"
+
+    assert CLI.run(
+             ["inspect", "--output", "jsonl"],
+             dependencies(provider_response: {:error, unavailable})
+           ) == 4
+
+    assert_receive {:cli_output, :stderr, execution_output}
+    assert Jason.decode!(execution_output)["category"] == "execution"
+
+    assert CLI.run(
+             ["inspect", "--output", "jsonl"],
+             dependencies(identifier: fn -> {:error, :unavailable} end)
+           ) == 5
+
+    assert_receive {:cli_output, :stderr, session_output}
+    assert Jason.decode!(session_output)["category"] == "session"
+  end
+
+  test "normalizes an invalid provider-factory result" do
+    dependencies = dependencies(provider_factory: {InvalidProviderFactory, nil})
+
+    assert CLI.run(["inspect"], dependencies) == 3
     assert_receive {:cli_output, :stderr, output}
-    assert output =~ "Agent execution is not available"
+    assert output =~ "invalid_provider_selection"
+  end
+
+  test "keeps session validation failures in the session category" do
+    dependencies = dependencies(identifier: fn -> {:ok, "../invalid"} end)
+
+    assert CLI.run(["inspect", "--output", "jsonl"], dependencies) == 5
+    assert_receive {:cli_output, :stderr, output}
+
+    assert %{"category" => "session", "code" => "invalid_setup"} =
+             Jason.decode!(output)
   end
 
   test "configuration failures honor JSONL output without reflecting rejected values" do
@@ -215,6 +431,19 @@ defmodule Draught.CLITest do
   end
 
   defp dependencies(options \\ []) do
+    provider_response =
+      Keyword.get_lazy(options, :provider_response, fn ->
+        {:ok, assistant} = Conversation.assistant(content: "unused")
+        {:ok, response} = Response.new(message: assistant, finish_reason: :stop)
+        response
+      end)
+
+    provider_factory =
+      Keyword.get(options, :provider_factory, {ProviderFactory, provider_response})
+
+    default_identifier = "cli-one-shot-#{System.unique_integer([:positive, :monotonic])}"
+    identifier = Keyword.get(options, :identifier, fn -> {:ok, default_identifier} end)
+
     system =
       {SystemAdapter,
        %{
@@ -224,7 +453,16 @@ defmodule Draught.CLITest do
          files: Keyword.get(options, :files, %{})
        }}
 
-    {:ok, dependencies} = Dependencies.new(system: system, discovery_http: DiscoveryHTTP)
+    {:ok, dependencies} =
+      Dependencies.new(
+        system: system,
+        discovery_http: DiscoveryHTTP,
+        task: [
+          provider: provider_factory,
+          identifier: identifier
+        ]
+      )
+
     dependencies
   end
 
@@ -234,11 +472,19 @@ defmodule Draught.CLITest do
 
   defp queue_list(models) do
     body = Jason.encode!(%{"models" => Enum.map(models, &%{"name" => &1})})
-    queue({:ok, %Response{status: 200, body: body}})
+
+    queue({
+      :ok,
+      %Draught.Provider.Ollama.Discovery.HTTP.Response{status: 200, body: body}
+    })
   end
 
   defp queue_model(capabilities) do
     body = Jason.encode!(%{"capabilities" => capabilities, "model_info" => %{}})
-    queue({:ok, %Response{status: 200, body: body}})
+
+    queue({
+      :ok,
+      %Draught.Provider.Ollama.Discovery.HTTP.Response{status: 200, body: body}
+    })
   end
 end

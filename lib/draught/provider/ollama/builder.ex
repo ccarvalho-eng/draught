@@ -19,7 +19,8 @@ defmodule Draught.Provider.Ollama.Builder do
          {:ok, model} <- Selection.resolve(configuration, effects.discovery_http),
          :ok <- Validator.validate(model.capabilities, configuration.required_capabilities),
          {:ok, openai} <- openai_runtime(configuration, model.name, effects) do
-      {:ok, {Ollama, %Runtime{capabilities: model.capabilities, openai: openai}}}
+      {:ok,
+       {Ollama, %Runtime{capabilities: model.capabilities, model: model.name, openai: openai}}}
     end
   end
 

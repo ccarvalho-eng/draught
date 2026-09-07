@@ -21,6 +21,22 @@ defmodule Draught.Session.Failure do
     error(:protocol, "session_start_failed", "Session could not be started")
   end
 
+  @doc "Builds a bounded failure when a live-session call cannot complete."
+  @spec call_failed() :: Normalized.t()
+  def call_failed do
+    error(:protocol, "session_call_failed", "Session call could not be completed")
+  end
+
+  @doc "Builds an unknown-completion failure for a timed-out session call."
+  @spec call_timeout() :: Normalized.t()
+  def call_timeout do
+    error(
+      :timeout,
+      "session_call_timeout",
+      "Session call timed out; the requested operation may still complete"
+    )
+  end
+
   @doc "Builds a concurrent-turn rejection."
   @spec busy() :: Normalized.t()
   def busy do

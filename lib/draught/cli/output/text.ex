@@ -63,6 +63,22 @@ defmodule Draught.CLI.Output.Text do
     "Agent execution is not available in this build. Run 'draught doctor' to check setup.\n"
   end
 
+  @doc "Renders the unavailable persistent-session result."
+  @spec persistent_sessions_unavailable() :: iodata()
+  def persistent_sessions_unavailable do
+    "Named sessions and resume are not available yet. Run an anonymous task without session options.\n"
+  end
+
+  @doc "Renders a safe task setup failure."
+  @spec task_setup_error(atom()) :: iodata()
+  def task_setup_error(:provider) do
+    "Task provider configuration is invalid. Run 'draught doctor' to inspect setup.\n"
+  end
+
+  def task_setup_error(_category) do
+    "Task execution configuration is invalid.\n"
+  end
+
   defp command(command) do
     ["  ", String.pad_trailing(command.name, 14), command.description, "\n"]
   end

@@ -68,6 +68,30 @@ defmodule Draught.CLI.Output.JSONL do
     })
   end
 
+  @doc "Encodes the unavailable persistent-session result."
+  @spec persistent_sessions_unavailable() :: {:ok, iodata()} | {:error, :encoding}
+  def persistent_sessions_unavailable do
+    encode(%{
+      "schema" => @schema,
+      "type" => "error",
+      "category" => "session",
+      "code" => "not_available",
+      "message" => "Named sessions and resume are not available yet"
+    })
+  end
+
+  @doc "Encodes one safe task setup failure."
+  @spec task_setup_error(atom()) :: {:ok, iodata()} | {:error, :encoding}
+  def task_setup_error(category) do
+    encode(%{
+      "schema" => @schema,
+      "type" => "error",
+      "category" => Atom.to_string(category),
+      "code" => "invalid_setup",
+      "message" => setup_message(category)
+    })
+  end
+
   defp check(%Check{} = check) do
     %{
       "name" => check.name,
@@ -88,6 +112,14 @@ defmodule Draught.CLI.Output.JSONL do
       "value" => option.value,
       "description" => option.description
     }
+  end
+
+  defp setup_message(:provider) do
+    "Task provider configuration is invalid"
+  end
+
+  defp setup_message(_category) do
+    "Task execution configuration is invalid"
   end
 
   defp encode(value) do

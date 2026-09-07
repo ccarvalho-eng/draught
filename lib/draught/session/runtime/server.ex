@@ -14,7 +14,7 @@ defmodule Draught.Session.Runtime.Server do
   def child_spec(%Settings{} = settings) do
     %{
       id: {__MODULE__, settings.id},
-      restart: :transient,
+      restart: settings.lifecycle.restart,
       shutdown: 5_000,
       start: {__MODULE__, :start_link, [settings]},
       type: :worker
@@ -30,7 +30,7 @@ defmodule Draught.Session.Runtime.Server do
   @impl GenServer
   def init(%Settings{} = settings) do
     case State.new(settings) do
-      {:ok, state} -> {:ok, state}
+      {:ok, state} -> initialize_owner(state)
       {:error, error} -> {:stop, {:journal_open_failed, error}}
     end
   end
@@ -84,6 +84,14 @@ defmodule Draught.Session.Runtime.Server do
   end
 
   @impl GenServer
+  def handle_info(
+        {:DOWN, _reference, :process, owner, _reason},
+        %State{settings: %Settings{lifecycle: %{owner: owner}}} = state
+      )
+      when is_pid(owner) do
+    {:stop, :normal, state}
+  end
+
   def handle_info(
         {:runner_event, token, {:terminal, _outcome}},
         %State{active: %ActiveTurn{token: token}} = state
@@ -168,6 +176,20 @@ defmodule Draught.Session.Runtime.Server do
 
   defp start_turn(false, state, _request, _subscriber) do
     {:reply, {:error, Failure.invalid_subscriber()}, state}
+  end
+
+  defp initialize_owner(%State{settings: %Settings{lifecycle: lifecycle}} = state) do
+    monitor_owner(lifecycle)
+    {:ok, state}
+  end
+
+  defp monitor_owner(%{owner: nil}) do
+    :ok
+  end
+
+  defp monitor_owner(%{owner: owner}) do
+    Process.monitor(owner)
+    :ok
   end
 
   defp start_recorded_turn(state, request, subscriber) do

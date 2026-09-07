@@ -1,6 +1,6 @@
 # Getting started
 
-This guide covers the intermediate CLI kernel: building the executable from a source checkout, configuring a local Ollama profile, selecting a model, and running diagnostics. Task and interactive agent execution are not available in this slice.
+This guide covers building the executable from a source checkout, configuring a local Ollama profile, selecting a model, running diagnostics, and executing one anonymous task. Interactive input and persistent CLI sessions are not available in this slice.
 
 ## 1. Build the executable
 
@@ -29,7 +29,7 @@ ollama pull qwen3
 ollama list
 ```
 
-Draught's built-in `ollama` profile connects to `http://localhost:11434`. The selected model must report chat, streaming, and tool-call capabilities through Ollama's discovery API.
+Draught's built-in `ollama` profile connects to `http://localhost:11434`. The selected model must report chat and tool-call capabilities through Ollama's discovery API. The current one-shot command uses completion rather than streaming.
 
 ## 3. Check the environment
 
@@ -53,8 +53,8 @@ Ollama discovery examines every installed model and classifies it against Draugh
 
 - No installed models produces a provider error.
 - Installed models with no compatible entry produce a provider error.
-- Exactly one compatible model can be selected automatically by the provider boundary.
-- More than one compatible model requires an explicit selection before agent execution can be enabled.
+- Exactly one compatible model is selected automatically when no model is configured.
+- More than one compatible model requires an explicit selection and produces a provider error otherwise.
 - An explicitly selected missing or incompatible model produces a provider error.
 
 Select a model for one command with `--model`:
@@ -74,15 +74,36 @@ To persist the choice, create the user configuration file described in [Configur
 
 You can also set `DRAUGHT_MODEL=qwen3` for the current environment.
 
-## 5. Current execution boundary
+## 5. Run one task
 
-The parser accepts task and interactive forms while the execution path is developed:
+Run a task from the workspace that Draught may inspect:
 
 ```shell
 ./draught "inspect this workspace"
-./draught
 ```
 
-Both forms currently exit with the execution category and report that agent execution is unavailable. Session creation, resume, web-enabled task execution, and interactive input are not connected in this slice.
+If more than one compatible Ollama model is installed, select one explicitly:
+
+```shell
+./draught --model qwen3 "inspect this workspace"
+```
+
+The command creates a temporary supervised session, executes one turn, waits for its terminal result, and stops the session. It does not create a session journal. Text output contains the final visible assistant text; `--output jsonl` returns one final task record. Incremental streaming is not available.
+
+The default `ask` risk mode permits read operations. Effectful operations require approval, but this anonymous command has no interactive approval prompt, so those operations are returned to the model as approval-required results. See [Configuration](configuration.md#task-risk-modes) before enabling effectful tools.
+
+## 6. Current execution limits
+
+The following forms remain explicit unavailable results:
+
+```shell
+./draught
+./draught interactive
+./draught "continue this work" --session SESSION_ID
+./draught --resume SESSION_ID
+./draught "search the web" --web
+```
+
+Interactive input, named and resumed sessions, incremental streaming, and enabled web execution depend on later durability or capability work. Each anonymous task starts without prior conversation state.
 
 See [CLI](cli.md) for command and exit behavior and [Ollama provider](providers/ollama.md) for discovery details.

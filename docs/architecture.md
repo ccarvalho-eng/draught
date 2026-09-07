@@ -9,7 +9,7 @@ Dependencies point inward. The domain does not know which CLI, model provider, p
 ```mermaid
 flowchart TB
   subgraph Interfaces[Interfaces]
-    CLI[Agentic CLI]
+    CLI[CLI]
     API[Elixir API]
   end
 
@@ -78,9 +78,9 @@ The layers have distinct responsibilities:
 | Effect ports | Project-owned behaviours for external capabilities | Concrete vendor or operating-system details |
 | Edge adapters | Translation and bounded interaction with external systems | Domain policy or cross-adapter coordination |
 
-### CLI kernel boundaries
+### CLI task boundaries
 
-The CLI kernel separates argument and configuration handling from terminal, filesystem, and provider effects. Task and interactive execution remain outside the connected path in the current slice.
+The CLI separates argument and configuration handling from terminal, filesystem, provider, and session effects. The connected task path executes one anonymous turn; persistent and interactive paths remain outside the current slice.
 
 ```mermaid
 flowchart LR
@@ -96,13 +96,25 @@ flowchart LR
   Doctor --> Provider[Provider discovery boundary]
   Doctor --> Workspace[Workspace system boundary]
 
+  Resolver --> Task[One-shot task preparation]
+  Task --> Selection[Provider selection boundary]
+  Task --> Policy[Tool and approval policy]
+  Task --> Session[Temporary supervised session]
+  Session --> Runner[Bounded agent runner]
+  Runner --> Selection
+  Runner --> Tools[Confined tool boundary]
+  Session -. journaling disabled .-> NoJournal[No durable task history]
+
   Router --> Render[Pure text and JSONL renderers]
+  Doctor --> Render
+  Session --> Render
   Render --> System[System output adapter]
 
-  Router -. not connected .-> Execution[Session and agent execution]
+  Router -. not connected .-> Persistent[Interactive, named, and resumed sessions]
+  Task -. rejected .-> Web[Enabled web execution]
 ```
 
-The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Doctor reaches provider discovery through its injected HTTP boundary and reaches workspace state through the system adapter. Renderers produce output data without writing it; the system adapter owns terminal output, and the executable entry point owns process termination.
+The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. The temporary session supervises one runner turn with journaling disabled, delivers the terminal result, and is then stopped. Renderers produce output data without writing it; the system adapter owns terminal output, and the executable entry point owns process termination.
 
 ## Agent execution
 
@@ -125,7 +137,9 @@ sequenceDiagram
   Runtime->>Provider: Complete canonical request
   Provider-->>Runtime: Final response or tool proposal
   Runtime-->>Session: Publish canonical event
-  Session->>Journal: Append canonical session event
+  opt A journal is configured
+    Session->>Journal: Append canonical session event
+  end
 
   alt Provider returns a final response
     Provider-->>Runtime: Canonical response
@@ -257,6 +271,8 @@ One session coordinator owns the live lifecycle of a session. Durable history is
 
 Conversation interchange is a projection from canonical history, not a second persistence model. The text encoder applies an explicit retention policy, emits a deterministic authoritative extension, and renders a non-authoritative Markdown view. The bundle encoder adds attachment bytes under descriptor-bound portable names without changing the manifest contract. Import performs bounded text or archive decoding and reconstructs the document through the same canonical constructors used by the runtime. Imported artifacts cannot restore execution authority.
 
+The anonymous CLI task uses the session lifecycle for supervision and terminal delivery but explicitly disables journaling. It does not create durable conversation state and cannot be resumed. Named and resumed CLI sessions require a later durability integration.
+
 The runtime will preserve these invariants:
 
 - One accepted input produces at most one active execution step per session.
@@ -277,6 +293,6 @@ The runtime will preserve these invariants:
 
 ## Delivery status
 
-Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. The CLI implements bounded parsing, configuration resolution, help, version, doctor, and text and JSONL rendering. Task execution, interactive input, session commands, and task-level web capability wiring remain planned. The diagrams include both implemented and planned boundaries; delivery status identifies which application capabilities are executable.
+Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. The CLI implements bounded parsing, configuration resolution, help, version, doctor, text and JSONL rendering, and anonymous one-shot tasks through temporary non-journaled sessions. Interactive input, named and resumed CLI sessions, incremental streaming, and enabled web execution remain planned. The diagrams include both implemented and planned boundaries; delivery status identifies which application capabilities are executable.
 
 Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

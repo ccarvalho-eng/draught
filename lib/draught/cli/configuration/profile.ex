@@ -68,6 +68,7 @@ defmodule Draught.CLI.Configuration.Profile do
     with {:ok, provider} <- required_provider(attributes, source),
          {:ok, base_url} <- required_endpoint(attributes, source),
          {:ok, credential_env} <- credential_environment(attributes, source),
+         :ok <- validate_credential_provider(provider, credential_env, source),
          :ok <- validate_transport(base_url, credential_env, source) do
       {:ok, {provider, base_url, credential_env}}
     end
@@ -144,6 +145,23 @@ defmodule Draught.CLI.Configuration.Profile do
     uri = URI.parse(base_url)
     secure = uri.scheme == "https" or loopback_host?(uri.host)
     transport_result(secure, source)
+  end
+
+  defp validate_credential_provider(_provider, nil, _source) do
+    :ok
+  end
+
+  defp validate_credential_provider(:openai_compatible, _credential_env, _source) do
+    :ok
+  end
+
+  defp validate_credential_provider(:ollama, _credential_env, source) do
+    Error.new(
+      source,
+      [:profiles, :credential_env],
+      :invalid_value,
+      "is supported only for OpenAI-compatible profiles"
+    )
   end
 
   defp build(name, {provider, base_url, credential_env}, headers, source) do

@@ -87,7 +87,7 @@ sequenceDiagram
   actor User
   participant Interface as CLI or Elixir API
   participant Session as Session coordinator
-  participant Runtime as Execution runtime
+  participant Runtime as Bounded runner
   participant Provider as Provider boundary
   participant Policy as Capability and approval policy
   participant Tool as Tool boundary
@@ -96,8 +96,8 @@ sequenceDiagram
   User->>Interface: Submit intent
   Interface->>Session: Start or continue session
   Session->>Runtime: Execute canonical request
-  Runtime->>Provider: Complete or stream request
-  Provider-->>Runtime: Content delta or tool proposal
+  Runtime->>Provider: Complete canonical request
+  Provider-->>Runtime: Final response or tool proposal
   Runtime-->>Session: Publish canonical event
   Session->>Journal: Append canonical session event
 
@@ -113,12 +113,27 @@ sequenceDiagram
       Runtime->>Provider: Continue with tool result
     else Denied
       Policy-->>Runtime: Normalized policy error
-      Runtime-->>Session: Return normalized failure
+      Runtime->>Provider: Continue with error tool result
     end
   end
 ```
 
-The application layer may use supervised processes, but it delegates decisions to pure functions. That keeps retries, cancellation, replay, and state transitions testable without starting a process.
+The application layer may use supervised processes, but it delegates decisions to pure functions. The current runner uses immutable state transitions around supervised provider and tool tasks. Session ownership, streaming cancellation, and replay remain separate application concerns.
+
+The runner reconstructs its request, registry, execution context, policy, and limits before the first provider call. Tool specifications always come from the injected registry. Provider calls and individual tool calls have independent time limits, while one output limit bounds provider responses and tool results. Tool batches execute sequentially in provider declaration order.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Ready
+  Ready --> WaitingProvider: next request within iteration limit
+  Ready --> Failed: iteration limit reached
+  WaitingProvider --> Completed: final response
+  WaitingProvider --> WaitingTools: new tool-call batch
+  WaitingProvider --> Failed: provider failure or repeated batch
+  WaitingTools --> Ready: one ordered result per call
+  Completed --> [*]
+  Failed --> [*]
+```
 
 ## Provider boundary
 
@@ -220,6 +235,6 @@ The runtime will preserve these invariants:
 
 ## Delivery status
 
-Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, and application supervision tree are also present. Session lifecycle orchestration, runner coordination, journaling, the CLI, and web access are planned in later roadmap slices. The diagrams describe target boundaries; each slice must preserve dependency direction as those layers become executable.
+Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, and bounded provider-tool runner are also present. Session lifecycle orchestration, streaming coordination, journaling, the CLI, and web access are planned in later roadmap slices. The diagrams include both implemented and planned boundaries; delivery status identifies which application capabilities are executable.
 
 Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

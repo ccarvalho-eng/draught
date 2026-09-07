@@ -67,6 +67,7 @@ defmodule Draught.MixProject do
       extras: [
         "README.md",
         "docs/architecture.md",
+        "docs/runner.md",
         "docs/tools.md",
         "docs/workspace-confinement.md",
         "docs/providers/ollama.md",
@@ -77,6 +78,7 @@ defmodule Draught.MixProject do
       groups_for_extras: [
         Guides: [
           "docs/architecture.md",
+          "docs/runner.md",
           "docs/tools.md",
           "docs/workspace-confinement.md",
           "docs/providers/ollama.md"

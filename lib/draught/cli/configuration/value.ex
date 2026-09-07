@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Configuration.Value do
-  @moduledoc false
+  @moduledoc """
+  Normalizes bounded scalar configuration values from files, environment variables, and flags.
+  """
 
   alias Draught.CLI.Configuration.Error
   alias Draught.CLI.Configuration.Source

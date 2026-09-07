@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Doctor.Workspace do
-  @moduledoc false
+  @moduledoc """
+  Performs the read-only workspace accessibility check used by CLI diagnostics.
+  """
 
   alias Draught.CLI.Doctor.Check
 

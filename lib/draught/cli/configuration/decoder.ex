@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Configuration.Decoder do
-  @moduledoc false
+  @moduledoc """
+  Decodes the closed JSON configuration schema into validated provider profiles and defaults.
+  """
 
   alias Draught.CLI.Configuration.Decoder.Normalizer
   alias Draught.CLI.Configuration.Error

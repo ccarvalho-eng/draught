@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Configuration.Resolver do
-  @moduledoc false
+  @moduledoc """
+  Resolves deterministic CLI configuration precedence across defaults, files, environment, and flags.
+  """
 
   alias Draught.CLI.Configuration
   alias Draught.CLI.Configuration.Credential

@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Output.JSONL do
-  @moduledoc false
+  @moduledoc """
+  Encodes complete CLI results as versioned JSON Lines records for non-interactive consumers.
+  """
 
   alias Draught.CLI.Configuration
   alias Draught.CLI.Doctor.Check

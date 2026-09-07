@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Command.Options do
-  @moduledoc false
+  @moduledoc """
+  Validates option occurrences and projects them into the immutable command invocation.
+  """
 
   alias Draught.CLI.Command.Error
   alias Draught.CLI.Command.Specification

@@ -1,5 +1,9 @@
 defmodule Draught.CLI.Session.Store do
-  @moduledoc false
+  @moduledoc """
+  Coordinates trusted persistent-session storage with an exclusive lease.
+
+  Callers retain the returned handle until all session work has stopped, then release it with `close/1`.
+  """
 
   alias Draught.CLI.Session.Store.Handle
   alias Draught.CLI.Session.Store.Lease

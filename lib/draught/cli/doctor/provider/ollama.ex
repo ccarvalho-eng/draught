@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Doctor.Provider.Ollama do
-  @moduledoc false
+  @moduledoc """
+  Checks Ollama connectivity, installed models, and required agent capabilities.
+  """
 
   alias Draught.CLI
   alias Draught.CLI.Doctor.Check

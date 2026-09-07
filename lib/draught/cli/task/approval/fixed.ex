@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Approval.Fixed do
-  @moduledoc false
+  @moduledoc """
+  Implements a deterministic approval adapter that returns one configured decision.
+  """
 
   @behaviour Draught.Tool.Approval.Policy
 

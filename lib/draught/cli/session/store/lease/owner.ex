@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Session.Store.Lease.Owner do
-  @moduledoc false
+  @moduledoc """
+  Owns lease listeners and releases their operating-system resources when its caller exits.
+  """
 
   use GenServer
 

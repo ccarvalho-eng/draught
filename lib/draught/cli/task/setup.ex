@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Setup do
-  @moduledoc false
+  @moduledoc """
+  Prepares provider, request, tools, and limits while retaining CLI failure categories.
+  """
 
   alias Draught.CLI.Configuration
   alias Draught.CLI.Task.Dependencies

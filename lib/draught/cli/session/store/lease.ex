@@ -1,5 +1,9 @@
 defmodule Draught.CLI.Session.Store.Lease do
-  @moduledoc false
+  @moduledoc """
+  Acquires and releases exclusive process-owned leases for persistent CLI sessions.
+
+  Lease acquisition fails closed when an existing endpoint cannot be identified safely.
+  """
 
   alias Draught.CLI.Session.Failure
   alias Draught.CLI.Session.Store.Lease.Owner

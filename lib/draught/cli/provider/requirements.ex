@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Provider.Requirements do
-  @moduledoc false
+  @moduledoc """
+  Validates the provider capabilities required by CLI agent execution.
+  """
 
   @agent [:chat, :tool_calls]
 

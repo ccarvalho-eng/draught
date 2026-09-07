@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Command.Result do
-  @moduledoc false
+  @moduledoc """
+  Maps categorized task outcomes to safe CLI output streams and exit statuses.
+  """
 
   alias Draught.CLI.Command.Invocation
   alias Draught.CLI.Dependencies

@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Preparation.Messages do
-  @moduledoc false
+  @moduledoc """
+  Constructs the initial or resumed canonical message list for CLI task execution.
+  """
 
   alias Draught.CLI.Task.Provider.Selection
   alias Draught.Conversation

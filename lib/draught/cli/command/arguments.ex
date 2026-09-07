@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Command.Arguments do
-  @moduledoc false
+  @moduledoc """
+  Enforces argument count and byte limits before command parsing continues.
+  """
 
   alias Draught.CLI.Command.Error
   alias Draught.CLI.Command.Specification

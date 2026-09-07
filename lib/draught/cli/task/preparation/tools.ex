@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Preparation.Tools do
-  @moduledoc false
+  @moduledoc """
+  Builds the standard workspace tool registry and applies CLI web-capability policy.
+  """
 
   alias Draught.CLI.Task.Risk
   alias Draught.Tool.Builtin

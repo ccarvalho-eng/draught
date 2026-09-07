@@ -1,5 +1,7 @@
 defmodule Draught.CLI.System.Local do
-  @moduledoc false
+  @moduledoc """
+  Implements CLI filesystem, environment, terminal, and output effects against the local system.
+  """
 
   @behaviour Draught.CLI.System.Adapter
 

@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Provider.Local do
-  @moduledoc false
+  @moduledoc """
+  Routes local CLI provider configuration to its Ollama or OpenAI-compatible builder.
+  """
 
   @behaviour Draught.CLI.Task.Provider.Adapter
 

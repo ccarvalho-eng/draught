@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Session.Store.Lease.Listener do
-  @moduledoc false
+  @moduledoc """
+  Listens for bounded lease identity probes while a session is exclusively owned.
+  """
 
   alias Draught.CLI.Session.Failure
   alias Draught.CLI.Session.Store.Lease.Endpoint

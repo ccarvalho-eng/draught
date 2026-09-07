@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Provider.Failure do
-  @moduledoc false
+  @moduledoc """
+  Constructs stable provider-selection and capability failures for CLI tasks.
+  """
 
   alias Draught.Error.Normalized
 

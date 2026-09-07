@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Command.Intent do
-  @moduledoc false
+  @moduledoc """
+  Resolves positional arguments and options into one unambiguous CLI command intent.
+  """
 
   alias Draught.CLI.Command.Error
   alias Draught.CLI.Command.Invocation

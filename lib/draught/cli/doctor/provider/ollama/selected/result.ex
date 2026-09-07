@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Doctor.Provider.Ollama.Selected.Result do
-  @moduledoc false
+  @moduledoc """
+  Converts selected-model discovery outcomes into bounded diagnostic checks.
+  """
 
   alias Draught.CLI.Doctor.Check
   alias Draught.Error.Normalized

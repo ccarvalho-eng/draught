@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Named.Resume.Validation do
-  @moduledoc false
+  @moduledoc """
+  Verifies that durable history and provider identity form a safe named-session continuation boundary.
+  """
 
   alias Draught.CLI.Session.Binding
   alias Draught.CLI.Session.Failure

@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Named do
-  @moduledoc false
+  @moduledoc """
+  Dispatches creation or continuation of one persistent named CLI task.
+  """
 
   alias Draught.CLI.Task.Named.Create
   alias Draught.CLI.Task.Named.Resume

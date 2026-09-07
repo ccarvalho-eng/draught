@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Named.Lease do
-  @moduledoc false
+  @moduledoc """
+  Holds a named-session store lease across setup, execution, shutdown, and failure cleanup.
+  """
 
   alias Draught.CLI.Session.Store
 

@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Configuration.Projection do
-  @moduledoc false
+  @moduledoc """
+  Projects a selected profile and invocation overrides into runtime CLI configuration.
+  """
 
   alias Draught.CLI.Configuration
   alias Draught.CLI.Configuration.Credential

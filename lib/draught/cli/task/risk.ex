@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Risk do
-  @moduledoc false
+  @moduledoc """
+  Maps CLI risk configuration to the tool approval policy used for a task.
+  """
 
   alias Draught.CLI.Task.Approval.Fixed
   alias Draught.Tool.Approval.Policy.Default

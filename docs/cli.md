@@ -1,6 +1,6 @@
 # Command-line interface
 
-The current CLI provides bounded argument parsing, configuration resolution, help, version reporting, diagnostics, streaming anonymous tasks, persistent named tasks, and an initial interactive prompt loop. It renders incremental terminal text or versioned JSONL and uses stable exit categories. Interactive approvals, session-management commands, and enabled web execution are not available.
+The current CLI provides bounded argument parsing, configuration resolution, help, version reporting, diagnostics, streaming anonymous tasks, persistent named tasks, and an interactive prompt loop with workspace-scoped session management. It renders incremental terminal text or versioned JSONL and uses stable exit categories. Interactive approvals, model and provider menus, and enabled web execution are not available.
 
 ## Available commands
 
@@ -86,9 +86,26 @@ Only a session whose durable history ends at a successful assistant response can
 
 Interactive mode resolves configuration and model selection before displaying its bounded session card. The shell owns a stable generated or supplied session identifier and routes ordinary text through the named-session task path. Successful later turns resume the same durable journal. Slash-prefixed input is parsed as a CLI command and is never sent to the provider as task text.
 
-The current command set is `/help`, `/status`, `/doctor`, and `/exit`; entering `/` displays the command index. The parser already reserves the remaining documented command names, direct-command input beginning with `!`, and file lookup input beginning with `@`, but those effects return an explicit unavailable result until their dedicated policy boundaries are connected.
+The current commands are:
 
-The prompt loop is text- and terminal-only. It restores its terminal boundary after exit, end of input, or an input failure and prints `Session ID: ID` on ordinary exit. Active-turn cancellation, interactive approval prompts, searchable model and provider selection, queued input, and session list, rename, and archive operations remain pending.
+| Command | Behavior |
+| --- | --- |
+| `/help` or `/` | Displays the command index. |
+| `/status` | Displays the current immutable ID, display name, provider, model, workspace, web state, and activity. |
+| `/doctor` | Runs the read-only diagnostic command and returns to the prompt. |
+| `/sessions` | Lists bounded active, archived, and unavailable records for the current workspace. |
+| `/resume [ID or name]` | Selects an active session by exact ID or unique display name. With no argument, lists active sessions. |
+| `/new [ID]` | Starts a fresh unpersisted session using the current base configuration. A generated UUID is used when the ID is omitted. |
+| `/rename NAME` | Changes the display name of the current persisted session without changing its ID. |
+| `/archive [ID or name]` | Soft-archives the selected active session, defaulting to the current persisted session. Archiving the current session switches the shell to a fresh unpersisted session. |
+| `/restore [ID or name]` | Restores an archived session. With no argument, lists archived sessions. |
+| `/exit` | Closes the prompt and prints its current session ID. |
+
+Session names are display metadata and need not be unique. An ambiguous name must be replaced with its immutable ID. Catalog discovery is read-only and bounded; it does not replay journals. Exact IDs use direct lookup, so known sessions can still be archived or restored when a complete listing exceeds its entry limit. Corrupt or unsafe records are shown only by their validated ID as unavailable and cannot be selected. Archived sessions are rejected at the storage boundary for both interactive and headless resume until restored.
+
+The parser reserves direct-command input beginning with `!`, file lookup input beginning with `@`, and the remaining documented slash command names. Those effects return an explicit unavailable result until their policy boundaries are connected.
+
+The prompt loop is text- and terminal-only. It restores its terminal boundary after exit, end of input, or an input failure and prints `Session ID: ID` on ordinary exit. Active-turn cancellation, interactive approval prompts, searchable model and provider selection, and queued input remain pending.
 
 ## Doctor
 

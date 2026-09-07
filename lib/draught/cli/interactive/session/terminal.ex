@@ -1,0 +1,141 @@
+defmodule Draught.CLI.Interactive.Session.Terminal do
+  @moduledoc """
+  Owns terminal input and presentation for an interactive session.
+
+  The controller exchanges semantic views with this boundary rather than
+  depending on concrete rendering, writing, or input parsing modules.
+  """
+
+  alias Draught.CLI.Command.Invocation
+  alias Draught.CLI.Dependencies
+  alias Draught.CLI.Interactive.Input
+  alias Draught.CLI.Interactive.Session.Command
+  alias Draught.CLI.Interactive.State
+  alias Draught.CLI.UI
+  alias Draught.CLI.Writer
+
+  @type parsed_input :: {:ok, Input.action()} | {:error, Input.error()}
+  @type view ::
+          :help
+          | :prompt
+          | :terminal_error
+          | {:input_error, atom()}
+          | {:session_closed, String.t()}
+          | {:session_error, term()}
+          | {:session_view, Command.view(), State.t()}
+          | {:status, State.t()}
+          | {:unavailable_command, atom()}
+
+  @doc "Renders and writes the bounded session banner for the current terminal."
+  @spec banner(State.t(), Invocation.t(), Dependencies.t()) :: non_neg_integer()
+  def banner(state, invocation, dependencies) do
+    {system, configuration} = dependencies.system
+    width = terminal_width(system.columns(configuration))
+    styled? = styled?(invocation.color, system.tty?(:stdout, configuration))
+
+    state
+    |> UI.banner(width, styled?)
+    |> write(:stdout, :success, dependencies)
+  end
+
+  @doc "Writes the prompt, reads one terminal line, and parses it as interactive input."
+  @spec read(Dependencies.t()) ::
+          {:ok, parsed_input()}
+          | :eof
+          | :interrupted
+          | {:error, :io}
+          | {:error, :write, non_neg_integer()}
+  def read(dependencies) do
+    case emit(:prompt, :stdout, :success, dependencies) do
+      0 -> parse_read(read_line(dependencies.terminal))
+      status -> {:error, :write, status}
+    end
+  end
+
+  @doc "Renders and writes one semantic interactive-session view."
+  @spec emit(view(), :stdout | :stderr, atom(), Dependencies.t()) :: non_neg_integer()
+  def emit(view, stream, category, dependencies) do
+    view
+    |> render()
+    |> write(stream, category, dependencies)
+  end
+
+  @doc "Restores the configured terminal after the interactive shell closes."
+  @spec restore(Dependencies.t()) :: :ok
+  def restore(%Dependencies{terminal: {terminal, configuration}}) do
+    terminal.restore(configuration)
+  end
+
+  defp parse_read({:ok, input}) do
+    {:ok, Input.parse(input)}
+  end
+
+  defp parse_read(result) do
+    result
+  end
+
+  defp render(:help) do
+    UI.help()
+  end
+
+  defp render(:prompt) do
+    UI.prompt()
+  end
+
+  defp render(:terminal_error) do
+    UI.terminal_error()
+  end
+
+  defp render({:input_error, reason}) do
+    UI.input_error(reason)
+  end
+
+  defp render({:session_closed, identifier}) do
+    UI.session_closed(identifier)
+  end
+
+  defp render({:session_error, reason}) do
+    UI.session_error(reason)
+  end
+
+  defp render({:session_view, {:sessions, entries, filter}, state}) do
+    UI.sessions(entries, state.session_id, filter)
+  end
+
+  defp render({:session_view, {event, value}, state})
+       when event in [:archived, :renamed, :restored, :selected] do
+    [UI.session_event(event, value), UI.status(state)]
+  end
+
+  defp render({:status, state}) do
+    UI.status(state)
+  end
+
+  defp render({:unavailable_command, command}) do
+    UI.unavailable_command(command)
+  end
+
+  defp write(content, stream, category, dependencies) do
+    Writer.emit({:ok, content}, stream, category, dependencies)
+  end
+
+  defp terminal_width({:ok, columns}) do
+    columns
+  end
+
+  defp terminal_width({:error, :unavailable}) do
+    50
+  end
+
+  defp styled?(:never, _terminal?) do
+    false
+  end
+
+  defp styled?(_color, terminal?) do
+    terminal?
+  end
+
+  defp read_line({terminal, configuration}) do
+    terminal.read_line(configuration)
+  end
+end

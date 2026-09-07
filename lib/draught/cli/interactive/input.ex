@@ -7,8 +7,8 @@ defmodule Draught.CLI.Interactive.Input do
   """
 
   @maximum_bytes 65_536
-  @argument_commands [:archive, :model, :new, :provider, :rename, :resume]
-  @optional_argument_commands [:archive, :model, :new, :provider]
+  @argument_commands [:archive, :model, :new, :provider, :rename, :restore, :resume]
+  @optional_argument_commands [:archive, :model, :new, :provider, :restore, :resume]
   @plain_commands [
     :compact,
     :context,
@@ -40,6 +40,7 @@ defmodule Draught.CLI.Interactive.Input do
           | :permissions
           | :provider
           | :rename
+          | :restore
           | :resume
           | :review
           | :sessions

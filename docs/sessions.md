@@ -37,6 +37,30 @@ Call `Draught.Session.acknowledge(session, acknowledgement, :ok)` to allow the r
 
 Status includes the effective `search` and `fetch` permission states for the session. Interfaces can render these values before starting a turn without inspecting adapter configuration.
 
+## CLI session catalog
+
+The CLI maintains a bounded workspace-scoped catalog outside the workspace. The immutable directory identifier remains the replay and lease identity. A separate versioned metadata record contains only the identifier, optional display name, and archive timestamp. Existing sessions without metadata are treated as active and use their identifier as the display name.
+
+Catalog listing validates the complete application-owned directory chain, directory names, session marker, provider binding, and metadata record without creating directories or replaying journals. Directory enumeration runs in a supervised task with fixed heap, time, entry-count, and output bounds. An unsafe individual record becomes unavailable and exposes only its validated identifier. An unsafe catalog boundary or more than 256 directory entries fails the complete scan. Exact immutable IDs use a direct bounded lookup, allowing known sessions to be managed without a successful complete listing.
+
+Rename, archive, and restore acquire the same exclusive lease used by named turns. They re-read the records while holding that lease and atomically replace owner-only metadata. The record and containing directory are synchronized before success is returned. A directory-sync failure reports that publication is unknown and requires the state to be inspected before retry. Archive is idempotent and preserves its first timestamp; restore is also idempotent. Resume validates active metadata while holding the lease, so direct named tasks and interactive selection enforce the same rule.
+
+The supported metadata states are:
+
+```mermaid
+stateDiagram-v2
+  [*] --> LegacyActive: metadata absent
+  LegacyActive --> Active: rename or restore writes v1 metadata
+  LegacyActive --> Archived: archive writes v1 metadata
+  Active --> Active: rename or restore
+  Active --> Archived: archive records timestamp
+  Archived --> Archived: repeated archive preserves timestamp
+  Archived --> Active: restore clears timestamp
+  Archived --> ResumeRejected: resume
+```
+
+Session switching applies the selected session's durable provider and model binding to the unchanged base CLI configuration. This prevents one selected session from changing the configuration used to validate a later selection.
+
 ## Events
 
 Session events are tagged with the canonical session identifier:

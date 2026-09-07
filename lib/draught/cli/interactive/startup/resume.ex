@@ -11,11 +11,12 @@ defmodule Draught.CLI.Interactive.Startup.Resume do
   alias Draught.CLI.Dependencies
   alias Draught.CLI.Session.Binding
   alias Draught.CLI.Session.Binding.Local
+  alias Draught.CLI.Session.Catalog.Metadata
   alias Draught.CLI.Task.Named.Lease
 
   @doc "Applies a recorded resume model or leaves new-session configuration unchanged."
   @spec bind(Invocation.t(), Configuration.t(), String.t(), String.t(), Dependencies.t()) ::
-          {:ok, Configuration.t()} | {:error, :session, term()}
+          {:ok, Configuration.t(), String.t() | nil} | {:error, :session, term()}
   def bind(
         %Invocation{resume: resume},
         configuration,
@@ -33,22 +34,24 @@ defmodule Draught.CLI.Interactive.Startup.Resume do
   end
 
   def bind(%Invocation{}, configuration, _workspace, _identifier, _dependencies) do
-    {:ok, configuration}
+    {:ok, configuration, nil}
   end
 
   defp bind_opened(store, configuration) do
     result =
       Lease.run_opened(store, fn ->
-        with {:ok, binding} <- Local.read(store.paths) do
-          Binding.bind_configuration(binding, configuration)
+        with {:ok, binding} <- Local.read(store.paths),
+             {:ok, metadata} <- Metadata.Local.read(store.paths),
+             {:ok, bound} <- Binding.bind_configuration(binding, configuration) do
+          {:ok, bound, metadata.label}
         end
       end)
 
     bind_opened_result(result)
   end
 
-  defp bind_opened_result({:ok, configuration}) do
-    {:ok, configuration}
+  defp bind_opened_result({:ok, configuration, label}) do
+    {:ok, configuration, label}
   end
 
   defp bind_opened_result({:error, :session, error}) do

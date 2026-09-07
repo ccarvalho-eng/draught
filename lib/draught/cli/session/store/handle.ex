@@ -11,7 +11,7 @@ defmodule Draught.CLI.Session.Store.Handle do
 
   @type t :: %__MODULE__{
           lease: Lease.t(),
-          mode: :create | :resume,
+          mode: :create | :manage | :resume,
           paths: Paths.t()
         }
 end

@@ -85,6 +85,46 @@ defmodule Draught.CLI.Session.Failure do
     )
   end
 
+  @doc "Builds a failure for missing, malformed, or unsafe session metadata."
+  @spec invalid_metadata() :: Normalized.t()
+  def invalid_metadata do
+    error(
+      "session_metadata_invalid",
+      "The session metadata is missing or invalid",
+      "Inspect the session state before continuing"
+    )
+  end
+
+  @doc "Builds a failure when an archived session is selected for resume."
+  @spec archived() :: Normalized.t()
+  def archived do
+    error(
+      "session_archived",
+      "The session is archived",
+      "Restore the session before attempting to resume it"
+    )
+  end
+
+  @doc "Builds a failure when a workspace catalog exceeds its bounded entry count."
+  @spec catalog_too_large() :: Normalized.t()
+  def catalog_too_large do
+    error(
+      "session_catalog_too_large",
+      "The workspace session catalog exceeds its entry limit",
+      "Use an exact session ID for management, or remove unused session state"
+    )
+  end
+
+  @doc "Builds a failure when an atomic record was published but durability is unknown."
+  @spec publication_unknown() :: Normalized.t()
+  def publication_unknown do
+    error(
+      "session_publication_unknown",
+      "The session record may have changed but could not be synchronized",
+      "Inspect the session state before retrying the operation"
+    )
+  end
+
   defp error(code, message, hint) do
     {:ok, error} =
       Normalized.new(:configuration, code, message,

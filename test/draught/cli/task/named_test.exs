@@ -22,11 +22,15 @@ defmodule Draught.CLI.Task.NamedTest do
   defmodule ProviderBuilder do
     @moduledoc false
 
-    @spec build(Draught.CLI.Configuration.t(), pid()) ::
+    @spec build(Draught.CLI.Configuration.t(), pid() | {pid(), keyword()}) ::
             {:ok, Selection.t()} | {:error, Draught.CLI.Task.error()}
-    def build(configuration, owner) do
+    def build(configuration, provider_configuration) do
       model = configuration.model || "free-model"
-      Selection.new({Draught.CLI.Task.NamedTest.CapturingProvider, owner}, model)
+
+      Selection.new(
+        {Draught.CLI.Task.NamedTest.CapturingProvider, provider_configuration},
+        model
+      )
     end
   end
 
@@ -36,15 +40,23 @@ defmodule Draught.CLI.Task.NamedTest do
     @behaviour Provider
 
     @impl Provider
-    def capabilities(_owner) do
+    def capabilities(owner) when is_pid(owner) do
       Capabilities.new(chat: true, tool_calls: true)
     end
 
+    def capabilities({_owner, capabilities}) do
+      Capabilities.new(capabilities)
+    end
+
     @impl Provider
-    def complete(request, owner) do
+    def complete(request, owner) when is_pid(owner) do
       send(owner, {:provider_request, request})
       {:ok, message} = Conversation.assistant(content: "done")
       Response.new(message: message, finish_reason: :stop)
+    end
+
+    def complete(request, {owner, _capabilities}) do
+      complete(request, owner)
     end
 
     @impl Provider
@@ -151,10 +163,101 @@ defmodule Draught.CLI.Task.NamedTest do
     assert resumed_request.model == "free-model"
   end
 
-  defp dependencies do
+  test "rejects capability drift before executing a resumed session", %{tmp_dir: tmp_dir} do
+    workspace = workspace(tmp_dir)
+    environment = %{"XDG_STATE_HOME" => Path.join(tmp_dir, "state")}
+    initial = [chat: true, streaming: true, tool_calls: true]
+    changed = [chat: true, streaming: false, tool_calls: true]
+
+    assert {:ok, %Response{}} =
+             Named.run(
+               :create,
+               "review",
+               "Inspect",
+               configuration("free-model"),
+               workspace,
+               environment,
+               dependencies({self(), initial})
+             )
+
+    assert_receive {:provider_request, _request}
+    assert {:ok, paths} = Paths.new(workspace, "review", environment)
+    journal_before = File.read!(paths.journal)
+
+    assert {:error, :session, error} =
+             Named.run(
+               :resume,
+               "review",
+               "Continue",
+               configuration("free-model"),
+               workspace,
+               environment,
+               dependencies({self(), changed})
+             )
+
+    assert error.code == "session_binding_mismatch"
+    refute_receive {:provider_request, _request}
+    assert File.read!(paths.journal) == journal_before
+
+    assert {:ok, %Response{}} =
+             Named.run(
+               :resume,
+               "review",
+               "Continue",
+               configuration("free-model"),
+               workspace,
+               environment,
+               dependencies({self(), initial})
+             )
+
+    assert_receive {:provider_request, _request}
+  end
+
+  test "upgrades a legacy binding during its first verified resume", %{tmp_dir: tmp_dir} do
+    workspace = workspace(tmp_dir)
+    environment = %{"XDG_STATE_HOME" => Path.join(tmp_dir, "state")}
+    configuration = configuration("free-model")
+    dependencies = dependencies()
+
+    assert {:ok, %Response{}} =
+             Named.run(
+               :create,
+               "review",
+               "Inspect",
+               configuration,
+               workspace,
+               environment,
+               dependencies
+             )
+
+    assert_receive {:provider_request, _request}
+    assert {:ok, paths} = Paths.new(workspace, "review", environment)
+    downgrade_binding(paths.binding)
+
+    assert {:ok, %Response{}} =
+             Named.run(
+               :resume,
+               "review",
+               "Continue",
+               configuration,
+               workspace,
+               environment,
+               dependencies
+             )
+
+    assert_receive {:provider_request, _request}
+    assert {:ok, upgraded} = Draught.CLI.Session.Binding.Local.read(paths)
+    assert upgraded.version == 2
+    assert is_binary(upgraded.capabilities)
+  end
+
+  defp dependencies(provider_configuration \\ self()) do
     {:ok, dependencies} =
       Dependencies.new(
-        [provider: {ProviderBuilder, self()}, identifier: fn -> {:ok, "unused"} end],
+        [
+          provider: {ProviderBuilder, provider_configuration},
+          identifier: fn -> {:ok, "unused"} end
+        ],
         Draught.Provider.Ollama.Discovery.HTTP.Req
       )
 
@@ -179,5 +282,18 @@ defmodule Draught.CLI.Task.NamedTest do
     path = Path.join(tmp_dir, "workspace")
     File.mkdir_p!(path)
     path
+  end
+
+  defp downgrade_binding(path) do
+    legacy =
+      path
+      |> File.read!()
+      |> Jason.decode!()
+      |> Map.delete("capabilities")
+      |> Map.put("schema", "draught.cli.session/v1")
+      |> Jason.encode!()
+
+    File.write!(path, legacy)
+    File.chmod!(path, 0o600)
   end
 end

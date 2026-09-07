@@ -5,10 +5,15 @@ defmodule Draught.CLITest do
   alias Draught.CLI.Dependencies
   alias Draught.CLI.Task.Provider.Selection
   alias Draught.Conversation
+  alias Draught.Conversation.Message.Tool
   alias Draught.Error.Normalized
   alias Draught.Provider.Capabilities
   alias Draught.Provider.Ollama.Discovery.HTTP.Failure
   alias Draught.Provider.Response
+  alias Draught.Session
+  alias Draught.Tool.Call
+
+  @receive_timeout 1_000
 
   defmodule SystemAdapter do
     @behaviour Draught.CLI.System.Adapter
@@ -108,6 +113,72 @@ defmodule Draught.CLITest do
     @impl Draught.CLI.Task.Provider.Adapter
     def build(_configuration, _dependency) do
       {:ok, :invalid_selection}
+    end
+  end
+
+  defmodule BlockingProvider do
+    @behaviour Draught.Provider
+
+    @impl Draught.Provider
+    def capabilities(_owner) do
+      Capabilities.new(chat: true, tool_calls: true)
+    end
+
+    @impl Draught.Provider
+    def complete(_request, owner) do
+      send(owner, {:blocking_provider_started, self()})
+
+      receive do
+        :complete -> {:error, :unexpected_completion}
+      after
+        5_000 -> {:error, :blocking_provider_timeout}
+      end
+    end
+
+    @impl Draught.Provider
+    def stream(_request, _owner, _sink) do
+      {:error, :not_used}
+    end
+  end
+
+  defmodule BlockingProviderFactory do
+    @behaviour Draught.CLI.Task.Provider.Adapter
+
+    @impl Draught.CLI.Task.Provider.Adapter
+    def build(_configuration, owner) do
+      Selection.new({BlockingProvider, owner}, "free-model")
+    end
+  end
+
+  defmodule ScriptedProvider do
+    @behaviour Draught.Provider
+
+    @impl Draught.Provider
+    def capabilities(_owner) do
+      Capabilities.new(chat: true, tool_calls: true)
+    end
+
+    @impl Draught.Provider
+    def complete(request, owner) do
+      send(owner, {:scripted_provider_request, self(), request})
+
+      receive do
+        {:scripted_provider_result, result} -> result
+      end
+    end
+
+    @impl Draught.Provider
+    def stream(_request, _owner, _sink) do
+      {:error, :not_used}
+    end
+  end
+
+  defmodule ScriptedProviderFactory do
+    @behaviour Draught.CLI.Task.Provider.Adapter
+
+    @impl Draught.CLI.Task.Provider.Adapter
+    def build(_configuration, owner) do
+      Selection.new({ScriptedProvider, owner}, "free-model")
     end
   end
 
@@ -257,6 +328,89 @@ defmodule Draught.CLITest do
 
     assert CLI.run(["inspect this project"], dependencies(provider_response: response)) == 0
     assert_receive {:cli_output, :stdout, "Inspection complete\n"}
+  end
+
+  test "maps supervised session cancellation to the CLI exit boundary" do
+    identifier = "cancel-smoke-#{System.unique_integer([:positive, :monotonic])}"
+
+    dependencies =
+      dependencies(
+        provider_factory: {BlockingProviderFactory, self()},
+        identifier: fn -> {:ok, identifier} end
+      )
+
+    task = Task.async(fn -> CLI.run(["inspect this project"], dependencies) end)
+
+    assert_receive {:blocking_provider_started, provider}, @receive_timeout
+    provider_monitor = Process.monitor(provider)
+    assert :ok = Session.cancel(identifier)
+    assert Task.await(task) == 130
+    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}, @receive_timeout
+    assert_receive {:cli_output, :stderr, output}, @receive_timeout
+    assert output =~ "session_cancelled"
+  end
+
+  test "denies an effectful tool through the CLI entry boundary" do
+    dependencies =
+      dependencies(
+        environment: %{"DRAUGHT_RISK" => "deny"},
+        provider_factory: {ScriptedProviderFactory, self()}
+      )
+
+    task = Task.async(fn -> CLI.run(["update sample.txt"], dependencies) end)
+
+    assert_receive {:scripted_provider_request, first_provider, _first_request}, @receive_timeout
+    call = replace_call()
+    send(first_provider, {:scripted_provider_result, {:ok, tool_response(call)}})
+
+    assert_receive {:scripted_provider_request, second_provider, second_request}, @receive_timeout
+
+    assert [%Tool{result: %{error: %{code: "tool_risk_denied"}}} | _messages] =
+             Enum.reverse(second_request.messages)
+
+    final = response("The edit was denied")
+    send(second_provider, {:scripted_provider_result, {:ok, final}})
+
+    assert Task.await(task) == 0
+    assert_receive {:cli_output, :stdout, "The edit was denied\n"}, @receive_timeout
+  end
+
+  @tag :tmp_dir
+  test "edits and verifies through the credential-free CLI entry boundary", %{
+    tmp_dir: workspace
+  } do
+    path = Path.join(workspace, "sample.txt")
+    File.write!(path, "before")
+
+    dependencies =
+      dependencies(
+        cwd: workspace,
+        environment: %{"DRAUGHT_RISK" => "allow"},
+        provider_factory: {ScriptedProviderFactory, self()}
+      )
+
+    task = Task.async(fn -> CLI.run(["update and verify sample.txt"], dependencies) end)
+
+    assert_receive {:scripted_provider_request, first_provider, _first_request}, @receive_timeout
+    send(first_provider, {:scripted_provider_result, {:ok, tool_response(replace_call())}})
+
+    assert_receive {:scripted_provider_request, second_provider, second_request}, @receive_timeout
+
+    assert [%Tool{result: %{status: :success}} | _messages] =
+             Enum.reverse(second_request.messages)
+
+    assert File.read!(path) == "after"
+    send(second_provider, {:scripted_provider_result, {:ok, tool_response(read_call())}})
+
+    assert_receive {:scripted_provider_request, third_provider, third_request}, @receive_timeout
+
+    assert [%Tool{result: %{status: :success, content: "after"}} | _messages] =
+             Enum.reverse(third_request.messages)
+
+    send(third_provider, {:scripted_provider_result, {:ok, response("Updated and verified")}})
+
+    assert Task.await(task) == 0
+    assert_receive {:cli_output, :stdout, "Updated and verified\n"}, @receive_timeout
   end
 
   test "auto-selects one compatible Ollama model for a complete CLI task" do
@@ -512,5 +666,43 @@ defmodule Draught.CLITest do
       :ok,
       %Draught.Provider.Ollama.Discovery.HTTP.Response{status: 200, body: body}
     })
+  end
+
+  defp replace_call do
+    {:ok, call} =
+      Call.new(
+        id: "replace-1",
+        name: "replace_in_file",
+        arguments: %{
+          "expected" => "before",
+          "path" => "sample.txt",
+          "replacement" => "after"
+        }
+      )
+
+    call
+  end
+
+  defp read_call do
+    {:ok, call} =
+      Call.new(
+        id: "read-1",
+        name: "read_file",
+        arguments: %{"path" => "sample.txt"}
+      )
+
+    call
+  end
+
+  defp tool_response(call) do
+    {:ok, assistant} = Conversation.assistant(tool_calls: [call])
+    {:ok, response} = Response.new(message: assistant, finish_reason: :tool_calls)
+    response
+  end
+
+  defp response(content) do
+    {:ok, assistant} = Conversation.assistant(content: content)
+    {:ok, response} = Response.new(message: assistant, finish_reason: :stop)
+    response
   end
 end

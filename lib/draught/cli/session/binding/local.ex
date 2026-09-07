@@ -15,7 +15,15 @@ defmodule Draught.CLI.Session.Binding.Local do
   @spec create(Paths.t(), Binding.t()) :: :ok | {:error, Draught.Error.Normalized.t()}
   def create(%Paths{} = paths, %Binding{} = binding) do
     with {:ok, encoded} <- Binding.encode(binding) do
-      atomic_create(paths.binding, encoded)
+      atomic_write(paths.binding, encoded, :create)
+    end
+  end
+
+  @doc "Atomically replaces an existing binding while preserving owner-only permissions."
+  @spec replace(Paths.t(), Binding.t()) :: :ok | {:error, Draught.Error.Normalized.t()}
+  def replace(%Paths{} = paths, %Binding{} = binding) do
+    with {:ok, encoded} <- Binding.encode(binding) do
+      atomic_write(paths.binding, encoded, :replace)
     end
   end
 
@@ -28,13 +36,13 @@ defmodule Draught.CLI.Session.Binding.Local do
     end
   end
 
-  defp atomic_create(path, content) do
+  defp atomic_write(path, content, mode) do
     temporary = temporary_path(path)
 
     try do
       with {:ok, device} <- File.open(temporary, [:write, :binary, :exclusive]),
            :ok <- write(device, temporary, content),
-           :ok <- File.ln(temporary, path) do
+           :ok <- publish(temporary, path, mode) do
         :ok
       else
         _result -> {:error, Failure.storage_unavailable()}
@@ -42,6 +50,14 @@ defmodule Draught.CLI.Session.Binding.Local do
     after
       File.rm(temporary)
     end
+  end
+
+  defp publish(temporary, path, :create) do
+    File.ln(temporary, path)
+  end
+
+  defp publish(temporary, path, :replace) do
+    File.rename(temporary, path)
   end
 
   defp write(device, path, content) do

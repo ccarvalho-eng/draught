@@ -23,6 +23,7 @@ defmodule Draught.CLI.Task.Preparation.Builder do
          {:ok, runner} <- runner(selection, registry, context, limits) do
       {:ok,
        %Preparation{
+         capabilities: selection.capabilities,
          request: request,
          runner: runner,
          session_options: [

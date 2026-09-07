@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.RunCommand.Preparation do
-  @moduledoc false
+  @moduledoc """
+  Prepares an approved command for bounded subprocess execution.
+
+  It validates structured input, obtains approval, resolves the workspace and
+  executable, and supplies the controlled environment and execution limits.
+  """
 
   alias Draught.Tool.Builtin.Approval
   alias Draught.Tool.Builtin.RunCommand.Environment

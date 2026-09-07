@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.RunCommand.Failure do
-  @moduledoc false
+  @moduledoc """
+  Normalizes command preparation and subprocess failures.
+
+  Internal reasons are reduced to stable non-retryable error kinds and codes
+  suitable for returning across the tool execution boundary.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Tool.Builtin.Failure

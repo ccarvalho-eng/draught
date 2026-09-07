@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.Step.Tools do
-  @moduledoc false
+  @moduledoc """
+  Performs one pending tool batch and applies its messages to runner state.
+
+  The step preserves the runner's pending-call order and delegates state
+  validation to the tool transition boundary.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Execution.Runner.Configuration

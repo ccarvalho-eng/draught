@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.SearchWorkspace.Searcher do
-  @moduledoc false
+  @moduledoc """
+  Searches a stable file list under aggregate byte and match limits.
+
+  Files are read through the bounded reader, matches preserve file and line
+  order, and long lines or excess matches are truncated deterministically.
+  """
 
   alias Draught.Tool.Builtin.ReadFile.Reader
 

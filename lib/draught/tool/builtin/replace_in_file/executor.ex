@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.ReplaceInFile.Executor do
-  @moduledoc false
+  @moduledoc """
+  Executes approved, serialized text replacement inside the workspace.
+
+  Approval precedes path resolution and mutation. The resolved operation is
+  submitted to the mutation queue so writes do not overlap.
+  """
 
   @behaviour Draught.Tool.Executor
 

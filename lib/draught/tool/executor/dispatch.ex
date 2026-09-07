@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Executor.Dispatch do
-  @moduledoc false
+  @moduledoc """
+  Invokes a tool executor and validates the result at the trust boundary.
+
+  Output is reconstructed and byte-bounded, while executor errors are limited
+  to permitted kinds. Malformed values become a stable tool failure.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Tool.Execution.Context

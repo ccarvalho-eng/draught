@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.ReplaceInFile.Operation do
-  @moduledoc false
+  @moduledoc """
+  Performs one bounded exact-text replacement for the mutation queue.
+
+  The expected text must occur exactly once, and both the source and resulting
+  file remain within the mutation byte limit before atomic replacement.
+  """
 
   @behaviour Draught.Tool.Mutation.Operation
 

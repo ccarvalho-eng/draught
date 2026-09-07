@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.Builders do
-  @moduledoc false
+  @moduledoc """
+  Selects the definition builders used by the standard tool catalog.
+
+  Workspace tools retain a stable order. Web tools are appended only when the
+  supplied capability explicitly enables their corresponding operation.
+  """
 
   alias Draught.Tool.Builtin.ListDirectory
   alias Draught.Tool.Builtin.ReadFile

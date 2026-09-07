@@ -1,5 +1,11 @@
 defmodule Draught.Workspace.Path.Canonical do
-  @moduledoc false
+  @moduledoc """
+  Resolves absolute paths through filesystem metadata without trusting symlinks.
+
+  Symbolic links are followed explicitly under bounded depth and target-size
+  limits. Read resolution requires every component to exist, while write
+  resolution may return a path below the last existing directory.
+  """
 
   @maximum_symlinks 40
   @maximum_link_target_bytes 4_096

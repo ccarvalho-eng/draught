@@ -1,5 +1,10 @@
 defmodule Draught.Execution.BoundedTask.OwnerGuard do
-  @moduledoc false
+  @moduledoc """
+  Couples a bounded execution task to the lifetime of its owning process.
+
+  A separate supervised guard monitors both processes and kills the child if
+  the owner exits before the child completes.
+  """
 
   @supervisor Draught.Execution.TaskSupervisor
 

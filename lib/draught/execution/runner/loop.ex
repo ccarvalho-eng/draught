@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.Loop do
-  @moduledoc false
+  @moduledoc """
+  Drives runner state transitions until the run reaches a terminal outcome.
+
+  Provider and tool effects occur only through their bounded execution
+  modules, while terminal outcomes are delivered through the configured sink.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Execution.Runner.Configuration

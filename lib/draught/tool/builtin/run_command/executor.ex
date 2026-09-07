@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.RunCommand.Executor do
-  @moduledoc false
+  @moduledoc """
+  Executes the built-in command tool through its preparation and process boundaries.
+
+  Preparation handles validation, approval, confinement, and executable
+  resolution before the subprocess is started and awaited.
+  """
 
   @behaviour Draught.Tool.Executor
 

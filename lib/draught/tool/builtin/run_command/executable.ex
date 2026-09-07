@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.RunCommand.Executable do
-  @moduledoc false
+  @moduledoc """
+  Resolves an executable without invoking a shell.
+
+  Explicit paths are expanded relative to the workspace; bare names are
+  searched only through bounded absolute entries in the controlled path.
+  """
 
   import Bitwise, only: [band: 2]
 

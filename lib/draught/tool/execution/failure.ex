@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Execution.Failure do
-  @moduledoc false
+  @moduledoc """
+  Constructs normalized tool execution and approval failures.
+
+  Validation details are reduced to bounded hints, and every returned failure
+  is non-retryable with a stable category and code.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Validation.Error

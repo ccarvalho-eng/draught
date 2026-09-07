@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Approval.Policy.Adapter do
-  @moduledoc false
+  @moduledoc """
+  Validates the module and configuration used as an approval policy.
+
+  The adapter accepts only loaded modules that implement the required
+  `decide/2` callback and returns a normalized configuration failure otherwise.
+  """
 
   alias Draught.Error.Normalized
 

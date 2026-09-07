@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.RunCommand.Input do
-  @moduledoc false
+  @moduledoc """
+  Represents validated input for command execution without shell parsing.
+
+  Executable and argument counts and byte sizes are bounded. Control bytes in
+  executable names and null bytes in arguments are rejected.
+  """
 
   @maximum_argument_bytes 4_096
   @maximum_arguments 128

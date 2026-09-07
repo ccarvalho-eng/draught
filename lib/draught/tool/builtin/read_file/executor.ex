@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.ReadFile.Executor do
-  @moduledoc false
+  @moduledoc """
+  Executes bounded UTF-8 file reads inside the configured workspace.
+
+  The executor resolves the requested path through the workspace boundary and
+  maps path, size, and read errors to safe tool failures.
+  """
 
   @behaviour Draught.Tool.Executor
 

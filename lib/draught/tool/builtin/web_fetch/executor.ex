@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.WebFetch.Executor do
-  @moduledoc false
+  @moduledoc """
+  Executes the capability-gated web fetch tool.
+
+  The executor validates the target and requests network approval before
+  delegating to the bounded fetch boundary. Fetched content remains untrusted.
+  """
 
   @behaviour Draught.Tool.Executor
 

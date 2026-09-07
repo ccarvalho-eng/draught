@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.Approval do
-  @moduledoc false
+  @moduledoc """
+  Applies the configured approval policy to built-in tool operations.
+
+  Only bounded, sanitized metadata crosses the approval boundary. Decisions
+  are normalized to permission or stable policy failures before execution.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Tool.Approval

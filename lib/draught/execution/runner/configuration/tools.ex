@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.Configuration.Tools do
-  @moduledoc false
+  @moduledoc """
+  Canonicalizes the tool registry and execution context for a runner.
+
+  It reconstructs both values at the boundary and applies runner output and
+  timeout limits to the resulting execution policy.
+  """
 
   alias Draught.Execution.Runner.Limits
   alias Draught.Tool.Execution.Context

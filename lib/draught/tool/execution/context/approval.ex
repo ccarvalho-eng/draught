@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Execution.Context.Approval do
-  @moduledoc false
+  @moduledoc """
+  Normalizes approval policy configuration for a tool execution context.
+
+  Missing configuration receives the default policy, while invalid adapters
+  are converted to context validation errors.
+  """
 
   alias Draught.Tool.Approval.Policy.Adapter
   alias Draught.Tool.Approval.Policy.Default

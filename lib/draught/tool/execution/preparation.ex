@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Execution.Preparation do
-  @moduledoc false
+  @moduledoc """
+  Prepares a tool call for execution against a canonical registry and context.
+
+  Definition lookup, risk authorization, and schema validation complete before
+  the executor boundary is invoked.
+  """
 
   alias Draught.Tool.Call
   alias Draught.Tool.Definition

@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.Sink do
-  @moduledoc false
+  @moduledoc """
+  Delivers synchronous runner events through an injected sink function.
+
+  A sink must return `:ok`; any other value becomes a normalized configuration
+  failure so event delivery cannot silently diverge from execution.
+  """
 
   alias Draught.Execution.Runner.Failure.Runtime
 

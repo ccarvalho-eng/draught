@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.ToolExecution.Outcome do
-  @moduledoc false
+  @moduledoc """
+  Converts a bounded tool effect into runner-facing result values.
+
+  Valid tool results become matching conversation messages. Malformed results
+  and reconstruction failures collapse to the stable tool-task failure.
+  """
 
   alias Draught.Conversation
   alias Draught.Error.Normalized

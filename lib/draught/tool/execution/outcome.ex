@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Execution.Outcome do
-  @moduledoc false
+  @moduledoc """
+  Converts executor outcomes into canonical tool results.
+
+  Successful output and normalized failures retain their canonical data;
+  validation failures are converted to safe argument errors for the caller.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Tool.Call

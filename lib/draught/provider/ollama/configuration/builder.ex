@@ -1,5 +1,10 @@
 defmodule Draught.Provider.Ollama.Configuration.Builder do
-  @moduledoc false
+  @moduledoc """
+  Builds Ollama configuration from independently validated groups.
+
+  It derives native discovery settings and an OpenAI-compatible endpoint from one
+  base URL while preserving explicit model and capability requirements.
+  """
 
   alias Draught.Provider.Ollama.Configuration
   alias Draught.Provider.Ollama.Configuration.Requirements

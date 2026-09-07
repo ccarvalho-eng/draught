@@ -1,5 +1,10 @@
 defmodule Draught.Web.Network.Resolver.System do
-  @moduledoc false
+  @moduledoc """
+  Resolves hostnames through the system IPv4 and IPv6 resolver.
+
+  Successful answers from both address families are combined and deduplicated.
+  Address policy remains the responsibility of the caller.
+  """
 
   @behaviour Draught.Web.Network.Resolver
 

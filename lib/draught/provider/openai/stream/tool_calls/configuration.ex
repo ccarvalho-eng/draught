@@ -1,5 +1,10 @@
 defmodule Draught.Provider.OpenAI.Stream.ToolCalls.Configuration do
-  @moduledoc false
+  @moduledoc """
+  Validates retention limits for streamed tool-call assembly.
+
+  Both the number of indexed calls and their aggregate argument bytes have fixed
+  upper bounds before fragments can be retained.
+  """
 
   alias Draught.Provider.OpenAI.Protocol
   alias Draught.Validation.Attributes

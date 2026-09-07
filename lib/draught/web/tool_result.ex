@@ -1,5 +1,10 @@
 defmodule Draught.Web.ToolResult do
-  @moduledoc false
+  @moduledoc """
+  Converts validated web content into canonical tool results.
+
+  Successful output is marked with untrusted web provenance. Adapter failures are
+  reduced to the error kinds accepted by the tool boundary.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Tool.Output

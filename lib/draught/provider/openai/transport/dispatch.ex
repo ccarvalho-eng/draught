@@ -1,5 +1,10 @@
 defmodule Draught.Provider.OpenAI.Transport.Dispatch do
-  @moduledoc false
+  @moduledoc """
+  Dispatches prepared requests through an OpenAI-compatible runtime's transport.
+
+  This boundary keeps the execution layer independent from the concrete transport
+  module and its opaque configuration.
+  """
 
   alias Draught.Provider.OpenAI.Runtime
 

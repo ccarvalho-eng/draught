@@ -1,5 +1,10 @@
 defmodule Draught.Web.Execution do
-  @moduledoc false
+  @moduledoc """
+  Runs web effects within the configured total operation deadline.
+
+  Timeouts and unexpected task failures are converted to normalized web errors at
+  this boundary.
+  """
 
   alias Draught.Execution.BoundedTask
   alias Draught.Web.Failure

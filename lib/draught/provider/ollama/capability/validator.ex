@@ -1,5 +1,10 @@
 defmodule Draught.Provider.Ollama.Capability.Validator do
-  @moduledoc false
+  @moduledoc """
+  Validates selected Ollama model capabilities against configuration requirements.
+
+  Validation stops at the first missing capability and returns the corresponding
+  normalized selection error.
+  """
 
   alias Draught.Provider.Capabilities
   alias Draught.Provider.Ollama.Protocol

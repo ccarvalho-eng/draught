@@ -1,5 +1,10 @@
 defmodule Draught.Provider.Ollama.Protocol do
-  @moduledoc false
+  @moduledoc """
+  Constructs normalized failures for Ollama discovery and model selection.
+
+  The constructors expose stable error codes and hints while excluding raw
+  discovery responses and transport details.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Provider.Capabilities

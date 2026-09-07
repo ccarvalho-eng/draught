@@ -1,5 +1,10 @@
 defmodule Draught.Provider.OpenAI.Execution.Stream.Attempt do
-  @moduledoc false
+  @moduledoc """
+  Executes one isolated OpenAI-compatible streaming attempt.
+
+  The attempt owns its parser and accumulator state, routes chunks through the
+  synchronous sink reducer, and returns the retry boundary's normalized result.
+  """
 
   alias Draught.Provider.OpenAI.Execution.Stream.Reducer
   alias Draught.Provider.OpenAI.Execution.Stream.Result

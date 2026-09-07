@@ -1,5 +1,10 @@
 defmodule Draught.Web.Output.Budget do
-  @moduledoc false
+  @moduledoc """
+  Calculates whether a web output envelope fits its JSON byte budget.
+
+  The calculation accounts for JSON escaping and collection separators without
+  first allocating the encoded document.
+  """
 
   @short_escapes [8, 9, 10, 12, 13, 34, 92]
 

@@ -1,5 +1,10 @@
 defmodule Draught.Web.Output do
-  @moduledoc false
+  @moduledoc """
+  Encodes validated web results into bounded external-data envelopes.
+
+  Every envelope marks its payload as untrusted and returns sanitized source URLs
+  separately for provenance tracking.
+  """
 
   alias Draught.Web.Fetch.Response
   alias Draught.Web.Output.Budget

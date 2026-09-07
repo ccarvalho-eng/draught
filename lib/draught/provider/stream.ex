@@ -1,11 +1,22 @@
 defmodule Draught.Provider.Stream do
-  @moduledoc false
+  @moduledoc """
+  Enforces the provider-neutral streaming boundary.
+
+  It validates each nonterminal event, applies synchronous sink cancellation, and
+  converts a provider's final result into a canonical terminal event.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Event
   alias Draught.Event.Provider.Terminal
 
-  @doc false
+  @doc """
+  Invokes a provider stream while enforcing event and sink contracts.
+
+  The normalization function converts the provider's terminal return value into a
+  canonical result. Invalid events, invalid sink returns, and sink cancellation
+  stop the stream with a normalized error.
+  """
   @spec invoke(
           module(),
           term(),

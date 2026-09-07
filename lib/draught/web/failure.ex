@@ -1,5 +1,10 @@
 defmodule Draught.Web.Failure do
-  @moduledoc false
+  @moduledoc """
+  Constructs normalized failures for the web capability boundary.
+
+  The constructors expose a closed set of stable error codes and avoid retaining
+  transport details or untrusted response content.
+  """
 
   alias Draught.Error.Normalized
 

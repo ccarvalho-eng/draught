@@ -1,5 +1,10 @@
 defmodule Draught.Provider.OpenAI.Stream.ToolCall.Fragment do
-  @moduledoc false
+  @moduledoc """
+  Represents one validated fragment of a streamed provider tool call.
+
+  Fragment indexes and optional identity fields are bounded before assembly, while
+  argument text remains an incremental JSON fragment.
+  """
 
   alias Draught.Provider.OpenAI.Protocol
   alias Draught.Validation.Attributes

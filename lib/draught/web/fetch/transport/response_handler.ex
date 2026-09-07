@@ -1,5 +1,11 @@
 defmodule Draught.Web.Fetch.Transport.ResponseHandler do
-  @moduledoc false
+  @moduledoc """
+  Applies redirect and content policy to raw web transport responses.
+
+  Redirects remain bounded, forbid HTTPS downgrades, and return a new target for
+  fresh resolution. Final responses require an allowed media type, identity
+  encoding, and bounded content.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Web.Failure

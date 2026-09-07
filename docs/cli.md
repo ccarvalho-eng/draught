@@ -80,7 +80,7 @@ Continue it with another task:
 draught --resume review "address the remaining test failure"
 ```
 
-Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the complete canonical conversation required by the provider, including retained tool arguments and results. A session is bound to its profile, provider connection, provider adapter, and exact model when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model.
+Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the complete canonical conversation required by the provider, including retained tool arguments and results. A session is bound to its profile, provider connection, provider adapter, exact negotiated capability set, and exact model when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model. Bindings created before capability identity was introduced are upgraded atomically after their first verified resume.
 
 Only a session whose durable history ends at a successful assistant response can resume automatically. Interrupted, failed, malformed, oversized, unsafe, or concurrently leased session state fails closed. A second create with the same identifier is rejected. Bare `draught --resume ID` remains unavailable until interactive input is implemented.
 

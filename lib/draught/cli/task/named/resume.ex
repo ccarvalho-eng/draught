@@ -9,6 +9,7 @@ defmodule Draught.CLI.Task.Named.Resume do
   alias Draught.CLI.Task.Named.Lease
   alias Draught.CLI.Task.Named.Resume.Validation
   alias Draught.CLI.Task.OneShot
+  alias Draught.CLI.Task.Preparation
   alias Draught.CLI.Task.Setup
 
   @doc "Resumes and executes one named session turn."
@@ -25,7 +26,8 @@ defmodule Draught.CLI.Task.Named.Resume do
     with {:ok, binding, journal, replay} <- load(identifier, configuration, store),
          {:ok, preparation} <-
            prepare(prompt, binding.configuration, workspace, dependencies, replay, journal),
-         :ok <- Validation.verify(binding.value, replay, preparation) do
+         :ok <- Validation.verify(binding.value, replay, preparation),
+         :ok <- upgrade(binding, preparation, store) do
       OneShot.run(identifier, preparation)
     end
   end
@@ -57,6 +59,23 @@ defmodule Draught.CLI.Task.Named.Resume do
   defp bind_configuration(binding, configuration) do
     case Binding.bind_configuration(binding, configuration) do
       {:ok, bound} -> {:ok, bound}
+      {:error, error} -> {:error, :session, error}
+    end
+  end
+
+  defp upgrade(%{value: %Binding{version: 2}}, %Preparation{}, _store) do
+    :ok
+  end
+
+  defp upgrade(
+         %{value: %Binding{version: 1}, configuration: configuration},
+         %Preparation{} = preparation,
+         store
+       ) do
+    upgraded = Binding.new(configuration, preparation)
+
+    case Local.replace(store.paths, upgraded) do
+      :ok -> :ok
       {:error, error} -> {:error, :session, error}
     end
   end

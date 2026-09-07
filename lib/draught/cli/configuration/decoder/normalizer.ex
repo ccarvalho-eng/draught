@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Configuration.Decoder.Normalizer do
-  @moduledoc false
+  @moduledoc """
+  Normalizes decoded JSON maps into the closed configuration keys accepted by Draught.
+  """
 
   alias Draught.CLI.Configuration.Error
   alias Draught.CLI.Configuration.Source

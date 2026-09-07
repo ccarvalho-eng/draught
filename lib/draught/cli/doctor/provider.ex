@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Doctor.Provider do
-  @moduledoc false
+  @moduledoc """
+  Dispatches read-only provider diagnostics for the resolved CLI configuration.
+  """
 
   alias Draught.CLI.Configuration
   alias Draught.CLI.Doctor.Check

@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Session.Store.Lease.Probe do
-  @moduledoc false
+  @moduledoc """
+  Probes lease endpoints and validates that their reported identity matches the requested session.
+  """
 
   @different "draught-lease/v1:different"
   @request_prefix "draught-lease/v1:identify:"

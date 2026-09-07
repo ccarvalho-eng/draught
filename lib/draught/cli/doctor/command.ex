@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Doctor.Command do
-  @moduledoc false
+  @moduledoc """
+  Resolves configuration, runs CLI diagnostics, and emits the requested output format.
+  """
 
   alias Draught.CLI.Command
   alias Draught.CLI.Configuration.Error

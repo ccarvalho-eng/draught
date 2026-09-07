@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Configuration.Profile do
-  @moduledoc false
+  @moduledoc """
+  Validates and constructs one named CLI provider profile.
+  """
 
   alias Draught.CLI.Configuration.Error
   alias Draught.CLI.Configuration.Value

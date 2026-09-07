@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.OneShot do
-  @moduledoc false
+  @moduledoc """
+  Executes one prepared task through a temporary supervised session and returns its terminal result.
+  """
 
   alias Draught.CLI.Task.Failure
   alias Draught.CLI.Task.OneShot.Lifecycle

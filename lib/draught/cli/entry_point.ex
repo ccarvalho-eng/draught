@@ -1,5 +1,7 @@
 defmodule Draught.CLI.EntryPoint do
-  @moduledoc false
+  @moduledoc """
+  Starts the application and executes the operating-system CLI entry point.
+  """
 
   alias Draught.CLI
   alias Draught.CLI.Command.ExitStatus

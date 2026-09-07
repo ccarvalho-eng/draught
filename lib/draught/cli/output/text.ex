@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Output.Text do
-  @moduledoc false
+  @moduledoc """
+  Renders bounded human-readable CLI results without performing terminal I/O.
+  """
 
   alias Draught.CLI.Command
   alias Draught.CLI.Configuration

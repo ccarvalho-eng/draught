@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Preparation.Builder do
-  @moduledoc false
+  @moduledoc """
+  Assembles an immutable task preparation from messages, provider selection, tools, and limits.
+  """
 
   alias Draught.CLI.Task.Preparation
   alias Draught.CLI.Task.Preparation.Limits

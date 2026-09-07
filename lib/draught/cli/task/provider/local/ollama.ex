@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Provider.Local.Ollama do
-  @moduledoc false
+  @moduledoc """
+  Builds an Ollama CLI provider selection after exact or automatic compatible-model discovery.
+  """
 
   alias Draught.CLI.Configuration
   alias Draught.CLI.Provider.Requirements

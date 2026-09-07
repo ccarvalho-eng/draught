@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Named.History do
-  @moduledoc false
+  @moduledoc """
+  Builds, replays, and attaches the full-retention journal for a named CLI task.
+  """
 
   alias Draught.CLI.Session.Store
   alias Draught.CLI.Task.Preparation

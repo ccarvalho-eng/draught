@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Writer do
-  @moduledoc false
+  @moduledoc """
+  Emits one complete CLI result through the configured system adapter and returns its exit status.
+  """
 
   alias Draught.CLI.Command.ExitStatus
   alias Draught.CLI.Dependencies

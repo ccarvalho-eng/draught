@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Session.Binding.Local do
-  @moduledoc false
+  @moduledoc """
+  Persists a bounded owner-only session binding with atomic no-replace publication.
+  """
 
   alias Draught.CLI.Session.Binding
   alias Draught.CLI.Session.Failure

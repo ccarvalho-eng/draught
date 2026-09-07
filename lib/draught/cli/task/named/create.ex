@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Named.Create do
-  @moduledoc false
+  @moduledoc """
+  Creates a bound named session and executes its first durable task turn.
+  """
 
   alias Draught.CLI.Session.Binding
   alias Draught.CLI.Session.Binding.Local

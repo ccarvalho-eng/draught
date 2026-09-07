@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Session.Store.Lease.Endpoint do
-  @moduledoc false
+  @moduledoc """
+  Defines the local endpoint addresses used to coordinate a persistent-session lease.
+  """
 
   @candidate_count 8
   @first_port 20_000

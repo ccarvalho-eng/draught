@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Named.Resume do
-  @moduledoc false
+  @moduledoc """
+  Reconstructs a safely resumable named session and executes its next durable task turn.
+  """
 
   alias Draught.CLI.Session.Binding
   alias Draught.CLI.Session.Binding.Local

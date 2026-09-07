@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Session.Store.Paths do
-  @moduledoc false
+  @moduledoc """
+  Derives validated persistent-session paths from a workspace identity and user state directory.
+  """
 
   alias Draught.Session.Identifier
   alias Draught.Validation.Error

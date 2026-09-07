@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Session.Failure do
-  @moduledoc false
+  @moduledoc """
+  Constructs stable failures for persistent-session storage, binding, and lifecycle operations.
+  """
 
   alias Draught.Error.Normalized
 

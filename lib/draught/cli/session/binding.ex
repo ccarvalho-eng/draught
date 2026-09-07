@@ -1,5 +1,9 @@
 defmodule Draught.CLI.Session.Binding do
-  @moduledoc false
+  @moduledoc """
+  Records the non-secret provider identity required to resume a named CLI session safely.
+
+  A binding fixes the profile, provider connection fingerprint, adapter, and exact model without persisting credentials or raw headers.
+  """
 
   alias Draught.CLI.Configuration
   alias Draught.CLI.Session.Failure

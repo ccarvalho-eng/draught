@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Provider.Local.OpenAICompatible do
-  @moduledoc false
+  @moduledoc """
+  Builds a CLI provider selection for a configured OpenAI-compatible endpoint.
+  """
 
   alias Draught.CLI.Configuration
   alias Draught.CLI.Configuration.Credential

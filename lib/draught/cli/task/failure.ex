@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Failure do
-  @moduledoc false
+  @moduledoc """
+  Constructs normalized failures for invalid task preparation and execution state.
+  """
 
   alias Draught.Error.Normalized
 

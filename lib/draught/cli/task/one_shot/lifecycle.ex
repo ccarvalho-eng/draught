@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.OneShot.Lifecycle do
-  @moduledoc false
+  @moduledoc """
+  Starts, runs, awaits, and stops the supervised session used by one-shot task execution.
+  """
 
   @wait_grace_ms 10_000
 

@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Output do
-  @moduledoc false
+  @moduledoc """
+  Renders completed task responses and normalized execution failures for the CLI boundary.
+  """
 
   alias Draught.CLI.Output.Sanitizer
   alias Draught.Conversation.Content.Text

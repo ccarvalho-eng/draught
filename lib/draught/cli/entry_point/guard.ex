@@ -1,5 +1,7 @@
 defmodule Draught.CLI.EntryPoint.Guard do
-  @moduledoc false
+  @moduledoc """
+  Converts unexpected CLI entry-point exceptions and exits into a stable internal status.
+  """
 
   @type result(value) :: {:ok, value} | :error
 

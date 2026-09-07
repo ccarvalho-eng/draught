@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Router do
-  @moduledoc false
+  @moduledoc """
+  Routes parsed CLI invocations to help, diagnostics, task execution, or unavailable interactive paths.
+  """
 
   alias Draught.CLI.Command
   alias Draught.CLI.Dependencies

@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Session.Store.Handle do
-  @moduledoc false
+  @moduledoc """
+  Carries the mode, trusted paths, and exclusive lease for an open persistent session store.
+  """
 
   alias Draught.CLI.Session.Store.Lease
   alias Draught.CLI.Session.Store.Paths

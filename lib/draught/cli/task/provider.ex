@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Provider do
-  @moduledoc false
+  @moduledoc """
+  Validates and dispatches construction of the provider selected for a CLI task.
+  """
 
   alias Draught.CLI.Configuration
   alias Draught.CLI.Task.Provider.Failure

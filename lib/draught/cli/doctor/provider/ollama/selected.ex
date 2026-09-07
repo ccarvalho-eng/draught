@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Doctor.Provider.Ollama.Selected do
-  @moduledoc false
+  @moduledoc """
+  Validates an explicitly selected Ollama model without scanning unrelated installed models.
+  """
 
   alias Draught.CLI.Doctor.Check
   alias Draught.CLI.Doctor.Provider.Ollama.Selected.Result

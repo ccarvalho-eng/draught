@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Command do
-  @moduledoc false
+  @moduledoc """
+  Executes anonymous or named task invocations and emits their terminal CLI result.
+  """
 
   alias Draught.CLI.Command
   alias Draught.CLI.Configuration.Error

@@ -1,5 +1,9 @@
 defmodule Draught.CLI.Session.Store.Local do
-  @moduledoc false
+  @moduledoc """
+  Creates and validates owner-only persistent-session directories and marker files.
+
+  Recovery removes only the exact incomplete shapes produced by interrupted initialization.
+  """
 
   import Bitwise
 

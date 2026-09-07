@@ -1,5 +1,7 @@
 defmodule Draught.CLI.Task.Preparation.Limits do
-  @moduledoc false
+  @moduledoc """
+  Defines the bounded runner limits applied to CLI task execution.
+  """
 
   alias Draught.Execution.Runner.Limits
   alias Draught.Validation.Error

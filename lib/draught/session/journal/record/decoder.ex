@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Record.Decoder do
-  @moduledoc false
+  @moduledoc """
+  Validates the closed journal-record schema before reconstructing its canonical event.
+  """
 
   alias Draught.Session.Journal.Codec.Event
   alias Draught.Session.Journal.Failure

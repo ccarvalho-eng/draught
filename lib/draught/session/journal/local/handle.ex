@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Local.Handle do
-  @moduledoc false
+  @moduledoc """
+  Tracks local journal configuration and the next durable record sequence.
+  """
 
   alias Draught.Session.Journal.Local.Configuration
 

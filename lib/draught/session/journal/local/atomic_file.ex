@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Local.AtomicFile do
-  @moduledoc false
+  @moduledoc """
+  Publishes disposable journal artifacts through a synchronized temporary file and atomic rename.
+  """
 
   alias Draught.Session.Journal.Failure
 

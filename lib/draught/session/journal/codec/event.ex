@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Codec.Event do
-  @moduledoc false
+  @moduledoc """
+  Converts the closed journal event set to and from stable string-keyed data.
+  """
 
   alias Draught.Provider.Request
   alias Draught.Session.Journal.Codec.Message

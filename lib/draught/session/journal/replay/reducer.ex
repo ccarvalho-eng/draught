@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Replay.Reducer do
-  @moduledoc false
+  @moduledoc """
+  Applies ordered journal records to replay state while enforcing turn and iteration invariants.
+  """
 
   alias Draught.Conversation
   alias Draught.Provider.Usage

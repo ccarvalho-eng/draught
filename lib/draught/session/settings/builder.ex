@@ -1,5 +1,7 @@
 defmodule Draught.Session.Settings.Builder do
-  @moduledoc false
+  @moduledoc """
+  Validates session settings and assembles the immutable runtime configuration.
+  """
 
   alias Draught.Execution.Runner.Configuration
   alias Draught.Session.Identifier

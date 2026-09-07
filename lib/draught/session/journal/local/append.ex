@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Local.Append do
-  @moduledoc false
+  @moduledoc """
+  Appends one complete synchronized JSONL record within per-record and aggregate limits.
+  """
 
   alias Draught.Session.Journal.Failure
   alias Draught.Session.Journal.Local.Limits

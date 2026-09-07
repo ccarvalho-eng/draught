@@ -1,5 +1,7 @@
 defmodule Draught.Session.Runtime.State do
-  @moduledoc false
+  @moduledoc """
+  Holds immutable runtime state for a supervised session and records its durable transitions.
+  """
 
   alias Draught.Session.Failure
   alias Draught.Session.Journal

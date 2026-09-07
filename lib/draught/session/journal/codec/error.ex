@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Codec.Error do
-  @moduledoc false
+  @moduledoc """
+  Encodes and decodes normalized errors without exposing implementation-specific exception data.
+  """
 
   alias Draught.Error.Normalized
 

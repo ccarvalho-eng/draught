@@ -1,5 +1,9 @@
 defmodule Draught.Session.Journal.Local.SafeFile do
-  @moduledoc false
+  @moduledoc """
+  Performs descriptor-verified, bounded access to owner-only regular journal files.
+
+  Path metadata must match the opened descriptor so symlinks and replacement races fail without reading or writing an unexpected target.
+  """
 
   import Bitwise
 

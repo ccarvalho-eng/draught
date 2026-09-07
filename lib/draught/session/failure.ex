@@ -1,5 +1,7 @@
 defmodule Draught.Session.Failure do
-  @moduledoc false
+  @moduledoc """
+  Constructs bounded, user-safe failures for session lifecycle operations.
+  """
 
   alias Draught.Error.Normalized
 

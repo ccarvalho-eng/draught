@@ -1,5 +1,7 @@
 defmodule Draught.Session.Runtime.Client do
-  @moduledoc false
+  @moduledoc """
+  Provides bounded calls into a live session process and normalizes process-exit failures.
+  """
 
   alias Draught.Session.Failure
   alias Draught.Session.Runtime.Server

@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Codec.Message.Assistant do
-  @moduledoc false
+  @moduledoc """
+  Encodes and decodes assistant content and tool calls under the active retention policy.
+  """
 
   alias Draught.Conversation.Content
   alias Draught.Conversation.Content.Reasoning

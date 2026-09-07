@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Local.Paths do
-  @moduledoc false
+  @moduledoc """
+  Resolves workspace-confined journal paths or constructs them inside an already trusted directory.
+  """
 
   alias Draught.Session.Identifier
   alias Draught.Validation.Error

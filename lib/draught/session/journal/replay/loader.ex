@@ -1,5 +1,9 @@
 defmodule Draught.Session.Journal.Replay.Loader do
-  @moduledoc false
+  @moduledoc """
+  Loads a bounded journal and reduces its complete records into replay state.
+
+  Missing journals represent empty history; malformed, oversized, or unsafe files fail closed.
+  """
 
   alias Draught.Session.Journal.Failure
   alias Draught.Session.Journal.Local.Limits

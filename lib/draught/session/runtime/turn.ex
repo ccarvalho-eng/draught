@@ -1,5 +1,7 @@
 defmodule Draught.Session.Runtime.Turn do
-  @moduledoc false
+  @moduledoc """
+  Runs one bounded agent turn and forwards its terminal outcome to the session server.
+  """
 
   alias Draught.Execution.BoundedTask.OwnerGuard
   alias Draught.Execution.Runner

@@ -1,5 +1,7 @@
 defmodule Draught.Session.Settings.Journal do
-  @moduledoc false
+  @moduledoc """
+  Validates the optional journal adapter accepted by session settings.
+  """
 
   alias Draught.Session.Journal.Local
   alias Draught.Session.Journal.Local.Configuration

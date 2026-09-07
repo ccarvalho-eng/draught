@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Codec.Outcome do
-  @moduledoc false
+  @moduledoc """
+  Encodes and decodes successful or failed runner outcomes for journal records.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Provider.Response

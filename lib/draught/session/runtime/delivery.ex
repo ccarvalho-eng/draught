@@ -1,5 +1,7 @@
 defmodule Draught.Session.Runtime.Delivery do
-  @moduledoc false
+  @moduledoc """
+  Delivers versioned session events to a validated subscriber process.
+  """
 
   alias Draught.Session.Event
 

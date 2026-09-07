@@ -1,5 +1,7 @@
 defmodule Draught.Session.LocalJournal do
-  @moduledoc false
+  @moduledoc """
+  Builds the default workspace-confined local journal adapter for a session.
+  """
 
   alias Draught.Session.Journal
   alias Draught.Session.Journal.Local

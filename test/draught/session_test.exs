@@ -166,15 +166,16 @@ defmodule Draught.SessionTest do
     start_session(
       id,
       runner_configuration(workspace, {ControlledProvider, self()}),
-      turn_timeout_ms: 100
+      turn_timeout_ms: 5_000
     )
 
     request = request("timeout")
     assert Session.run(id, request, self()) == {:ok, 1}
     assert_receive {:provider_started, provider, ^request}, @receive_timeout
     provider_monitor = Process.monitor(provider)
+    expire_turn(id)
 
-    assert_receive session_event(id, {:turn_terminal, 1, {:error, timeout}}), 500
+    assert_receive session_event(id, {:turn_terminal, 1, {:error, timeout}}), @receive_timeout
     assert timeout.kind == :timeout
     assert timeout.code == "session_timeout"
     assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}, @receive_timeout
@@ -260,6 +261,12 @@ defmodule Draught.SessionTest do
     on_exit(fn ->
       Session.stop(id)
     end)
+  end
+
+  defp expire_turn(id) do
+    assert {:ok, session} = Session.whereis(id)
+    active = :sys.get_state(session).active
+    send(session, {:turn_timeout, active.token})
   end
 
   defp runner_configuration(workspace, provider, options \\ []) do

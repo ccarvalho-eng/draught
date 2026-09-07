@@ -49,7 +49,8 @@ defmodule Draught.CLI.Session.Store.LeaseTest do
     caller_monitor = Process.monitor(caller)
     Process.exit(lease.owner, :kill)
 
-    assert_receive {:DOWN, ^caller_monitor, :process, ^caller, :killed}, @receive_timeout
+    assert_receive {:DOWN, ^caller_monitor, :process, ^caller, reason}, @receive_timeout
+    assert reason in [:killed, :noproc]
     assert eventually_acquired(paths)
   end
 

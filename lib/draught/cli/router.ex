@@ -1,11 +1,12 @@
 defmodule Draught.CLI.Router do
   @moduledoc """
-  Routes parsed CLI invocations to help, diagnostics, task execution, or unavailable interactive paths.
+  Routes parsed CLI invocations to help, diagnostics, task execution, or interactive sessions.
   """
 
   alias Draught.CLI.Command
   alias Draught.CLI.Dependencies
   alias Draught.CLI.Doctor
+  alias Draught.CLI.Interactive
   alias Draught.CLI.Output
   alias Draught.CLI.Task
   alias Draught.CLI.Writer
@@ -41,14 +42,8 @@ defmodule Draught.CLI.Router do
     Task.Command.run(invocation, dependencies)
   end
 
-  def dispatch(
-        {:ok, %Command.Invocation{resume: resume, session: session} = invocation},
-        dependencies
-      )
-      when is_binary(resume) or is_binary(session) do
-    invocation.output
-    |> Output.task_prompt_required()
-    |> Writer.emit(:stderr, :session, dependencies)
+  def dispatch({:ok, %Command.Invocation{command: :interactive} = invocation}, dependencies) do
+    Interactive.Command.run(invocation, dependencies)
   end
 
   def dispatch({:ok, %Command.Invocation{} = invocation}, dependencies) do

@@ -110,22 +110,32 @@ defmodule Draught.CLI.Task.StreamTest do
   end
 
   test "bounds and then disables indicator output while preserving its final clear" do
+    clock = fn ->
+      receive do
+        {:indicator_time, time} -> time
+      end
+    end
+
     stream =
       stream(:text,
         tty: true,
         columns: 80,
+        clock: clock,
         indicator_delay_ms: 0,
         indicator_interval_ms: 1,
         indicator_maximum_bytes: 19
       )
 
+    send(self(), {:indicator_time, 0})
     started = Stream.start(stream)
+    send(self(), {:indicator_time, 0})
     assert {:ok, visible} = Stream.tick(started)
     assert_receive {:write, :stdout, "\r\e[2K| Working"}
 
-    Process.sleep(2)
+    send(self(), {:indicator_time, 2})
     assert {:ok, exhausted} = Stream.tick(visible)
     assert_receive {:write, :stdout, "\r\e[2K"}
+    send(self(), {:indicator_time, 3})
     assert {:ok, _disabled} = Stream.tick(exhausted)
     refute_receive {:write, _stream, _content}
   end

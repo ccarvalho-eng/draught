@@ -1,6 +1,6 @@
 # Command-line interface
 
-The current CLI provides bounded argument parsing, configuration resolution, help, version reporting, diagnostics, streaming anonymous tasks, and persistent named tasks. It renders incremental terminal text or versioned JSONL and uses stable exit categories. Interactive input and enabled web execution are not available.
+The current CLI provides bounded argument parsing, configuration resolution, help, version reporting, diagnostics, streaming anonymous tasks, persistent named tasks, and an initial interactive prompt loop. It renders incremental terminal text or versioned JSONL and uses stable exit categories. Interactive approvals, session-management commands, and enabled web execution are not available.
 
 ## Available commands
 
@@ -10,10 +10,10 @@ The current CLI provides bounded argument parsing, configuration resolution, hel
 | `draught --version` or `draught version` | Prints the Draught version. |
 | `draught doctor` | Runs read-only configuration, workspace, and provider checks. |
 | `draught "TASK"` | Executes one anonymous task and streams its result. |
-| `draught` or `draught interactive` | Parses interactive mode and returns an unavailable execution result. |
+| `draught` or `draught interactive` | Opens an interactive text session on a terminal. |
 | `draught --session ID "TASK"` | Creates a named session and streams its first task. |
 | `draught --resume ID "TASK"` | Continues and streams an existing named session. |
-| `draught --resume ID` | Parses resume intent; interactive resumed execution is unavailable. |
+| `draught --resume ID` | Opens an interactive terminal session for the selected identifier; headless use requires a task. |
 
 Use `--` when task text begins with an option-like token:
 
@@ -80,7 +80,15 @@ draught --resume review "address the remaining test failure"
 
 Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the retained canonical conversation required by the provider. Streaming deltas are transient and are not journaled; the validated provider result remains authoritative for replay. A session is bound to its profile, provider connection, provider adapter, exact negotiated capability set, and exact model when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model. Bindings created before capability identity was introduced are upgraded atomically after their first verified resume.
 
-Only a session whose durable history ends at a successful assistant response can resume automatically. Interrupted, failed, malformed, oversized, unsafe, or concurrently leased session state fails closed. A second create with the same identifier is rejected. Bare `draught --resume ID` remains unavailable until interactive input is implemented.
+Only a session whose durable history ends at a successful assistant response can resume automatically. Interrupted, failed, malformed, oversized, unsafe, or concurrently leased session state fails closed. A second create with the same identifier is rejected. Bare `draught --resume ID` enters the prompt loop on a terminal and requires a task argument when standard output is redirected or JSONL is selected.
+
+## Interactive sessions
+
+Interactive mode resolves configuration and model selection before displaying its bounded session card. The shell owns a stable generated or supplied session identifier and routes ordinary text through the named-session task path. Successful later turns resume the same durable journal. Slash-prefixed input is parsed as a CLI command and is never sent to the provider as task text.
+
+The current command set is `/help`, `/status`, `/doctor`, and `/exit`; entering `/` displays the command index. The parser already reserves the remaining documented command names, direct-command input beginning with `!`, and file lookup input beginning with `@`, but those effects return an explicit unavailable result until their dedicated policy boundaries are connected.
+
+The prompt loop is text- and terminal-only. It restores its terminal boundary after exit, end of input, or an input failure and prints `Session ID: ID` on ordinary exit. Active-turn cancellation, interactive approval prompts, searchable model and provider selection, queued input, and session list, rename, and archive operations remain pending.
 
 ## Doctor
 
@@ -125,7 +133,7 @@ Exit categories are stable at the CLI boundary:
 | Success | 0 | Help, version, a completed anonymous or named task, and a healthy doctor result. |
 | Usage | 2 | Invalid syntax, option combinations, or configuration. |
 | Provider | 3 | Provider construction failures or provider and workspace checks reported by doctor. |
-| Execution | 4 | Task execution failures, enabled web execution, or an unavailable interactive path. |
+| Execution | 4 | Task execution failures or enabled web execution. |
 | Session | 5 | Named-session lifecycle, binding, persistence, or resume failures. |
 | Internal | 70 | Unexpected internal failure. |
 | Interrupted | 130 | A normalized task cancellation. |

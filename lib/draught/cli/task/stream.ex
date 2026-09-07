@@ -15,11 +15,12 @@ defmodule Draught.CLI.Task.Stream do
   @default_maximum_bytes 1024 * 1024
   @minimum_indicator_columns 40
 
-  @enforce_keys [:mode]
-  defstruct [:indicator, :projector, :system, mode: :silent, writable: true]
+  @enforce_keys [:clock, :mode]
+  defstruct [:clock, :indicator, :projector, :system, mode: :silent, writable: true]
 
   @type t :: %__MODULE__{
           mode: :silent | :visible,
+          clock: (-> integer()),
           indicator: State.t() | nil,
           projector: Draught.CLI.Task.Stream.Projector.State.t() | nil,
           system: {module(), term()} | nil,
@@ -33,6 +34,7 @@ defmodule Draught.CLI.Task.Stream do
     indicator_enabled = indicator_enabled?(format, system, Keyword.get(options, :color, :auto))
 
     %__MODULE__{
+      clock: clock(options),
       indicator: State.new(indicator_enabled, options),
       mode: :visible,
       projector: Draught.CLI.Task.Stream.Projector.State.new(format, maximum_bytes),
@@ -43,13 +45,13 @@ defmodule Draught.CLI.Task.Stream do
   @doc "Builds a no-output observer for application-facing task calls."
   @spec silent() :: t()
   def silent do
-    %__MODULE__{mode: :silent}
+    %__MODULE__{clock: &monotonic_time/0, mode: :silent}
   end
 
   @doc "Arms the terminal activity indicator after a turn starts."
   @spec start(t()) :: t()
   def start(%__MODULE__{mode: :visible, indicator: indicator} = stream) do
-    %{stream | indicator: Indicator.start(indicator, now())}
+    %{stream | indicator: Indicator.start(indicator, now(stream))}
   end
 
   def start(%__MODULE__{} = stream) do
@@ -58,8 +60,8 @@ defmodule Draught.CLI.Task.Stream do
 
   @doc "Returns the next bounded wait interval for execution or indicator progress."
   @spec wait_timeout(t(), non_neg_integer()) :: non_neg_integer()
-  def wait_timeout(%__MODULE__{mode: :visible, indicator: indicator}, maximum) do
-    Indicator.wait_timeout(indicator, maximum, now())
+  def wait_timeout(%__MODULE__{mode: :visible, indicator: indicator} = stream, maximum) do
+    Indicator.wait_timeout(indicator, maximum, now(stream))
   end
 
   def wait_timeout(%__MODULE__{}, maximum) do
@@ -69,7 +71,7 @@ defmodule Draught.CLI.Task.Stream do
   @doc "Advances and writes an activity frame when its deadline has elapsed."
   @spec tick(t()) :: {:ok, t()} | {:error, :write, t()}
   def tick(%__MODULE__{mode: :visible, writable: true} = stream) do
-    indicator_action(stream, Indicator.tick(stream.indicator, now()))
+    indicator_action(stream, Indicator.tick(stream.indicator, now(stream)))
   end
 
   def tick(%__MODULE__{mode: :visible} = stream) do
@@ -169,7 +171,18 @@ defmodule Draught.CLI.Task.Stream do
     false
   end
 
-  defp now do
+  defp clock(options) do
+    case Keyword.get(options, :clock, &monotonic_time/0) do
+      clock when is_function(clock, 0) -> clock
+      _invalid -> &monotonic_time/0
+    end
+  end
+
+  defp now(%__MODULE__{clock: clock}) do
+    clock.()
+  end
+
+  defp monotonic_time do
     System.monotonic_time(:millisecond)
   end
 end

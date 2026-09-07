@@ -110,6 +110,7 @@ defmodule Draught.MixProject do
     [
       {:jason, "~> 1.4"},
       {:mint, "~> 1.10"},
+      {:owl, "~> 0.13.1"},
       {:req, "~> 0.5"},
       {:telemetry, "~> 1.3"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

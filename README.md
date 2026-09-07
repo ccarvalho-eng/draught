@@ -7,7 +7,7 @@
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 
-The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, local journals, conversation interchange, the guarded web core, and sanitized telemetry are implemented. The remaining public-alpha scope includes the CLI and distribution.
+The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, local journals, conversation interchange, the guarded web core, sanitized telemetry, and a bounded CLI kernel are implemented. Task and interactive CLI execution and distribution remain planned.
 
 ## Design constraints
 
@@ -35,8 +35,8 @@ The project is in pre-alpha development. Provider integrations, tool contracts, 
 | Portable conversation interchange | Complete |
 | Privacy-safe telemetry | Complete |
 | Guarded web core and provenance | Complete |
-| CLI web configuration and status | Planned |
-| Agentic CLI and one-command distribution | Planned |
+| CLI parsing, configuration, and doctor | Complete |
+| Task and interactive CLI execution and one-command distribution | Planned |
 
 The [GitHub milestones](https://github.com/ccarvalho-eng/draught/milestones) are the authoritative implementation roadmap. APIs may change before the first tagged alpha.
 
@@ -63,6 +63,9 @@ The included fake is pure and route-based. It provides deterministic offline tes
 
 ## Documentation
 
+- [Getting started](docs/getting-started.md)
+- [CLI](docs/cli.md)
+- [Configuration](docs/configuration.md)
 - [Architecture](docs/architecture.md)
 - [Ollama provider](docs/providers/ollama.md)
 - [Tool execution](docs/tools.md)

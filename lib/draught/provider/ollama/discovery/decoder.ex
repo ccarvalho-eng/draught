@@ -3,6 +3,7 @@ defmodule Draught.Provider.Ollama.Discovery.Decoder do
 
   alias Draught.Provider.Capabilities
   alias Draught.Provider.Ollama.Discovery.Model
+  alias Draught.Provider.Ollama.Discovery.Model.Name
   alias Draught.Provider.Ollama.Protocol
 
   @doc "Decodes a native model-list payload."
@@ -40,23 +41,53 @@ defmodule Draught.Provider.Ollama.Discovery.Decoder do
     names_result(result)
   end
 
-  defp model_name(%{"name" => name}) when is_binary(name) and byte_size(name) > 0 do
-    {:ok, name}
+  defp model_name(%{"name" => name}) do
+    model_name_result(name)
   end
 
-  defp model_name(%{"model" => name}) when is_binary(name) and byte_size(name) > 0 do
-    {:ok, name}
+  defp model_name(%{"model" => name}) do
+    model_name_result(name)
   end
 
   defp model_name(_model) do
     :error
   end
 
+  defp model_name_result(name) do
+    name
+    |> Name.valid?()
+    |> model_name_result(name)
+  end
+
+  defp model_name_result(true, name) do
+    {:ok, name}
+  end
+
+  defp model_name_result(false, _name) do
+    :error
+  end
+
   defp names_result({:ok, names}) do
-    {:ok, Enum.reverse(names)}
+    names
+    |> Enum.reverse()
+    |> unique_names_result()
   end
 
   defp names_result(:error) do
+    :error
+  end
+
+  defp unique_names_result(names) do
+    names
+    |> Enum.uniq()
+    |> unique_names_result(names)
+  end
+
+  defp unique_names_result(names, names) do
+    {:ok, names}
+  end
+
+  defp unique_names_result(_unique, _names) do
     :error
   end
 

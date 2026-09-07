@@ -158,9 +158,40 @@ defmodule Draught.Provider.OllamaTest do
              Ollama.new([], dependencies())
 
     queue_list(["one", "two"])
+    queue_model(["completion", "tools"], nil)
+    queue_model(["completion", "tools"], nil)
 
-    assert {:error, %Normalized{code: "ollama_model_required"}} =
+    assert {:error,
+            %Normalized{
+              code: "ollama_model_required",
+              hint: "Select one of the compatible installed models explicitly."
+            }} =
              Ollama.new([], dependencies())
+  end
+
+  test "reports when installed models do not meet the required capabilities" do
+    queue_list(["chat-only", "reasoning-only"])
+    queue_model(["completion"], nil)
+    queue_model(["thinking"], nil)
+
+    assert {:error,
+            %Normalized{
+              kind: :capability,
+              code: "ollama_no_compatible_models",
+              hint: "Install a model that advertises every required capability."
+            }} = Ollama.new([], dependencies())
+  end
+
+  test "selects the only compatible model after inventory classification" do
+    queue_list(["chat-only", "agent", "reasoning-only"])
+    queue_model(["completion"], nil)
+    queue_model(["completion", "tools"], nil)
+    queue_model(["thinking"], nil)
+
+    assert {:ok, adapter} = Ollama.new([], dependencies())
+    assert {:ok, _response} = Provider.complete(adapter, request("ignored"))
+    assert_receive {:provider_request, provider_request}
+    assert provider_request.body["model"] == "agent"
   end
 
   test "propagates an unavailable service without activating another provider" do

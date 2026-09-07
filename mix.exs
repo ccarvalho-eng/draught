@@ -16,6 +16,7 @@ defmodule Draught.MixProject do
       homepage_url: @source_url,
       docs: docs(),
       package: package(),
+      escript: [main_module: Draught.CLI.EntryPoint],
       aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls, summary: [threshold: 90]],
@@ -66,6 +67,9 @@ defmodule Draught.MixProject do
       source_url: @source_url,
       extras: [
         "README.md",
+        "docs/getting-started.md",
+        "docs/cli.md",
+        "docs/configuration.md",
         "docs/architecture.md",
         "docs/conversation-interchange.md",
         "docs/runner.md",
@@ -81,6 +85,11 @@ defmodule Draught.MixProject do
         "SECURITY.md"
       ],
       groups_for_extras: [
+        CLI: [
+          "docs/getting-started.md",
+          "docs/cli.md",
+          "docs/configuration.md"
+        ],
         Guides: [
           "docs/architecture.md",
           "docs/conversation-interchange.md",

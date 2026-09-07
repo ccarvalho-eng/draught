@@ -13,7 +13,7 @@ The default native endpoint is `http://localhost:11434`. No credential is read o
   )
 ```
 
-Construction requests `/api/show` and validates the selected model before returning an adapter. If `model` is omitted, Draught requests `/api/tags` and selects the model only when exactly one is installed. Zero models and multiple models return configuration errors.
+Construction requests `/api/show` and validates the selected model before returning an adapter. If `model` is omitted, Draught requests `/api/tags`, fetches bounded details for each installed model through `/api/show`, and filters the inventory by the required capabilities. Selection happens only after filtering: exactly one compatible model is selected automatically, while zero or multiple compatible models return errors with selection guidance.
 
 The default required capabilities are `:chat`, `:streaming`, and `:tool_calls`. Applications that do not expose tools can set a narrower requirement:
 
@@ -53,6 +53,20 @@ Generation options belong to each canonical request:
 Draught.Provider.complete(adapter, request)
 ```
 
+## Inventory and selection
+
+Inventory discovery preserves the order returned by Ollama. Each entry is classified as compatible or incompatible against the complete required capability set. Incompatible models remain visible to diagnostics but are excluded from automatic selection.
+
+Discovery is bounded to 16 installed models and is sequential. A larger automatic inventory returns `ollama_inventory_too_large` and requires an explicit model selection. A failure while fetching any installed model's details fails the inventory operation rather than returning a partial result. Selection then follows these rules:
+
+- No installed models returns `ollama_no_models`.
+- Installed models with no compatible entry return `ollama_no_compatible_models`.
+- One compatible entry is selected automatically when no model was requested.
+- More than one compatible entry requires an explicit model and returns `ollama_model_required` otherwise.
+- An explicitly selected missing or incompatible model returns its normalized provider error.
+
+The read-only `draught doctor` command uses this inventory when model selection is automatic. When a model is explicit, doctor requests and checks only that model. See [Getting started](../getting-started.md) for local setup and model selection.
+
 ## Failures
 
 | Condition | Error code |
@@ -60,7 +74,9 @@ Draught.Provider.complete(adapter, request)
 | Ollama is unavailable | `ollama_unavailable` |
 | Discovery timeout | `ollama_timeout` |
 | No models are installed | `ollama_no_models` |
-| More than one model exists and none was selected | `ollama_model_required` |
+| Installed models but no compatible model | `ollama_no_compatible_models` |
+| More than one compatible model exists and none was selected | `ollama_model_required` |
+| Automatic inventory exceeds 16 installed models | `ollama_inventory_too_large` |
 | Selected model is absent | `ollama_model_not_found` |
 | Required capability is absent | `ollama_unsupported_<capability>` |
 | Discovery payload is invalid | `invalid_ollama_response` |

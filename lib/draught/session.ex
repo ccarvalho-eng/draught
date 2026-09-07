@@ -8,6 +8,8 @@ defmodule Draught.Session do
 
   alias Draught.Error.Normalized
   alias Draught.Session.Identifier
+  alias Draught.Session.Journal.Replay
+  alias Draught.Session.LocalJournal
   alias Draught.Session.Runtime.Client
   alias Draught.Session.Settings
   alias Draught.Session.Status
@@ -54,6 +56,20 @@ defmodule Draught.Session do
     with {:ok, canonical} <- Identifier.new(identifier) do
       Client.call(canonical, :stop)
     end
+  end
+
+  @doc "Writes a disposable atomic checkpoint for a running session."
+  @spec checkpoint(term()) :: :ok | {:error, Normalized.t() | Error.t()}
+  def checkpoint(identifier) do
+    with {:ok, canonical} <- Identifier.new(identifier) do
+      Client.call(canonical, :checkpoint)
+    end
+  end
+
+  @doc "Replays a workspace-local session journal without starting a session."
+  @spec replay(term(), term(), map() | keyword()) :: operation_result(Replay.t())
+  def replay(workspace, identifier, options \\ []) do
+    LocalJournal.replay(workspace, identifier, options)
   end
 
   @doc "Looks up a live session through the session registry."

@@ -5,17 +5,20 @@ defmodule Draught.Session.Settings do
 
   alias Draught.Execution.Runner.Configuration
   alias Draught.Session.Identifier
+  alias Draught.Session.Settings.Journal
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
   alias Draught.Validation.Value
 
   @maximum_turn_timeout_ms 3_600_000
 
-  @enforce_keys [:id, :runner, :turn_timeout_ms]
-  defstruct [:id, :runner, :turn_timeout_ms]
+  @enforce_keys [:id, :journal, :runner, :turn_timeout_ms]
+  defstruct [:id, :journal, :runner, :turn_timeout_ms]
 
+  @type journal :: {module(), term()} | nil
   @type t :: %__MODULE__{
           id: String.t(),
+          journal: journal(),
           runner: Configuration.t(),
           turn_timeout_ms: pos_integer()
         }
@@ -23,12 +26,25 @@ defmodule Draught.Session.Settings do
   @doc "Builds session settings and reserves event-sink ownership for the session."
   @spec new(term(), term(), keyword() | map()) :: Error.result(t())
   def new(identifier, runner_configuration, options \\ []) do
-    with {:ok, normalized} <- Attributes.normalize(options, [:turn_timeout_ms]),
+    with {:ok, normalized} <- Attributes.normalize(options, [:journal, :turn_timeout_ms]),
          {:ok, id} <- Identifier.new(identifier),
          {:ok, runner} <- runner(runner_configuration),
+         {:ok, journal} <- Journal.build(normalized, runner.tool_context.workspace, id),
          {:ok, turn_timeout_ms} <- timeout(normalized) do
-      {:ok, %__MODULE__{id: id, runner: runner, turn_timeout_ms: turn_timeout_ms}}
+      {:ok,
+       %__MODULE__{
+         id: id,
+         journal: journal,
+         runner: runner,
+         turn_timeout_ms: turn_timeout_ms
+       }}
     end
+  end
+
+  @doc "Returns the stable module identifier for the configured provider adapter."
+  @spec provider_name(t()) :: String.t()
+  def provider_name(%__MODULE__{runner: %Configuration{provider: {module, _configuration}}}) do
+    Atom.to_string(module)
   end
 
   defp runner(attributes) do

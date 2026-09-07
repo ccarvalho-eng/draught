@@ -29,7 +29,10 @@ defmodule Draught.Session.Runtime.Server do
 
   @impl GenServer
   def init(%Settings{} = settings) do
-    {:ok, State.new(settings)}
+    case State.new(settings) do
+      {:ok, state} -> {:ok, state}
+      {:error, error} -> {:stop, {:journal_open_failed, error}}
+    end
   end
 
   @impl GenServer
@@ -59,12 +62,25 @@ defmodule Draught.Session.Runtime.Server do
   def handle_call(:cancel, _from, %State{active: %ActiveTurn{} = active} = state) do
     :ok = Turn.stop(active)
     outcome = {:error, Failure.cancelled()}
-    :ok = terminal(state, active, outcome)
-    {:reply, :ok, State.finish_turn(state, outcome)}
+
+    case persist_terminal(state, active, outcome) do
+      {:ok, finished} -> {:reply, :ok, finished}
+      {:error, error, failed} -> {:stop, :normal, {:error, error}, failed}
+    end
+  end
+
+  def handle_call(:checkpoint, _from, %State{} = state) do
+    case State.checkpoint(state) do
+      {:ok, updated} -> {:reply, :ok, updated}
+      {:error, error} -> {:reply, {:error, error}, state}
+    end
   end
 
   def handle_call(:stop, _from, %State{} = state) do
-    {:stop, :normal, :ok, stop_active(state)}
+    case stop_active(state) do
+      {:ok, stopped} -> {:stop, :normal, :ok, stopped}
+      {:error, error, stopped} -> {:stop, :normal, {:error, error}, stopped}
+    end
   end
 
   @impl GenServer
@@ -79,8 +95,16 @@ defmodule Draught.Session.Runtime.Server do
         {:runner_event, token, event},
         %State{active: %ActiveTurn{token: token} = active} = state
       ) do
-    :ok = ActiveTurn.deliver(active, state.settings.id, {:runner, active.id, event})
-    {:noreply, state}
+    journal_event = runner_journal_event(active.id, event)
+
+    case State.record(state, journal_event) do
+      {:ok, recorded} ->
+        :ok = ActiveTurn.deliver(active, state.settings.id, {:runner, active.id, event})
+        {:noreply, recorded}
+
+      {:error, error} ->
+        journal_failure(state, active, error)
+    end
   end
 
   def handle_info(
@@ -88,8 +112,11 @@ defmodule Draught.Session.Runtime.Server do
         %State{active: %ActiveTurn{task: %Task{ref: reference}} = active} = state
       ) do
     :ok = Turn.finish(active)
-    :ok = terminal(state, active, outcome)
-    {:noreply, State.finish_turn(state, outcome)}
+
+    case persist_terminal(state, active, outcome) do
+      {:ok, finished} -> {:noreply, finished}
+      {:error, _error, failed} -> {:stop, :normal, failed}
+    end
   end
 
   def handle_info(
@@ -98,8 +125,11 @@ defmodule Draught.Session.Runtime.Server do
       ) do
     :ok = Turn.finish(active)
     outcome = {:error, Failure.turn_failed()}
-    :ok = terminal(state, active, outcome)
-    {:noreply, State.finish_turn(state, outcome)}
+
+    case persist_terminal(state, active, outcome) do
+      {:ok, finished} -> {:noreply, finished}
+      {:error, _error, failed} -> {:stop, :normal, failed}
+    end
   end
 
   def handle_info(
@@ -108,8 +138,11 @@ defmodule Draught.Session.Runtime.Server do
       ) do
     :ok = Turn.stop(active)
     outcome = {:error, Failure.timeout()}
-    :ok = terminal(state, active, outcome)
-    {:noreply, State.finish_turn(state, outcome)}
+
+    case persist_terminal(state, active, outcome) do
+      {:ok, finished} -> {:noreply, finished}
+      {:error, _error, failed} -> {:stop, :normal, failed}
+    end
   end
 
   def handle_info(_message, %State{} = state) do
@@ -118,11 +151,26 @@ defmodule Draught.Session.Runtime.Server do
 
   @impl GenServer
   def terminate(_reason, %State{} = state) do
-    stop_active(state)
+    cleanup_active(state)
     :ok
   end
 
   defp start_turn(true, state, request, subscriber) do
+    turn_id = state.next_turn_id
+    provider = Settings.provider_name(state.settings)
+    journal_event = {:turn_started, turn_id, provider, request}
+
+    case State.record(state, journal_event) do
+      {:ok, recorded} -> start_recorded_turn(recorded, request, subscriber)
+      {:error, error} -> {:stop, :normal, {:error, error}, state}
+    end
+  end
+
+  defp start_turn(false, state, _request, _subscriber) do
+    {:reply, {:error, Failure.invalid_subscriber()}, state}
+  end
+
+  defp start_recorded_turn(state, request, subscriber) do
     active =
       Turn.start(
         state.settings,
@@ -137,10 +185,6 @@ defmodule Draught.Session.Runtime.Server do
     {:reply, {:ok, active.id}, updated}
   end
 
-  defp start_turn(false, state, _request, _subscriber) do
-    {:reply, {:error, Failure.invalid_subscriber()}, state}
-  end
-
   defp terminal(state, active, outcome) do
     ActiveTurn.deliver(
       active,
@@ -149,15 +193,52 @@ defmodule Draught.Session.Runtime.Server do
     )
   end
 
+  defp persist_terminal(state, active, outcome) do
+    event = {:turn_terminal, active.id, outcome}
+
+    case State.record(state, event) do
+      {:ok, recorded} ->
+        :ok = terminal(recorded, active, outcome)
+        {:ok, State.finish_turn(recorded, outcome)}
+
+      {:error, error} ->
+        failure = {:error, error}
+        :ok = terminal(state, active, failure)
+        {:error, error, State.finish_turn(state, failure)}
+    end
+  end
+
   defp stop_active(%State{active: nil} = state) do
-    state
+    {:ok, state}
   end
 
   defp stop_active(%State{active: %ActiveTurn{} = active} = state) do
     :ok = Turn.stop(active)
     outcome = {:error, Failure.cancelled()}
+    persist_terminal(state, active, outcome)
+  end
+
+  defp journal_failure(state, active, error) do
+    :ok = Turn.stop(active)
+    outcome = {:error, error}
     :ok = terminal(state, active, outcome)
-    State.finish_turn(state, outcome)
+    {:stop, :normal, State.finish_turn(state, outcome)}
+  end
+
+  defp runner_journal_event(turn_id, {:provider_result, iteration, outcome}) do
+    {:provider_result, turn_id, iteration, outcome}
+  end
+
+  defp runner_journal_event(turn_id, {:tool_result, iteration, result}) do
+    {:tool_result, turn_id, iteration, result}
+  end
+
+  defp cleanup_active(%State{active: nil}) do
+    :ok
+  end
+
+  defp cleanup_active(%State{active: %ActiveTurn{} = active}) do
+    Turn.stop(active)
   end
 
   defp via(identifier) do

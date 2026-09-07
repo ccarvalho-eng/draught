@@ -27,7 +27,17 @@ defmodule Draught.Tool.Mutation.Queue do
   end
 
   @impl GenServer
-  def handle_call({:run, module, input}, _from, :ready) do
+  def handle_call({:run, module, input}, {caller, _tag}, :ready) do
+    caller
+    |> Process.alive?()
+    |> execute(module, input)
+  end
+
+  defp execute(true, module, input) do
     {:reply, module.run(input), :ready}
+  end
+
+  defp execute(false, _module, _input) do
+    {:noreply, :ready}
   end
 end

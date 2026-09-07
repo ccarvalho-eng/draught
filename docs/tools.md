@@ -73,7 +73,7 @@ flowchart LR
 
 The child environment removes ambient variables, including credential and agent socket variables, then sets a controlled `PATH`, workspace-scoped `HOME`, fixed locale, temporary directory, non-interactive Git settings, and `NO_COLOR`. Standard output and standard error are combined and retained only up to the configured output limit.
 
-Command approval and environment scrubbing are application controls, not an operating-system sandbox. An approved executable retains the filesystem, process, and network access granted to the Draught operating-system process. Deployments that need stronger isolation must add an operating-system or container boundary.
+Command approval and environment scrubbing are application controls, not an operating-system sandbox. An approved executable retains the filesystem, process, and network access granted to the Draught operating-system process. Draught closes the directly owned command port on timeout, cancellation, or owner death, but a process that forks or daemonizes descendants can outlive that port. Deployments that need complete process-tree termination or stronger isolation must add a process-group, operating-system, or container boundary.
 
 ## Parameter schema subset
 

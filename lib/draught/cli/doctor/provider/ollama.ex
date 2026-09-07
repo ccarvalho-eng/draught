@@ -4,6 +4,7 @@ defmodule Draught.CLI.Doctor.Provider.Ollama do
   alias Draught.CLI
   alias Draught.CLI.Doctor.Check
   alias Draught.CLI.Doctor.Provider.Ollama.Selected
+  alias Draught.CLI.Provider.Requirements
   alias Draught.Error.Normalized
   alias Draught.Provider.Ollama.Configuration
   alias Draught.Provider.Ollama.Inventory
@@ -12,7 +13,11 @@ defmodule Draught.CLI.Doctor.Provider.Ollama do
   @doc "Checks Ollama connectivity and required model capabilities."
   @spec check(CLI.Configuration.t(), module()) :: Check.t()
   def check(%CLI.Configuration{} = configuration, discovery_http) do
-    attributes = [base_url: configuration.base_url, model: configuration.model]
+    attributes = [
+      base_url: configuration.base_url,
+      model: configuration.model,
+      required_capabilities: Requirements.agent()
+    ]
 
     case Configuration.new(attributes) do
       {:ok, ollama} -> diagnostics(ollama, discovery_http)
@@ -58,7 +63,7 @@ defmodule Draught.CLI.Doctor.Provider.Ollama do
       "Ollama",
       :error,
       "installed models do not provide the required agent capabilities",
-      hint: "Install a model with chat, streaming, and tool-call support.",
+      hint: "Install a model with chat and tool-call support.",
       details: details
     )
   end

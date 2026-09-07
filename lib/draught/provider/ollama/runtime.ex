@@ -6,11 +6,12 @@ defmodule Draught.Provider.Ollama.Runtime do
   alias Draught.Provider.Capabilities
   alias Draught.Provider.OpenAI
 
-  @enforce_keys [:capabilities, :openai]
-  defstruct [:capabilities, :openai]
+  @enforce_keys [:capabilities, :model, :openai]
+  defstruct [:capabilities, :model, :openai]
 
   @type t :: %__MODULE__{
           capabilities: Capabilities.t(),
+          model: String.t(),
           openai: OpenAI.Runtime.t()
         }
 end

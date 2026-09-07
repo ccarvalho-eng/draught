@@ -7,7 +7,7 @@
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 
-The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, local journals, conversation interchange, the guarded web core, sanitized telemetry, and a bounded CLI kernel are implemented. Task and interactive CLI execution and distribution remain planned.
+The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, local journals, conversation interchange, the guarded web core, sanitized telemetry, and anonymous one-shot CLI tasks are implemented. Interactive input, named and resumed CLI sessions, streaming output, enabled web execution, and distribution remain planned.
 
 ## Design constraints
 
@@ -35,8 +35,8 @@ The project is in pre-alpha development. Provider integrations, tool contracts, 
 | Portable conversation interchange | Complete |
 | Privacy-safe telemetry | Complete |
 | Guarded web core and provenance | Complete |
-| CLI parsing, configuration, and doctor | Complete |
-| Task and interactive CLI execution and one-command distribution | Planned |
+| CLI parsing, configuration, doctor, and anonymous one-shot tasks | Complete |
+| Interactive input, named sessions, streaming, enabled web execution, and distribution | Planned |
 
 The [GitHub milestones](https://github.com/ccarvalho-eng/draught/milestones) are the authoritative implementation roadmap. APIs may change before the first tagged alpha.
 
@@ -81,7 +81,7 @@ The included fake is pure and route-based. It provides deterministic offline tes
 
 Draught treats model output and external content as untrusted. Provider responses do not grant tool permissions; every action remains subject to typed argument validation, capability checks, risk policy, budgets, timeouts, workspace rules, and user approval.
 
-Web access is disabled by default and explicitly configurable. Search results and fetched pages retain sanitized provenance and remain untrusted data, with bounded content handling and network controls. See the [web access guide](docs/web-access.md) for controls and limitations, and the [security policy](SECURITY.md) for the trust model and vulnerability reporting process.
+Web access is disabled by default and explicitly configurable. Search results and fetched pages retain sanitized provenance and remain untrusted data, with bounded content handling and network controls. The current one-shot CLI rejects enabled web execution until a search adapter is connected. See the [web access guide](docs/web-access.md) for controls and limitations, and the [security policy](SECURITY.md) for the trust model and vulnerability reporting process.
 
 ## Development
 

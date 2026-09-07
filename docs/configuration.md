@@ -42,9 +42,25 @@ The built-in profile is equivalent to:
 
 Recognized top-level keys are `profile`, `model`, `base_url`, `web`, `risk`, and `profiles`. Provider types are `ollama` and `openai-compatible`. Risk values are `deny`, `ask`, and `allow`.
 
+## Task risk modes
+
+Risk mode controls which registered tool risk classes may execute and how effectful tools are approved during an anonymous task:
+
+| Mode | Anonymous task behavior |
+| --- | --- |
+| `deny` | Only read-risk tools may execute. Write, execute, and network-risk calls are denied by policy. |
+| `ask` | All risk classes reach the approval policy. Read operations are allowed; effectful operations return an approval-required result because the anonymous command has no interactive approval prompt. |
+| `allow` | All risk classes are admitted and available effectful tools may execute without an approval prompt. |
+
+The default is `ask`. Web tools are not registered in the current one-shot CLI, so `allow` does not add the guarded web capability. An approved command still retains the ambient network access of the Draught operating-system process. Use `allow` only when the selected workspace and task may perform writes or run commands without confirmation. Tool effects completed before a later error, timeout, cancellation, or process interruption remain committed. Anonymous tasks do not roll back those effects and do not retain a task journal. See [Workspace confinement](workspace-confinement.md) for the operating-system boundary.
+
+Risk mode can be set in user configuration or with `DRAUGHT_RISK`. Project configuration may only narrow it to `deny`; there is no command-line risk flag in this slice.
+
+An effective `web` value of `true` is retained in configuration and status output, but an anonymous task rejects it with `web_execution_unavailable` until a search adapter is configured. `web: false` remains the default.
+
 ## User profiles
 
-Profiles may be defined only by built-in defaults or the user configuration file. Profile entries accept `provider`, `base_url`, `credential_env`, and `headers`.
+Profiles may be defined only by built-in defaults or the user configuration file. Profile entries accept `provider`, `base_url`, `credential_env`, and `headers`. `credential_env` is supported only for OpenAI-compatible profiles; credentialed Ollama profiles are rejected because the Ollama adapter does not apply that credential.
 
 This example adds a hosted OpenAI-compatible profile without storing its credential:
 

@@ -5,6 +5,7 @@ defmodule Draught.CLI.Router do
   alias Draught.CLI.Dependencies
   alias Draught.CLI.Doctor
   alias Draught.CLI.Output
+  alias Draught.CLI.Task
   alias Draught.CLI.Writer
 
   @doc "Routes one parsed command result without duplicating command or provider policy."
@@ -32,6 +33,10 @@ defmodule Draught.CLI.Router do
 
   def dispatch({:ok, %Command.Invocation{command: :doctor} = invocation}, dependencies) do
     Doctor.Command.run(invocation, dependencies)
+  end
+
+  def dispatch({:ok, %Command.Invocation{command: :task} = invocation}, dependencies) do
+    Task.Command.run(invocation, dependencies)
   end
 
   def dispatch({:ok, %Command.Invocation{} = invocation}, dependencies) do

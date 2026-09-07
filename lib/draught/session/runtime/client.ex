@@ -18,8 +18,14 @@ defmodule Draught.Session.Runtime.Client do
   @doc "Calls a running session by canonical identifier."
   @spec call(String.t(), term()) :: term()
   def call(identifier, message) do
+    call(identifier, message, 5_000)
+  end
+
+  @doc false
+  @spec call(String.t(), term(), timeout()) :: term()
+  def call(identifier, message, timeout) do
     with {:ok, session} <- whereis(identifier) do
-      GenServer.call(session, message)
+      safe_call(session, message, timeout)
     end
   end
 
@@ -27,9 +33,24 @@ defmodule Draught.Session.Runtime.Client do
   @spec whereis(String.t()) :: {:ok, pid()} | {:error, Draught.Error.Normalized.t()}
   def whereis(identifier) do
     case Registry.lookup(Draught.Session.Registry, identifier) do
-      [{session, _value}] -> {:ok, session}
+      [{session, _value}] -> alive_result(:erlang.is_process_alive(session), session)
       [] -> {:error, Failure.not_found()}
     end
+  end
+
+  defp alive_result(true, session) do
+    {:ok, session}
+  end
+
+  defp alive_result(false, _session) do
+    {:error, Failure.not_found()}
+  end
+
+  defp safe_call(session, message, timeout) do
+    GenServer.call(session, message, timeout)
+  catch
+    :exit, {:timeout, {GenServer, :call, _details}} -> {:error, Failure.call_timeout()}
+    :exit, _reason -> {:error, Failure.call_failed()}
   end
 
   defp start_result({:ok, session}) do

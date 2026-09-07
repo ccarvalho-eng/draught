@@ -19,6 +19,16 @@ defmodule Draught.Provider.Ollama do
     Builder.new(options, dependencies)
   end
 
+  @doc "Returns the exact model selected for an Ollama adapter."
+  @spec selected_model(term()) :: {:ok, String.t()} | {:error, Draught.Error.Normalized.t()}
+  def selected_model({__MODULE__, %Runtime{model: model}}) do
+    {:ok, model}
+  end
+
+  def selected_model(_adapter) do
+    Protocol.invalid_runtime()
+  end
+
   @impl Draught.Provider
   def capabilities(%Runtime{capabilities: capabilities}) do
     {:ok, capabilities}

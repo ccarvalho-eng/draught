@@ -14,3 +14,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Versioned conversation documents with portable attachment descriptors.
 - Deterministic Markdown-superset conversation import and export with explicit retention controls.
 - Deterministic bounded `.lmmlz` conversation bundles with descriptor-verified attachments.
+- A bounded CLI with deterministic configuration, diagnostics, and text or JSONL output.
+- Anonymous one-shot CLI tasks executed through temporary supervised sessions with journaling disabled.

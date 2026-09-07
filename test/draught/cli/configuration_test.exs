@@ -180,6 +180,13 @@ defmodule Draught.CLI.ConfigurationTest do
       assert Credential.value(configuration.credential) == "local-secret"
     end
 
+    test "rejects credentials that the Ollama provider cannot apply" do
+      json =
+        ~s({"profile":"local","profiles":{"local":{"provider":"ollama","base_url":"http://localhost:11434","credential_env":"OLLAMA_KEY"}}})
+
+      assert {:error, %Error{code: :invalid_value}} = Configuration.decode(:user, json)
+    end
+
     test "rejects credential headers even in a trusted profile" do
       json =
         ~s({"profile":"custom","profiles":{"custom":{"provider":"openai-compatible","base_url":"https://api.example.test/v1","headers":{"x-api-key":"secret"}}}})

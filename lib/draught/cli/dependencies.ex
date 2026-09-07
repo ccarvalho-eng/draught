@@ -4,24 +4,33 @@ defmodule Draught.CLI.Dependencies do
   """
 
   alias Draught.CLI.System.Local
+  alias Draught.CLI.Task
   alias Draught.Provider.Ollama.Discovery.HTTP.Req
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
 
-  @enforce_keys [:discovery_http, :system]
-  defstruct [:discovery_http, :system]
+  @enforce_keys [:discovery_http, :system, :task]
+  defstruct [:discovery_http, :system, :task]
 
   @type system :: {module(), term()}
-  @type t :: %__MODULE__{discovery_http: module(), system: system()}
+  @type t :: %__MODULE__{
+          discovery_http: module(),
+          system: system(),
+          task: Task.Dependencies.t()
+        }
 
   @doc "Builds and validates CLI effect dependencies."
   @spec new(map() | keyword()) :: Error.result(t())
   def new(attributes \\ %{}) do
-    with {:ok, normalized} <- Attributes.normalize(attributes, [:discovery_http, :system]),
+    with {:ok, normalized} <- Attributes.normalize(attributes, [:discovery_http, :system, :task]),
          {:ok, system} <- system(Map.get(normalized, :system, {Local, nil})),
          {:ok, discovery_http} <-
-           discovery_http(Map.get(normalized, :discovery_http, Req)) do
-      {:ok, %__MODULE__{discovery_http: discovery_http, system: system}}
+           discovery_http(Map.get(normalized, :discovery_http, Req)),
+         {:ok, task} <-
+           normalized
+           |> Map.get(:task, [])
+           |> Task.Dependencies.new(discovery_http) do
+      {:ok, %__MODULE__{discovery_http: discovery_http, system: system, task: task}}
     end
   end
 

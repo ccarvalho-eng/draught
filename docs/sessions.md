@@ -25,6 +25,8 @@ Start an asynchronous turn and subscribe the calling process to its events:
 
 `run/3` accepts an explicit subscriber PID when events belong to another process. A subscriber must be alive when the turn starts.
 
+`start/3` accepts `:journal`, `:turn_timeout_ms`, and `:lifecycle` options. Lifecycle settings contain an optional `:owner` PID and a `:restart` value of `:transient` or `:temporary`. The defaults create an unowned transient session. An owner-bound session stops when its owner exits; temporary sessions are not restarted by the dynamic supervisor.
+
 Status includes the effective `search` and `fetch` permission states for the session. Interfaces can render these values before starting a turn without inspecting adapter configuration.
 
 ## Events
@@ -46,6 +48,8 @@ Runner events preserve the order described in the [agent runner guide](runner.md
 Cancellation terminates the active runner task and emits a normalized `session_cancelled` outcome. The unfinished runner result is discarded. Tool or provider effects completed before cancellation remain committed; the session does not attempt rollback. Queued mutations that have not started are abandoned by the mutation queue.
 
 A whole-turn timeout applies in addition to provider and tool limits. It terminates the same task hierarchy and emits a normalized `session_timeout` outcome. The default is 600,000 ms and the accepted maximum is 3,600,000 ms.
+
+Synchronous lifecycle calls have a separate client timeout. A `session_call_timeout` result means completion is unknown: the session may have accepted the operation and may still complete it. Callers must not retry a potentially mutating operation as though the first call were rejected.
 
 Provider work and tool work run in owner-guarded tasks. If their owning turn exits, the guards terminate that nested work. Operating-system command workers also monitor their direct owners and close their ports when an owner exits.
 

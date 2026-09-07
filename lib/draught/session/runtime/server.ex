@@ -40,7 +40,12 @@ defmodule Draught.Session.Runtime.Server do
   end
 
   @impl GenServer
-  def handle_call({:run, _request, _subscriber}, _from, %State{active: %ActiveTurn{}} = state) do
+  def handle_call(
+        {operation, _request, _subscriber},
+        _from,
+        %State{active: %ActiveTurn{}} = state
+      )
+      when operation in [:run, :run_observed] do
     {:reply, {:error, Failure.busy()}, state}
   end
 
@@ -48,10 +53,18 @@ defmodule Draught.Session.Runtime.Server do
       when is_pid(subscriber) do
     subscriber
     |> Process.alive?()
-    |> start_turn(state, request, subscriber)
+    |> start_turn(state, request, subscriber, :asynchronous)
   end
 
-  def handle_call({:run, _request, _subscriber}, _from, %State{} = state) do
+  def handle_call({:run_observed, request, subscriber}, _from, %State{active: nil} = state)
+      when is_pid(subscriber) do
+    subscriber
+    |> Process.alive?()
+    |> start_turn(state, request, subscriber, :acknowledged)
+  end
+
+  def handle_call({operation, _request, _subscriber}, _from, %State{} = state)
+      when operation in [:run, :run_observed] do
     {:reply, {:error, Failure.invalid_subscriber()}, state}
   end
 
@@ -71,6 +84,42 @@ defmodule Draught.Session.Runtime.Server do
       {:ok, finished} -> {:reply, :ok, finished}
       {:error, error, failed} -> {:stop, :normal, {:error, error}, failed}
     end
+  end
+
+  def handle_call(
+        {:runner_event, token, {:terminal, _outcome}},
+        _from,
+        %State{active: %ActiveTurn{token: token}} = state
+      ) do
+    {:reply, :ok, state}
+  end
+
+  def handle_call(
+        {:runner_event, token, {:provider_event, _iteration, _provider_event} = event},
+        from,
+        %State{active: %ActiveTurn{token: token} = active} = state
+      ) do
+    deliver_runner(state, active, event, from)
+  end
+
+  def handle_call(
+        {:runner_event, token, event},
+        from,
+        %State{active: %ActiveTurn{token: token} = active} = state
+      ) do
+    journal_event = runner_journal_event(active.id, event)
+
+    case State.record(state, journal_event) do
+      {:ok, recorded} ->
+        deliver_runner(recorded, active, event, from)
+
+      {:error, error} ->
+        runner_journal_failure(state, active, error)
+    end
+  end
+
+  def handle_call({:runner_event, _token, _event}, _from, %State{} = state) do
+    {:reply, :halt, state}
   end
 
   def handle_call(:checkpoint, _from, %State{} = state) do
@@ -97,25 +146,13 @@ defmodule Draught.Session.Runtime.Server do
   end
 
   def handle_info(
-        {:runner_event, token, {:terminal, _outcome}},
-        %State{active: %ActiveTurn{token: token}} = state
-      ) do
-    {:noreply, state}
-  end
-
-  def handle_info(
-        {:runner_event, token, event},
-        %State{active: %ActiveTurn{token: token} = active} = state
-      ) do
-    journal_event = runner_journal_event(active.id, event)
-
-    case State.record(state, journal_event) do
-      {:ok, recorded} ->
-        :ok = ActiveTurn.deliver(active, state.settings.id, {:runner, active.id, event})
-        {:noreply, recorded}
-
-      {:error, error} ->
-        journal_failure(state, active, error)
+        {:runner_ack, acknowledgement, result},
+        %State{active: %ActiveTurn{} = active} = state
+      )
+      when result in [:ok, :halt] do
+    case ActiveTurn.acknowledge(active, acknowledgement, result) do
+      {:ok, updated} -> {:noreply, State.update_active(state, updated)}
+      :stale -> {:noreply, state}
     end
   end
 
@@ -167,18 +204,18 @@ defmodule Draught.Session.Runtime.Server do
     :ok
   end
 
-  defp start_turn(true, state, request, subscriber) do
+  defp start_turn(true, state, request, subscriber, delivery) do
     turn_id = state.next_turn_id
     provider = Settings.provider_name(state.settings)
     journal_event = {:turn_started, turn_id, provider, request}
 
     case State.record(state, journal_event) do
-      {:ok, recorded} -> start_recorded_turn(recorded, request, subscriber)
+      {:ok, recorded} -> start_recorded_turn(recorded, request, subscriber, delivery)
       {:error, error} -> {:stop, :normal, {:error, error}, state}
     end
   end
 
-  defp start_turn(false, state, _request, _subscriber) do
+  defp start_turn(false, state, _request, _subscriber, _delivery) do
     {:reply, {:error, Failure.invalid_subscriber()}, state}
   end
 
@@ -196,14 +233,15 @@ defmodule Draught.Session.Runtime.Server do
     :ok
   end
 
-  defp start_recorded_turn(state, request, subscriber) do
+  defp start_recorded_turn(state, request, subscriber, delivery) do
     active =
       Turn.start(
         state.settings,
         state.next_turn_id,
         request,
         subscriber,
-        self()
+        self(),
+        delivery
       )
 
     updated = State.start_turn(state, active)
@@ -220,6 +258,7 @@ defmodule Draught.Session.Runtime.Server do
   end
 
   defp persist_terminal(state, active, outcome) do
+    active = ActiveTurn.halt_pending(active)
     event = {:turn_terminal, active.id, outcome}
 
     case State.record(state, event) do
@@ -246,12 +285,13 @@ defmodule Draught.Session.Runtime.Server do
     persist_terminal(state, active, outcome)
   end
 
-  defp journal_failure(state, active, error) do
+  defp runner_journal_failure(state, active, error) do
     :ok = Turn.stop(active)
     outcome = {:error, error}
     :ok = Turn.complete_span(active, outcome)
     :ok = terminal(state, active, outcome)
-    {:stop, :normal, State.finish_turn(state, outcome)}
+    failed = State.finish_turn(state, outcome)
+    {:stop, :normal, {:error, error}, failed}
   end
 
   defp runner_journal_event(turn_id, {:provider_result, iteration, outcome}) do
@@ -267,8 +307,18 @@ defmodule Draught.Session.Runtime.Server do
   end
 
   defp cleanup_active(%State{active: %ActiveTurn{} = active}) do
-    :ok = Turn.exception_span(active, :exit)
-    Turn.stop(active)
+    :ok = Turn.stop(active)
+    active = ActiveTurn.halt_pending(active)
+    Turn.exception_span(active, :exit)
+  end
+
+  defp deliver_runner(state, active, event, from) do
+    tagged = {:runner, active.id, event}
+
+    case ActiveTurn.deliver_runner(active, state.settings.id, tagged, from) do
+      {:delivered, _unchanged} -> {:reply, :ok, state}
+      {:pending, updated} -> {:noreply, State.update_active(state, updated)}
+    end
   end
 
   defp via(identifier) do

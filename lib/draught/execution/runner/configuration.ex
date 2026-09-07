@@ -4,29 +4,28 @@ defmodule Draught.Execution.Runner.Configuration do
   """
 
   alias Draught.Execution.Runner.Configuration.Tools
-  alias Draught.Execution.Runner.Event
   alias Draught.Execution.Runner.Limits
   alias Draught.Provider.Adapter
-  alias Draught.Tool.Execution.Context
-  alias Draught.Tool.Registry
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
+  alias Draught.Validation.Value
 
-  @enforce_keys [:limits, :provider, :registry, :sink, :tool_context]
-  defstruct [:limits, :provider, :registry, :sink, :tool_context]
+  @enforce_keys [:limits, :provider, :provider_mode, :registry, :sink, :tool_context]
+  defstruct [:limits, :provider, :provider_mode, :registry, :sink, :tool_context]
 
   @type t :: %__MODULE__{
           limits: Limits.t(),
-          provider: Draught.Provider.adapter(),
-          registry: Registry.t(),
-          sink: Event.sink(),
-          tool_context: Context.t()
+          provider: {module(), term()},
+          provider_mode: :complete | :stream,
+          registry: Draught.Tool.Registry.t(),
+          sink: Draught.Execution.Runner.Event.sink(),
+          tool_context: Draught.Tool.Execution.Context.t()
         }
 
   @doc "Builds a runner configuration and applies runner limits to tool execution."
   @spec new(map() | keyword()) :: Error.result(t())
   def new(attributes) do
-    keys = [:limits, :provider, :registry, :sink, :tool_context]
+    keys = [:limits, :provider, :provider_mode, :registry, :sink, :tool_context]
 
     with {:ok, normalized} <- Attributes.normalize(attributes, keys) do
       build(normalized)
@@ -39,6 +38,7 @@ defmodule Draught.Execution.Runner.Configuration do
 
     with {:ok, limits} <- limits(attributes),
          {:ok, provider} <- provider(attributes),
+         {:ok, provider_mode} <- provider_mode(attributes),
          {:ok, sink} <- sink(attributes),
          {:ok, {canonical_registry, canonical_context}} <-
            Tools.prepare(registry, tool_context, limits) do
@@ -46,6 +46,7 @@ defmodule Draught.Execution.Runner.Configuration do
        %__MODULE__{
          limits: limits,
          provider: provider,
+         provider_mode: provider_mode,
          registry: canonical_registry,
          sink: sink,
          tool_context: canonical_context
@@ -73,6 +74,12 @@ defmodule Draught.Execution.Runner.Configuration do
       {:ok, _module, _configuration} -> {:ok, provider}
       {:error, _error} -> Error.single([:provider], :invalid_value, "must be a provider adapter")
     end
+  end
+
+  defp provider_mode(attributes) do
+    attributes
+    |> Map.get(:provider_mode, :complete)
+    |> Value.enum([:complete, :stream], [:provider_mode])
   end
 
   defp sink(%{sink: sink}) when is_function(sink, 1) do

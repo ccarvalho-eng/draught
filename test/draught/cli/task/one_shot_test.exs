@@ -81,7 +81,7 @@ defmodule Draught.CLI.Task.OneShotTest do
     assert_receive {:DOWN, caller_reference, :process, _pid, :killed}, @receive_timeout
     assert caller_reference == caller.ref
     assert_receive {:DOWN, ^session_monitor, :process, ^session, :normal}, @receive_timeout
-    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}, @receive_timeout
+    assert_process_stopped(provider_monitor, provider)
     assert {:error, %{code: "session_not_found"}} = Session.whereis(identifier)
   end
 
@@ -102,7 +102,7 @@ defmodule Draught.CLI.Task.OneShotTest do
 
     assert {:error, :session, error} = Task.await(caller)
     assert error.code in ["session_call_failed", "task_session_stopped"]
-    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}, @receive_timeout
+    assert_process_stopped(provider_monitor, provider)
     assert {:error, %{code: "session_not_found"}} = Session.whereis(identifier)
   end
 
@@ -150,5 +150,10 @@ defmodule Draught.CLI.Task.OneShotTest do
   defp unique_identifier(prefix) do
     suffix = System.unique_integer([:positive, :monotonic])
     "#{prefix}-#{suffix}"
+  end
+
+  defp assert_process_stopped(monitor, process) do
+    assert_receive {:DOWN, ^monitor, :process, ^process, reason}, @receive_timeout
+    assert reason in [:killed, :noproc]
   end
 end

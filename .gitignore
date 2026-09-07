@@ -9,5 +9,6 @@
 /.codex/
 /.DS_Store
 /erl_crash.dump
+/draught
 *.ez
 draught-*.tar

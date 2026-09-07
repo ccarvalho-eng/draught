@@ -23,6 +23,24 @@ defmodule Draught.CLI.Task.Failure do
     error(:configuration, "invalid_task_identifier", "Task session identifier is unavailable")
   end
 
+  @doc "Builds the failure returned when incremental output exceeds its byte budget."
+  @spec output_too_large() :: Normalized.t()
+  def output_too_large do
+    error(:policy, "cli_output_too_large", "CLI output exceeded the configured limit")
+  end
+
+  @doc "Builds the failure returned when the CLI output stream cannot accept more data."
+  @spec output_unavailable() :: Normalized.t()
+  def output_unavailable do
+    error(:protocol, "cli_output_unavailable", "CLI output is unavailable")
+  end
+
+  @doc "Builds the failure returned for an invalid ordered runner event."
+  @spec invalid_stream_event() :: Normalized.t()
+  def invalid_stream_event do
+    error(:protocol, "invalid_cli_stream_event", "CLI received an invalid stream event")
+  end
+
   @doc "Builds the explicit result for web execution without an injected search capability."
   @spec web_unavailable() :: Normalized.t()
   def web_unavailable do

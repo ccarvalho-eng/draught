@@ -1,6 +1,6 @@
 # Command-line interface
 
-The current CLI provides bounded argument parsing, configuration resolution, help, version reporting, diagnostics, anonymous one-shot tasks, and persistent named tasks. It renders terminal text or versioned JSONL and uses stable exit categories. Interactive input, incremental streaming, and enabled web execution are not available.
+The current CLI provides bounded argument parsing, configuration resolution, help, version reporting, diagnostics, streaming anonymous tasks, and persistent named tasks. It renders incremental terminal text or versioned JSONL and uses stable exit categories. Interactive input and enabled web execution are not available.
 
 ## Available commands
 
@@ -9,10 +9,10 @@ The current CLI provides bounded argument parsing, configuration resolution, hel
 | `draught --help` or `draught help` | Prints command help. |
 | `draught --version` or `draught version` | Prints the Draught version. |
 | `draught doctor` | Runs read-only configuration, workspace, and provider checks. |
-| `draught "TASK"` | Executes one anonymous task and prints its terminal result. |
+| `draught "TASK"` | Executes one anonymous task and streams its result. |
 | `draught` or `draught interactive` | Parses interactive mode and returns an unavailable execution result. |
-| `draught --session ID "TASK"` | Creates a named session and executes its first task. |
-| `draught --resume ID "TASK"` | Continues an existing named session. |
+| `draught --session ID "TASK"` | Creates a named session and streams its first task. |
+| `draught --resume ID "TASK"` | Continues and streams an existing named session. |
 | `draught --resume ID` | Parses resume intent; interactive resumed execution is unavailable. |
 
 Use `--` when task text begins with an option-like token:
@@ -32,7 +32,7 @@ draught -- "--explain this argument"
 | `--resume ID` | Continues a persistent named session with the supplied task. |
 | `--web` / `--no-web` | Resolves the web setting. An enabled value makes task execution fail explicitly until a search adapter is connected. |
 | `--output text\|jsonl` | Selects human-readable or machine-readable output where supported. |
-| `--color auto\|always\|never` | Records the requested color mode; current output is unstyled. |
+| `--color auto\|always\|never` | Controls whether terminal-only activity rendering is allowed; task text remains unstyled. |
 | `--diagnostics` / `--no-diagnostics` | Records the diagnostics preference; it does not expand doctor output in this slice. |
 | `--help` | Requests command help. |
 | `--version` | Requests version output. |
@@ -51,20 +51,18 @@ Ollama model selection follows the provider inventory:
 - With no selected model, exactly one compatible installed model is selected automatically.
 - Zero or multiple compatible models produce an actionable provider error.
 
-The one-shot path uses provider completion rather than provider streaming. Text mode prints only final visible assistant text and removes reasoning content and terminal control sequences. JSONL mode emits one terminal record:
+The one-shot path requests provider streaming. Text deltas are printed in order as they arrive. Reasoning deltas are not displayed. Tool events expose only the validated tool name, outcome, and normalized error code; call identifiers, arguments, output, provenance, and provider payloads are excluded.
 
-```json
-{
-  "schema": "draught.cli/v1",
-  "type": "task",
-  "status": "ok",
-  "content": "Final assistant text",
-  "finish_reason": "stop",
-  "usage": null
-}
+On a text terminal at least 40 columns wide, the command displays a compact activity indicator after a short delay while it is waiting for the first visible event. The indicator is cleared before output and has an independent 16 KiB lifetime output limit. It is disabled for `--color never`, redirected output, unavailable or narrow terminal dimensions, and JSONL. A closed output pipe cancels the active session and returns the internal-error status instead of continuing to execute unseen work.
+
+JSONL emits one record per visible event followed by exactly one terminal record. Every record is written to standard output, has a monotonically increasing `sequence`, and ends with one newline:
+
+```jsonl
+{"content":"Final assistant text","event":"text_delta","iteration":1,"schema":"draught.cli/v1","sequence":1,"type":"event"}
+{"content":null,"content_streamed":true,"finish_reason":"stop","schema":"draught.cli/v1","sequence":2,"status":"ok","type":"terminal","usage":null}
 ```
 
-When usage is available, `usage` contains the canonical provider token counts. A normalized task failure is written to standard error as text or as one JSONL error record with `category`, `kind`, `code`, `message`, `hint`, and `retryable` fields. A setup-validation failure uses `category`, `code`, and `message` because execution did not begin.
+When the final provider iteration emitted no visible text delta, the terminal record carries the final assistant `content` and sets `content_streamed` to `false`. If the terminal response extends already streamed text, `content` contains only the missing suffix. A terminal response that disagrees with visible streamed text fails closed. When usage is available and representable, `usage` contains canonical token counts. A normalized task failure is written to standard error in text mode or as the terminal standard-output record in JSONL mode. Setup failures use the same terminal envelope without reflecting rejected configuration values.
 
 ## Named task execution
 
@@ -80,7 +78,7 @@ Continue it with another task:
 draught --resume review "address the remaining test failure"
 ```
 
-Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the complete canonical conversation required by the provider, including retained tool arguments and results. A session is bound to its profile, provider connection, provider adapter, exact negotiated capability set, and exact model when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model. Bindings created before capability identity was introduced are upgraded atomically after their first verified resume.
+Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the retained canonical conversation required by the provider. Streaming deltas are transient and are not journaled; the validated provider result remains authoritative for replay. A session is bound to its profile, provider connection, provider adapter, exact negotiated capability set, and exact model when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model. Bindings created before capability identity was introduced are upgraded atomically after their first verified resume.
 
 Only a session whose durable history ends at a successful assistant response can resume automatically. Interrupted, failed, malformed, oversized, unsafe, or concurrently leased session state fails closed. A second create with the same identifier is rejected. Bare `draught --resume ID` remains unavailable until interactive input is implemented.
 
@@ -102,11 +100,23 @@ The JSONL form emits one complete JSON object followed by a newline:
 draught doctor --output jsonl
 ```
 
-The current JSONL schema identifier is `draught.cli/v1`. Successful task and doctor results use types `task` and `doctor`; failures use type `error`; help and version use their corresponding types. Argument-parsing errors remain text because invalid input may prevent the output format from being resolved safely.
+The current JSONL schema identifier is `draught.cli/v1`. Streaming tasks use `event` and `terminal` records. Doctor, help, and version use their corresponding record types. Argument-parsing errors remain text because invalid input may prevent the output format from being resolved safely.
+
+### Task JSONL records
+
+| Record | Public fields |
+| --- | --- |
+| Text delta | `schema`, `sequence`, `type`, `event`, `iteration`, `content` |
+| Tool call | `schema`, `sequence`, `type`, `event`, `iteration`, `name` |
+| Tool result | `schema`, `sequence`, `type`, `event`, `iteration`, `name`, `status`, `code` |
+| Success terminal | `schema`, `sequence`, `type`, `status`, `content`, `content_streamed`, `finish_reason`, `usage` |
+| Error terminal | `schema`, `sequence`, `type`, `status`, `category`, `kind`, `code`, `message`, `retryable` |
+
+The projector has a 1 MiB cumulative limit for nonterminal rendered output. Terminal content, error codes, and error messages have independent field limits, and the complete terminal record cannot exceed 64 KiB. This separate terminal budget allows a bounded error to describe a nonterminal limit failure. Unknown runner events, inconsistent streamed and final text, a second terminal outcome, encoding failures, and output-limit violations fail closed.
 
 ## Output and exit behavior
 
-Normal help, version, successful task, and successful doctor output is written to standard output. Usage, configuration, task, unavailable-mode, and provider-construction errors are written to standard error. A failed doctor report is rendered to standard output and exits in the provider category.
+Normal help, version, task, and doctor output is written to standard output. Text task failures, usage errors, configuration errors, unavailable-mode errors, and provider-construction errors are written to standard error. JSONL task outcomes, including terminal failures, use standard output as one ordered record stream. A failed doctor report is rendered to standard output and exits in the provider category.
 
 Exit categories are stable at the CLI boundary:
 

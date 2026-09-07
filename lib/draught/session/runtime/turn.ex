@@ -3,21 +3,22 @@ defmodule Draught.Session.Runtime.Turn do
   Runs one bounded agent turn and forwards its terminal outcome to the session server.
   """
 
-  alias Draught.Execution.BoundedTask.OwnerGuard
-  alias Draught.Execution.Runner
   alias Draught.Session.Runtime.ActiveTurn
+  alias Draught.Session.Runtime.Turn.Execution
+  alias Draught.Session.Runtime.Turn.Sink
   alias Draught.Session.Settings
   alias Draught.Telemetry.SessionTurn
 
   @task_supervisor Draught.Execution.TaskSupervisor
 
   @doc "Starts one owner-guarded runner task and its whole-turn timer."
-  @spec start(Settings.t(), pos_integer(), term(), pid(), pid()) :: ActiveTurn.t()
-  def start(settings, turn_id, request, subscriber, session) do
+  @spec start(Settings.t(), pos_integer(), term(), pid(), pid(), ActiveTurn.delivery()) ::
+          ActiveTurn.t()
+  def start(settings, turn_id, request, subscriber, session, delivery) do
     telemetry_span = SessionTurn.start()
 
     try do
-      start_runtime(settings, turn_id, request, subscriber, session, telemetry_span)
+      start_runtime(settings, turn_id, request, subscriber, session, telemetry_span, delivery)
     catch
       kind, reason ->
         :ok = SessionTurn.exception(telemetry_span, kind)
@@ -54,27 +55,21 @@ defmodule Draught.Session.Runtime.Turn do
     SessionTurn.exception(active.telemetry_span, kind)
   end
 
-  defp start_runtime(settings, turn_id, request, subscriber, session, telemetry_span) do
+  defp start_runtime(
+         settings,
+         turn_id,
+         request,
+         subscriber,
+         session,
+         telemetry_span,
+         delivery
+       ) do
     token = make_ref()
-    sink = fn event -> emit(session, token, event) end
-    run = fn -> execute(session, settings, request, sink) end
+    sink = fn event -> Sink.emit(session, token, event) end
+    run = fn -> Execution.run(session, settings, request, sink) end
     task = Task.Supervisor.async_nolink(@task_supervisor, run)
     timer = Process.send_after(session, {:turn_timeout, token}, settings.turn_timeout_ms)
-    ActiveTurn.new(turn_id, subscriber, task, telemetry_span, timer, token)
-  end
-
-  defp execute(session, settings, request, sink) do
-    :ok = OwnerGuard.protect(session)
-
-    settings.runner
-    |> Map.from_struct()
-    |> Map.put(:sink, sink)
-    |> Runner.run(request)
-  end
-
-  defp emit(session, token, event) do
-    send(session, {:runner_event, token, event})
-    :ok
+    ActiveTurn.new(turn_id, subscriber, task, telemetry_span, timer, token, delivery)
   end
 
   defp cancel_timer(timer) do

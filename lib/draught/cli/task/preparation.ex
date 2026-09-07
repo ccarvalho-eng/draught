@@ -27,10 +27,20 @@ defmodule Draught.CLI.Task.Preparation do
           session_options: keyword()
         }
 
-  @doc "Builds a bounded one-shot execution preparation."
+  @doc "Builds a bounded provider-neutral task preparation."
   @spec new(String.t(), Selection.t(), String.t(), map() | keyword()) :: Error.result(t())
   def new(prompt, %Selection{} = selection, workspace, options \\ []) do
-    keys = [:approval, :history, :journal, :limits, :registry, :risk, :system_prompt, :web]
+    keys = [
+      :approval,
+      :history,
+      :journal,
+      :limits,
+      :provider_mode,
+      :registry,
+      :risk,
+      :system_prompt,
+      :web
+    ]
 
     with {:ok, normalized} <- Attributes.normalize(options, keys) do
       Builder.build(prompt, selection, workspace, normalized)

@@ -14,11 +14,11 @@ defmodule Draught.Execution.Runner.Step.ProviderResult do
   alias Draught.Provider.Request
   alias Draught.Validation.Error
 
-  @doc "Runs and applies one bounded provider completion."
+  @doc "Runs and applies one bounded provider request."
   @spec run(Configuration.t(), State.t(), Request.t()) ::
           {:ok, State.t()} | {:error, Draught.Error.Normalized.t() | Error.t()}
   def run(configuration, state, request) do
-    result = ProviderExecution.complete(configuration, request)
+    result = ProviderExecution.run(configuration, request, state.iteration)
 
     with :ok <- Sink.emit(configuration.sink, {:provider_result, state.iteration, result}) do
       Provider.accept(state, result)

@@ -3,6 +3,8 @@ defmodule Draught.Execution.RunnerTest do
 
   alias Draught.Conversation
   alias Draught.Error.Normalized
+  alias Draught.Event.Provider.Delta
+  alias Draught.Event.Provider.ToolCall
   alias Draught.Execution.Runner
   alias Draught.Execution.Runner.Limits
   alias Draught.Provider
@@ -72,6 +74,83 @@ defmodule Draught.Execution.RunnerTest do
     assert receive_events(2) == [
              {:provider_result, 1, {:ok, final}},
              {:terminal, {:ok, final}}
+           ]
+  end
+
+  test "streams ordered provider events before the retained result", %{tmp_dir: workspace} do
+    registry = registry([])
+    user = user("work")
+    request = request([user], registry)
+    final = response("done")
+    first = delta("do")
+    second = delta("ne")
+    provider = fake_stream([stream_route(request, [first, second], {:ok, final})])
+
+    assert run(provider, registry, workspace, request, provider_mode: :stream) == {:ok, final}
+
+    assert receive_events(4) == [
+             {:provider_event, 1, first},
+             {:provider_event, 1, second},
+             {:provider_result, 1, {:ok, final}},
+             {:terminal, {:ok, final}}
+           ]
+  end
+
+  test "streams tool calls before executing their canonical result", %{tmp_dir: workspace} do
+    registry = registry([echo_definition()])
+    user = user("work")
+    first_request = request([user], registry)
+    call = call("call-1", "echo", %{"value" => "first"})
+    streamed_call = tool_call(call)
+    tools = tool_response([call])
+    first_result = result(call, "echo:first")
+    second_request = request([user, tools.message, tool_message(first_result)], registry)
+    final = response("done")
+    final_delta = delta("done")
+
+    provider =
+      fake_stream([
+        stream_route(first_request, [streamed_call], {:ok, tools}),
+        stream_route(second_request, [final_delta], {:ok, final})
+      ])
+
+    assert run(provider, registry, workspace, first_request, provider_mode: :stream) ==
+             {:ok, final}
+
+    assert receive_events(6) == [
+             {:provider_event, 1, streamed_call},
+             {:provider_result, 1, {:ok, tools}},
+             {:tool_result, 1, first_result},
+             {:provider_event, 2, final_delta},
+             {:provider_result, 2, {:ok, final}},
+             {:terminal, {:ok, final}}
+           ]
+  end
+
+  test "bounds cumulative streamed output before delivery", %{tmp_dir: workspace} do
+    registry = registry([])
+    request = request([user("work")], registry)
+    final = response("done")
+    first = delta("first")
+    second = delta("second")
+
+    provider = fake_stream([stream_route(request, [first, second], {:ok, final})])
+
+    maximum_bytes = :erlang.external_size(first) + :erlang.external_size(second) - 1
+    limits = limits(max_output_bytes: maximum_bytes)
+
+    assert {:error, error} =
+             run(provider, registry, workspace, request,
+               provider_mode: :stream,
+               limits: limits
+             )
+
+    assert error.code == "provider_output_too_large"
+
+    assert receive_events(3) == [
+             {:provider_event, 1, first},
+             {:provider_result, 1, {:error, error}},
+             {:terminal, {:error, error}}
            ]
   end
 
@@ -172,6 +251,21 @@ defmodule Draught.Execution.RunnerTest do
     assert error.code == "provider_timeout"
   end
 
+  test "enforces the same deadline in streaming mode", %{tmp_dir: workspace} do
+    registry = registry([])
+    request = request([user("work")], registry)
+    limits = limits(provider_timeout_ms: 10)
+    provider = {SlowProvider, nil}
+
+    assert {:error, error} =
+             run(provider, registry, workspace, request,
+               limits: limits,
+               provider_mode: :stream
+             )
+
+    assert error.code == "provider_timeout"
+  end
+
   test "converts tool timeout into one recoverable result", %{tmp_dir: workspace} do
     registry = registry([slow_definition()])
     user = user("work")
@@ -245,6 +339,7 @@ defmodule Draught.Execution.RunnerTest do
 
     configuration = [
       provider: provider,
+      provider_mode: Keyword.get(options, :provider_mode, :complete),
       registry: registry,
       sink: sink,
       tool_context: Keyword.get(options, :context, context(workspace, [:read]))
@@ -315,8 +410,32 @@ defmodule Draught.Execution.RunnerTest do
     {Fake, fake}
   end
 
+  defp fake_stream(routes) do
+    streams =
+      Enum.map(routes, fn {request, events, result} ->
+        %{request: request, events: events, result: result}
+      end)
+
+    {:ok, fake} = Fake.new(streams: streams)
+    {Fake, fake}
+  end
+
   defp route(request, result) do
     {request, result}
+  end
+
+  defp stream_route(request, events, result) do
+    {request, events, result}
+  end
+
+  defp delta(content) do
+    {:ok, delta} = Delta.new(kind: :text, content: content)
+    delta
+  end
+
+  defp tool_call(call) do
+    {:ok, event} = ToolCall.new(call: call)
+    event
   end
 
   defp user(content) do

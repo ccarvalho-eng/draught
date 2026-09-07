@@ -16,7 +16,7 @@ Each line is one complete JSON object with these fields:
 
 The version applies to each record rather than only the file. Supported event types are `turn_started`, `provider_result`, `tool_result`, and `turn_terminal`.
 
-The session coordinator is the only writer for its journal. It records a turn start before starting provider work, records runner events before publishing them to the subscriber, and records the terminal outcome before completing the live transition.
+The session coordinator is the only writer for its journal. It records a turn start before starting provider work, records retained runner results before publishing them to the subscriber, and records the terminal outcome before completing the live transition. Streaming provider deltas and streamed tool-call notifications are transient subscriber events; they are deliberately excluded because the later canonical provider result is the replay authority.
 
 ```mermaid
 sequenceDiagram
@@ -29,10 +29,14 @@ sequenceDiagram
   Session->>Journal: append turn_started
   Journal-->>Session: synchronized
   Session->>Runner: start turn
-  Runner-->>Session: canonical event
-  Session->>Journal: append event
+  Runner-->>Session: transient provider event
+  Session-->>Caller: deliver transient event without journaling
+  Caller-->>Session: acknowledge continue or halt
+  Runner-->>Session: retained provider or tool result
+  Session->>Journal: append retained result
   Journal-->>Session: synchronized
-  Session-->>Caller: publish event
+  Session-->>Caller: deliver retained event
+  Caller-->>Session: acknowledge continue or halt
   Runner-->>Session: terminal outcome
   Session->>Journal: append turn_terminal
   Journal-->>Session: synchronized

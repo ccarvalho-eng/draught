@@ -4,33 +4,18 @@ defmodule Draught.CLI.Task.Preparation.Builder do
   """
 
   alias Draught.CLI.Task.Preparation
-  alias Draught.CLI.Task.Preparation.Limits
-  alias Draught.CLI.Task.Preparation.Messages
-  alias Draught.CLI.Task.Preparation.Tools
+  alias Draught.CLI.Task.Preparation.Builder.Assembly
   alias Draught.CLI.Task.Provider.Selection
-  alias Draught.Execution.Runner.Configuration
-  alias Draught.Session.Settings
+  alias Draught.Provider.Capabilities
   alias Draught.Validation.Error
+  alias Draught.Validation.Value
 
   @doc "Coordinates pure construction of one execution preparation."
   @spec build(term(), Selection.t(), String.t(), map()) :: Error.result(Preparation.t())
   def build(prompt, %Selection{} = selection, workspace, attributes) do
     with :ok <- web_disabled(attributes),
-         {:ok, limits} <- Limits.new(attributes),
-         {:ok, {registry, context}} <- Tools.prepare(attributes, workspace),
-         {:ok, request} <-
-           Messages.request(prompt, selection, instruction(attributes), history(attributes)),
-         {:ok, runner} <- runner(selection, registry, context, limits) do
-      {:ok,
-       %Preparation{
-         capabilities: selection.capabilities,
-         request: request,
-         runner: runner,
-         session_options: [
-           journal: Map.get(attributes, :journal, false),
-           turn_timeout_ms: Settings.default_turn_timeout_ms()
-         ]
-       }}
+         {:ok, provider_mode} <- provider_mode(selection, attributes) do
+      Assembly.build(prompt, selection, workspace, attributes, provider_mode)
     end
   end
 
@@ -42,25 +27,21 @@ defmodule Draught.CLI.Task.Preparation.Builder do
     end
   end
 
-  defp instruction(attributes) do
-    Map.get(attributes, :system_prompt, Preparation.system_prompt())
+  defp provider_mode(selection, attributes) do
+    with {:ok, mode} <-
+           attributes
+           |> Map.get(:provider_mode, :complete)
+           |> Value.enum([:complete, :stream], [:provider_mode]),
+         :ok <- require_streaming(selection.capabilities, mode) do
+      {:ok, mode}
+    end
   end
 
-  defp history(attributes) do
-    Map.get(attributes, :history, [])
-  end
-
-  defp runner(selection, registry, context, limits) do
-    Configuration.new(
-      provider: selection.adapter,
-      registry: registry,
-      tool_context: context,
-      limits: limits,
-      sink: &discard/1
-    )
-  end
-
-  defp discard(_event) do
+  defp require_streaming(_capabilities, :complete) do
     :ok
+  end
+
+  defp require_streaming(capabilities, :stream) do
+    Capabilities.require(capabilities, :streaming)
   end
 end

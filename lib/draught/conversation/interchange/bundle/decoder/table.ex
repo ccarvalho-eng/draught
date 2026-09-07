@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Decoder.Table do
-  @moduledoc false
+  @moduledoc """
+  Reads and validates a bundle's ZIP table without extracting file content.
+
+  The table must contain one manifest, unique case-insensitive paths, the
+  declared entry count, and a bounded aggregate uncompressed size.
+  """
 
   alias Draught.Conversation.Interchange.Bundle.Entry
   alias Draught.Validation.Error

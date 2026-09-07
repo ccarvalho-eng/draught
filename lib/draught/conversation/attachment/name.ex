@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Attachment.Name do
-  @moduledoc false
+  @moduledoc """
+  Validates attachment names for portable interchange.
+
+  Only bounded leaf names are accepted. Paths, ambiguous trailing characters,
+  and platform-reserved basenames are rejected before archive construction.
+  """
 
   alias Draught.Conversation.Attachment.Name.Windows
   alias Draught.Conversation.Attachment.PortableValue

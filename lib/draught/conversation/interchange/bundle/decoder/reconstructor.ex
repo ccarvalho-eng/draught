@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Decoder.Reconstructor do
-  @moduledoc false
+  @moduledoc """
+  Reconstructs a canonical document from a bundle manifest and attachments.
+
+  Manifest descriptors may not contain inline bytes, and every archived
+  attachment must match a descriptor before validated content is attached.
+  """
 
   alias Draught.Conversation.Attachment
   alias Draught.Conversation.Document

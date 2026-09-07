@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Attachment.Name.Windows do
-  @moduledoc false
+  @moduledoc """
+  Rejects attachment names reserved by Windows filesystems.
+
+  Validation is case-insensitive and applies to the basename before the first
+  extension separator.
+  """
 
   alias Draught.Validation.Error
 

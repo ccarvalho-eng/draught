@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Document.Usage do
-  @moduledoc false
+  @moduledoc """
+  Normalizes optional provider usage stored in a conversation document.
+
+  Usage validation errors are prefixed with the document field so callers
+  receive paths relative to the complete artifact.
+  """
 
   alias Draught.Provider.Usage
   alias Draught.Validation.Error

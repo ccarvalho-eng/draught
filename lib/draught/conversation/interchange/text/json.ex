@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.JSON do
-  @moduledoc false
+  @moduledoc """
+  Constructs deterministically ordered JSON values for text interchange.
+
+  Nested validated maps are sorted recursively before encoding so equivalent
+  documents produce stable extension bytes.
+  """
 
   alias Jason.OrderedObject
 

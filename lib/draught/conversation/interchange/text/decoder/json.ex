@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Decoder.JSON do
-  @moduledoc false
+  @moduledoc """
+  Decodes text-extension JSON under structural safety limits.
+
+  A pre-scan bounds nesting and structural tokens before allocation. Ordered
+  objects are then normalized while rejecting duplicate keys at every depth.
+  """
 
   alias Draught.Validation.Error
   alias Jason.OrderedObject

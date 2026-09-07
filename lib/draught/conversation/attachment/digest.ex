@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Attachment.Digest do
-  @moduledoc false
+  @moduledoc """
+  Computes and validates portable attachment content digests.
+
+  Digests use lowercase hexadecimal SHA-256 so descriptors have one canonical
+  representation across interchange formats.
+  """
 
   alias Draught.Validation.Error
   alias Draught.Validation.Value

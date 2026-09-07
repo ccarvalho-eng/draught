@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Attachment.MediaType do
-  @moduledoc false
+  @moduledoc """
+  Validates the portable media-type subset accepted by attachments.
+
+  Values are lowercase, bounded, and restricted to a type and subtype without
+  parameters so serialized descriptors remain stable.
+  """
 
   alias Draught.Conversation.Attachment.PortableValue
   alias Draught.Validation.Error

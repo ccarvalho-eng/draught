@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Decoder.CentralDirectory do
-  @moduledoc false
+  @moduledoc """
+  Validates bundle central-directory records and their local headers.
+
+  Only stored regular files with supported flags are accepted. Local entry byte
+  ranges must match their directory records and remain disjoint.
+  """
 
   alias Draught.Conversation.Interchange.Bundle.Decoder.EndOfCentralDirectory
   alias Draught.Conversation.Interchange.Bundle.Decoder.Header

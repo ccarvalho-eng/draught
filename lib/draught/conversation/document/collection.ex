@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Document.Collection do
-  @moduledoc false
+  @moduledoc """
+  Provides collection helpers for conversation document validation.
+
+  Helpers restore reverse accumulators to input order and prefix nested
+  violations with the collection path that identifies their source item.
+  """
 
   alias Draught.Validation.Error
 

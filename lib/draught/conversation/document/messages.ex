@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Document.Messages do
-  @moduledoc false
+  @moduledoc """
+  Normalizes the message collection of a conversation document.
+
+  It enforces non-empty, count, per-message, and aggregate-size boundaries while
+  preserving the explicit representation of content-filtered assistant output.
+  """
 
   alias Draught.Conversation.Document.Collection
   alias Draught.Conversation.Document.Messages.FilteredAssistant

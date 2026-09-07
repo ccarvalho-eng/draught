@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Decoder do
-  @moduledoc false
+  @moduledoc """
+  Coordinates bounded validation and decoding of conversation bundles.
+
+  ZIP structures and entry metadata are validated before any selective
+  extraction, then extracted content is reconciled with the manifest.
+  """
 
   alias Draught.Conversation.Interchange.Bundle.Decoder.CentralDirectory
   alias Draught.Conversation.Interchange.Bundle.Decoder.EndOfCentralDirectory

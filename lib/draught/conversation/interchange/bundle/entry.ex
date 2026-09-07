@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Entry do
-  @moduledoc false
+  @moduledoc """
+  Describes a validated entry in a conversation bundle.
+
+  Entries retain both the portable path used by Draught and the archive name
+  required for selective in-memory extraction.
+  """
 
   @enforce_keys [:path, :kind, :name, :size, :compressed_size, :archive_name]
   defstruct [:path, :kind, :name, :size, :compressed_size, :archive_name]

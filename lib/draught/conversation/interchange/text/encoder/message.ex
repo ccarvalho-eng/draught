@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Encoder.Message do
-  @moduledoc false
+  @moduledoc """
+  Converts canonical messages into ordered text-extension values.
+
+  Each message role has a fixed encoded shape, including the explicit sentinel
+  used for content-filtered assistant responses.
+  """
 
   alias Draught.Conversation.Interchange.Text.Encoder.Message.Content
   alias Draught.Conversation.Interchange.Text.Encoder.Message.Tool

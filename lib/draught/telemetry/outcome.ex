@@ -1,5 +1,10 @@
 defmodule Draught.Telemetry.Outcome do
-  @moduledoc false
+  @moduledoc """
+  Projects operation results into the telemetry outcome allowlist.
+
+  Known validation and normalized failures retain only their error category;
+  unexpected result shapes are classified as protocol errors.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Tool.Result

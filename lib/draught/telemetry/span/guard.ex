@@ -1,5 +1,10 @@
 defmodule Draught.Telemetry.Span.Guard do
-  @moduledoc false
+  @moduledoc """
+  Enforces single completion and owner-lifetime handling for telemetry spans.
+
+  A monitor process owns terminal emission. If the calling process exits before
+  closing the span, the guard emits an exception event on its behalf.
+  """
 
   alias Draught.Telemetry.Measurements
   alias Draught.Telemetry.Span.Handle

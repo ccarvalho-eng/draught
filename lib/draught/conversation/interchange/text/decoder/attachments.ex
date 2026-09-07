@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Decoder.Attachments do
-  @moduledoc false
+  @moduledoc """
+  Restores optionally retained attachment content from text artifacts.
+
+  Encoded content is separated before descriptor validation, decoded within a
+  fixed bound, and checked again against each canonical size and digest.
+  """
 
   alias Draught.Conversation.Attachment
   alias Draught.Conversation.Document.Collection

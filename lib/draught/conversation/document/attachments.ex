@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Document.Attachments do
-  @moduledoc false
+  @moduledoc """
+  Normalizes the attachment collection of a conversation document.
+
+  The collection is bounded by count and declared bytes. Names must also be
+  unique under case-insensitive comparison for portable archive extraction.
+  """
 
   alias Draught.Conversation.Attachment
   alias Draught.Conversation.Document.Collection

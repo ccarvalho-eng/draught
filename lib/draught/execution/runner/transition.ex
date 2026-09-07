@@ -3,6 +3,7 @@ defmodule Draught.Execution.Runner.Transition do
   Pure transitions for bounded provider and tool execution.
   """
 
+  alias Draught.Error.Normalized
   alias Draught.Execution.Runner.Failure
   alias Draught.Execution.Runner.State
   alias Draught.Execution.Runner.ToolResults
@@ -43,6 +44,24 @@ defmodule Draught.Execution.Runner.Transition do
     invalid_transition(:accept_tools)
   end
 
+  @doc "Moves a nonterminal state to a canonical failed outcome."
+  @spec fail(State.t(), Normalized.t()) :: {:ok, State.t()} | {:error, Error.t()}
+  def fail(%State{status: status} = state, %Normalized{} = error)
+      when status in [:ready, :waiting_provider, :waiting_tools] do
+    canonical_result =
+      error
+      |> Map.from_struct()
+      |> Normalized.new()
+
+    with {:ok, canonical} <- canonical_result do
+      {:ok, failed(state, canonical)}
+    end
+  end
+
+  def fail(%State{}, %Normalized{}) do
+    invalid_transition(:fail)
+  end
+
   defp next_request_limit(true, state) do
     request = request_with_messages(state)
     updated = %{state | iteration: state.iteration + 1, status: :waiting_provider}
@@ -50,7 +69,7 @@ defmodule Draught.Execution.Runner.Transition do
   end
 
   defp next_request_limit(false, state) do
-    {:halt, fail(state, Failure.iteration_limit())}
+    {:halt, failed(state, Failure.iteration_limit())}
   end
 
   defp request_with_messages(state) do
@@ -65,7 +84,7 @@ defmodule Draught.Execution.Runner.Transition do
     request
   end
 
-  defp fail(state, error) do
+  defp failed(state, error) do
     %{state | outcome: error, pending_calls: [], status: :failed}
   end
 

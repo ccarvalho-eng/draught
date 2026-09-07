@@ -70,6 +70,7 @@ defmodule Draught.MixProject do
         "docs/runner.md",
         "docs/session-journals.md",
         "docs/sessions.md",
+        "docs/telemetry.md",
         "docs/tools.md",
         "docs/workspace-confinement.md",
         "docs/providers/ollama.md",
@@ -83,6 +84,7 @@ defmodule Draught.MixProject do
           "docs/runner.md",
           "docs/session-journals.md",
           "docs/sessions.md",
+          "docs/telemetry.md",
           "docs/tools.md",
           "docs/workspace-confinement.md",
           "docs/providers/ollama.md"

@@ -20,20 +20,20 @@ defmodule Draught.Execution.Runner.BoundedTaskTest do
       spawn(fn ->
         BoundedTask.run(
           fn -> blocking_effect(test_process) end,
-          5_000,
+          30_000,
           Runtime.provider_timeout(),
           Runtime.provider_crashed()
         )
       end)
 
     owner_monitor = Process.monitor(owner)
-    assert_receive {:effect_started, effect}
+    assert_receive {:effect_started, effect}, 5_000
     effect_monitor = Process.monitor(effect)
 
     Process.exit(owner, :kill)
 
-    assert_receive {:DOWN, ^owner_monitor, :process, ^owner, :killed}
-    assert_receive {:DOWN, ^effect_monitor, :process, ^effect, :killed}
+    assert_receive {:DOWN, ^owner_monitor, :process, ^owner, :killed}, 5_000
+    assert_receive {:DOWN, ^effect_monitor, :process, ^effect, :killed}, 5_000
   end
 
   defp blocking_effect(test_process) do

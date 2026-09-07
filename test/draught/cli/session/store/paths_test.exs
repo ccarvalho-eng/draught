@@ -35,6 +35,25 @@ defmodule Draught.CLI.Session.Store.PathsTest do
     assert direct.key == aliased.key
   end
 
+  test "canonical user-state aliases share paths and a lease scope", %{tmp_dir: tmp_dir} do
+    workspace = Path.join(tmp_dir, "workspace")
+    state_home = Path.join(tmp_dir, "state")
+    state_alias = Path.join(tmp_dir, "state-alias")
+    File.mkdir_p!(workspace)
+    File.mkdir_p!(state_home)
+    File.ln_s!(state_home, state_alias)
+
+    assert {:ok, direct} =
+             Paths.new(workspace, "review", %{"XDG_STATE_HOME" => state_home})
+
+    assert {:ok, aliased} =
+             Paths.new(workspace, "review", %{"XDG_STATE_HOME" => state_alias})
+
+    assert direct.root == aliased.root
+    assert direct.session == aliased.session
+    assert direct.key == aliased.key
+  end
+
   test "same session identifier in different workspaces does not collide", %{tmp_dir: tmp_dir} do
     first = Path.join(tmp_dir, "first")
     second = Path.join(tmp_dir, "second")

@@ -97,6 +97,20 @@ defmodule Draught.Tool.Builtin.ReplaceInFileTest do
     assert {:ok, "second"} = Task.await(second)
   end
 
+  test "mutation queue skips work abandoned before it starts" do
+    owner = self()
+    first = Task.async(fn -> Queue.run(BlockingOperation, {owner, :first}) end)
+    assert_receive {:started, :first}
+
+    second = Task.async(fn -> Queue.run(BlockingOperation, {owner, :second}) end)
+    await_queued_call()
+    Task.shutdown(second, :brutal_kill)
+
+    send(Process.whereis(Queue), {:continue, :first})
+    assert {:ok, "first"} = Task.await(first)
+    refute_receive {:started, :second}, 25
+  end
+
   defp execute(_workspace, context) do
     {:ok, definition} = ReplaceInFile.definition()
     {:ok, registry} = Registry.new([definition])
@@ -133,5 +147,24 @@ defmodule Draught.Tool.Builtin.ReplaceInFileTest do
       )
 
     context
+  end
+
+  defp await_queued_call(attempts \\ 100)
+
+  defp await_queued_call(0) do
+    flunk("mutation call was not queued")
+  end
+
+  defp await_queued_call(attempts) do
+    queue = Process.whereis(Queue)
+
+    case Process.info(queue, :message_queue_len) do
+      {:message_queue_len, length} when length > 0 ->
+        :ok
+
+      _result ->
+        Process.sleep(1)
+        await_queued_call(attempts - 1)
+    end
   end
 end

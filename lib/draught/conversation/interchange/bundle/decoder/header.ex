@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Decoder.Header do
-  @moduledoc false
+  @moduledoc """
+  Holds normalized fields from a ZIP central-directory header.
+
+  The decoder populates this structure before applying entry and local-header
+  consistency checks.
+  """
 
   @enforce_keys [
     :made_by,

@@ -1,5 +1,10 @@
 defmodule Draught.Telemetry.Span do
-  @moduledoc false
+  @moduledoc """
+  Defines the common lifecycle for Draught telemetry spans.
+
+  Spans emit a start event followed by exactly one stop or exception event.
+  Manual handles support operations whose completion occurs asynchronously.
+  """
 
   alias Draught.Telemetry.Span.Guard
   alias Draught.Telemetry.Span.Handle

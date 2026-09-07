@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Decoder.EndOfCentralDirectory do
-  @moduledoc false
+  @moduledoc """
+  Parses the terminal ZIP directory record under bundle limits.
+
+  Multi-disk and ZIP64 layouts are rejected, and the central-directory bounds
+  must end exactly where the terminal record begins.
+  """
 
   alias Draught.Validation.Error
 

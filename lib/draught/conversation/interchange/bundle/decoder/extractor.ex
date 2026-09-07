@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Decoder.Extractor do
-  @moduledoc false
+  @moduledoc """
+  Extracts only entries that passed bundle table validation.
+
+  Extracted names, counts, and byte sizes are checked against the validated
+  entries before content is returned to the reconstructor.
+  """
 
   alias Draught.Conversation.Interchange.Bundle.Entry
   alias Draught.Validation.Error

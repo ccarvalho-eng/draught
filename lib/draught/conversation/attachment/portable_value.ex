@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Attachment.PortableValue do
-  @moduledoc false
+  @moduledoc """
+  Applies shared type, byte-size, and shape checks to portable string values.
+
+  Callers supply the field path, size boundary, accepted pattern, and validation
+  message so errors retain their domain-specific location.
+  """
 
   alias Draught.Validation.Error
   alias Draught.Validation.Value

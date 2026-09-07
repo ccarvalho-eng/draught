@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Encoder.Message.Content do
-  @moduledoc false
+  @moduledoc """
+  Encodes typed assistant content for the text extension.
+
+  Reasoning content is replaced with a fixed redaction marker unless retention
+  was explicitly enabled.
+  """
 
   alias Draught.Conversation.Content.Reasoning
   alias Draught.Conversation.Content.Text

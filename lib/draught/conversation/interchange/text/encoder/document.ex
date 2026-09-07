@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Encoder.Document do
-  @moduledoc false
+  @moduledoc """
+  Projects a canonical document into the ordered text-extension schema.
+
+  Metadata and attachment fields are included only according to validated
+  retention options; token usage remains part of the canonical record.
+  """
 
   alias Draught.Conversation.Document
   alias Draught.Conversation.Interchange.Text.Encoder.Message

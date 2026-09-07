@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Decoder do
-  @moduledoc false
+  @moduledoc """
+  Decodes bounded text artifacts and plain Markdown input.
+
+  A leading extension marker selects strict artifact decoding. Reserved markers
+  elsewhere are rejected to prevent ambiguous interpretation.
+  """
 
   alias Draught.Conversation.Document
   alias Draught.Conversation.Interchange.Text.Decoder.Extension

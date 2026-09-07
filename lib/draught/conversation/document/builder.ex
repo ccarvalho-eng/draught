@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Document.Builder do
-  @moduledoc false
+  @moduledoc """
+  Assembles validated fields for a conversation document.
+
+  It accepts only the supported schema version and delegates message,
+  attachment, usage, and JSON metadata validation to their domain boundaries.
+  """
 
   alias Draught.Conversation.Document.Attachments
   alias Draught.Conversation.Document.Messages

@@ -1,5 +1,10 @@
 defmodule Draught.Telemetry.ToolSpan do
-  @moduledoc false
+  @moduledoc """
+  Instruments tool execution with outcome and provenance metadata.
+
+  Metadata is derived from canonical tool results. Web tools are identified as
+  untrusted web input when a result does not carry explicit provenance.
+  """
 
   alias Draught.Telemetry.Outcome
   alias Draught.Telemetry.Span

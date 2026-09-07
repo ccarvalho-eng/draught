@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Encoder.Archive do
-  @moduledoc false
+  @moduledoc """
+  Constructs deterministic in-memory ZIP archives for conversation bundles.
+
+  Entries are stored without compression, use fixed metadata, and order
+  attachment files case-insensitively after the manifest.
+  """
 
   alias Draught.Conversation.Attachment
   alias Draught.Validation.Error

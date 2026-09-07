@@ -1,5 +1,10 @@
 defmodule Draught.Telemetry.Measurements do
-  @moduledoc false
+  @moduledoc """
+  Produces bounded measurements shared by Draught telemetry spans.
+
+  Durations and token counts are clamped to fixed limits. Results without
+  canonical provider usage are represented by zero counts.
+  """
 
   alias Draught.Provider.Response
   alias Draught.Provider.Usage

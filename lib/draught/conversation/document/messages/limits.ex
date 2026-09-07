@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Document.Messages.Limits do
-  @moduledoc false
+  @moduledoc """
+  Defines serialized-size limits for conversation message collections.
+
+  Limits are evaluated against canonical Erlang term sizes before messages are
+  admitted to a document.
+  """
 
   alias Draught.Validation.Error
 

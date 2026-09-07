@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Attachment.Builder do
-  @moduledoc false
+  @moduledoc """
+  Builds canonical attachment fields from external attributes.
+
+  Inline content is bounded before hashing. Declared byte sizes and digests
+  must match inline content, while descriptor-only attachments must supply both.
+  """
 
   alias Draught.Conversation.Attachment.Digest
   alias Draught.Conversation.Attachment.MediaType

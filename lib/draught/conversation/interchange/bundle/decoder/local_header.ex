@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Decoder.LocalHeader do
-  @moduledoc false
+  @moduledoc """
+  Cross-checks local ZIP headers against validated central-directory metadata.
+
+  It also returns each complete local-entry byte range so the caller can reject
+  overlaps before extraction.
+  """
 
   alias Draught.Conversation.Interchange.Bundle.Decoder.Header
   alias Draught.Validation.Error

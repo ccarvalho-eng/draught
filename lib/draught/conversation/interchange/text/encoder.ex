@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Encoder do
-  @moduledoc false
+  @moduledoc """
+  Encodes validated conversation documents as bounded text artifacts.
+
+  The authoritative JSON extension is emitted before a derived narrative, and
+  the complete artifact is checked against the caller-supplied byte limit.
+  """
 
   alias Draught.Conversation.Interchange.Text.Encoder.Document
   alias Draught.Conversation.Interchange.Text.Encoder.Narrative

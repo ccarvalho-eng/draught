@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Options do
-  @moduledoc false
+  @moduledoc """
+  Represents validated retention choices for text interchange exports.
+
+  Retention is an explicit allowlist. Fields absent from the set remain redacted
+  or omitted by the encoder.
+  """
 
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error

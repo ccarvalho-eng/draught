@@ -1,5 +1,10 @@
 defmodule Draught.Telemetry.SessionTurn do
-  @moduledoc false
+  @moduledoc """
+  Coordinates telemetry spans for asynchronous session turns.
+
+  Callers retain the returned handle across the turn lifecycle and close it
+  exactly once with either a result or an exception kind.
+  """
 
   alias Draught.Telemetry.Measurements
   alias Draught.Telemetry.Outcome

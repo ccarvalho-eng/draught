@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Encoder do
-  @moduledoc false
+  @moduledoc """
+  Encodes conversation documents into bounded bundle archives.
+
+  It creates a descriptor-only text manifest and delegates deterministic ZIP
+  construction after canonical document and export-option validation.
+  """
 
   alias Draught.Conversation.Document
   alias Draught.Conversation.Interchange.Bundle.Encoder.Archive

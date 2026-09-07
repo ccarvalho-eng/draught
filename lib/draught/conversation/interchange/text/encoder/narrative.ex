@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Encoder.Narrative do
-  @moduledoc false
+  @moduledoc """
+  Renders the human-readable narrative appended to a text artifact.
+
+  The narrative is derived from canonical messages and deliberately omits tool
+  result content. Decoders do not treat it as authoritative input.
+  """
 
   alias Draught.Conversation.Content.Text
   alias Draught.Conversation.Document

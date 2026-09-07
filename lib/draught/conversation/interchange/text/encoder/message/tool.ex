@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Encoder.Message.Tool do
-  @moduledoc false
+  @moduledoc """
+  Encodes canonical tool calls and results for text interchange.
+
+  Arguments and result details are redacted independently. Stable identity,
+  status, retryability, and provenance fields remain available where required.
+  """
 
   alias Draught.Conversation.Interchange.Text.JSON
   alias Draught.Conversation.Interchange.Text.Options

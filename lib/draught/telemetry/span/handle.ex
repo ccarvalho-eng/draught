@@ -1,5 +1,9 @@
 defmodule Draught.Telemetry.Span.Handle do
-  @moduledoc false
+  @moduledoc """
+  Carries the guard process and ownership token for a manual telemetry span.
+
+  The token binds a completion message to the guard that created the handle.
+  """
 
   @enforce_keys [:guard, :token]
   defstruct [:guard, :token]

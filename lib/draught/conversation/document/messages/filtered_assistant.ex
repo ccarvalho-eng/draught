@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Document.Messages.FilteredAssistant do
-  @moduledoc false
+  @moduledoc """
+  Recognizes the external sentinel for a content-filtered assistant response.
+
+  Only an exact assistant-role sentinel is accepted; other attribute shapes are
+  returned to normal message validation.
+  """
 
   alias Draught.Conversation.Message.Assistant
   alias Draught.Validation.Attributes

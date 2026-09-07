@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Text.Decoder.Extension do
-  @moduledoc false
+  @moduledoc """
+  Decodes and validates the authoritative extension of a text artifact.
+
+  The format header and version are checked before document construction.
+  Derived narrative content after the extension terminator is ignored.
+  """
 
   alias Draught.Conversation.Document
   alias Draught.Conversation.Interchange.Text.Decoder.Attachments

@@ -1,5 +1,10 @@
 defmodule Draught.Conversation.Interchange.Bundle.Decoder.Entry do
-  @moduledoc false
+  @moduledoc """
+  Converts raw ZIP table records into bounded bundle entries.
+
+  Only the manifest and portable attachment paths are accepted. Entries must be
+  regular, uncompressed, comment-free, and within their type-specific limit.
+  """
 
   alias Draught.Conversation.Attachment
   alias Draught.Conversation.Attachment.Name

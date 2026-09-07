@@ -13,6 +13,8 @@ defmodule Draught.CLITest do
   alias Draught.Session
   alias Draught.Tool.Call
 
+  @receive_timeout 1_000
+
   defmodule SystemAdapter do
     @behaviour Draught.CLI.System.Adapter
 
@@ -339,12 +341,12 @@ defmodule Draught.CLITest do
 
     task = Task.async(fn -> CLI.run(["inspect this project"], dependencies) end)
 
-    assert_receive {:blocking_provider_started, provider}
+    assert_receive {:blocking_provider_started, provider}, @receive_timeout
     provider_monitor = Process.monitor(provider)
     assert :ok = Session.cancel(identifier)
     assert Task.await(task) == 130
-    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}
-    assert_receive {:cli_output, :stderr, output}
+    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}, @receive_timeout
+    assert_receive {:cli_output, :stderr, output}, @receive_timeout
     assert output =~ "session_cancelled"
   end
 
@@ -357,11 +359,11 @@ defmodule Draught.CLITest do
 
     task = Task.async(fn -> CLI.run(["update sample.txt"], dependencies) end)
 
-    assert_receive {:scripted_provider_request, first_provider, _first_request}
+    assert_receive {:scripted_provider_request, first_provider, _first_request}, @receive_timeout
     call = replace_call()
     send(first_provider, {:scripted_provider_result, {:ok, tool_response(call)}})
 
-    assert_receive {:scripted_provider_request, second_provider, second_request}
+    assert_receive {:scripted_provider_request, second_provider, second_request}, @receive_timeout
 
     assert [%Tool{result: %{error: %{code: "tool_risk_denied"}}} | _messages] =
              Enum.reverse(second_request.messages)
@@ -370,7 +372,7 @@ defmodule Draught.CLITest do
     send(second_provider, {:scripted_provider_result, {:ok, final}})
 
     assert Task.await(task) == 0
-    assert_receive {:cli_output, :stdout, "The edit was denied\n"}
+    assert_receive {:cli_output, :stdout, "The edit was denied\n"}, @receive_timeout
   end
 
   @tag :tmp_dir
@@ -389,10 +391,10 @@ defmodule Draught.CLITest do
 
     task = Task.async(fn -> CLI.run(["update and verify sample.txt"], dependencies) end)
 
-    assert_receive {:scripted_provider_request, first_provider, _first_request}
+    assert_receive {:scripted_provider_request, first_provider, _first_request}, @receive_timeout
     send(first_provider, {:scripted_provider_result, {:ok, tool_response(replace_call())}})
 
-    assert_receive {:scripted_provider_request, second_provider, second_request}
+    assert_receive {:scripted_provider_request, second_provider, second_request}, @receive_timeout
 
     assert [%Tool{result: %{status: :success}} | _messages] =
              Enum.reverse(second_request.messages)
@@ -400,7 +402,7 @@ defmodule Draught.CLITest do
     assert File.read!(path) == "after"
     send(second_provider, {:scripted_provider_result, {:ok, tool_response(read_call())}})
 
-    assert_receive {:scripted_provider_request, third_provider, third_request}
+    assert_receive {:scripted_provider_request, third_provider, third_request}, @receive_timeout
 
     assert [%Tool{result: %{status: :success, content: "after"}} | _messages] =
              Enum.reverse(third_request.messages)
@@ -408,7 +410,7 @@ defmodule Draught.CLITest do
     send(third_provider, {:scripted_provider_result, {:ok, response("Updated and verified")}})
 
     assert Task.await(task) == 0
-    assert_receive {:cli_output, :stdout, "Updated and verified\n"}
+    assert_receive {:cli_output, :stdout, "Updated and verified\n"}, @receive_timeout
   end
 
   test "auto-selects one compatible Ollama model for a complete CLI task" do

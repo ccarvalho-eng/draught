@@ -73,14 +73,36 @@ defmodule Draught.Provider.Ollama.Protocol do
     )
   end
 
+  @doc "Returns an error when installed models do not satisfy the required capabilities."
+  @spec no_compatible_models() :: {:error, Normalized.t()}
+  def no_compatible_models do
+    error(
+      :capability,
+      "ollama_no_compatible_models",
+      "No installed Ollama model supports every required capability",
+      hint: "Install a model that advertises every required capability."
+    )
+  end
+
+  @doc "Returns an error when the installed-model inventory exceeds its diagnostic bound."
+  @spec inventory_too_large() :: {:error, Normalized.t()}
+  def inventory_too_large do
+    error(
+      :configuration,
+      "ollama_inventory_too_large",
+      "Ollama has more installed models than Draught can inspect in one operation",
+      hint: "Select a model explicitly or reduce the installed model inventory."
+    )
+  end
+
   @doc "Returns an error when automatic selection is ambiguous."
   @spec model_required() :: {:error, Normalized.t()}
   def model_required do
     error(
       :configuration,
       "ollama_model_required",
-      "More than one Ollama model is installed",
-      hint: "Set the model explicitly."
+      "More than one compatible Ollama model is installed",
+      hint: "Select one of the compatible installed models explicitly."
     )
   end
 

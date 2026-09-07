@@ -164,6 +164,30 @@ defmodule Draught.Provider.Ollama.DiscoveryTest do
             }} = Discovery.list(base_url: base_url)
   end
 
+  test "rejects model names that are unsafe for requests or terminal output" do
+    unsafe = "model" <> <<27>> <> "[31m"
+    body = Jason.encode!(%{"models" => [%{"name" => unsafe}]})
+    {_pid, listener, base_url} = HTTPServer.start(self(), [{200, body}])
+    on_exit(fn -> :gen_tcp.close(listener) end)
+
+    assert {:error, %Normalized{code: "invalid_ollama_response"}} =
+             Discovery.list(base_url: base_url)
+
+    assert {:error, %Normalized{code: "invalid_ollama_model"}} = Discovery.fetch(unsafe)
+
+    oversized = String.duplicate("a", 257)
+    assert {:error, %Normalized{code: "invalid_ollama_model"}} = Discovery.fetch(oversized)
+  end
+
+  test "rejects duplicate model names in discovery output" do
+    body = Jason.encode!(%{"models" => [%{"name" => "qwen3"}, %{"name" => "qwen3"}]})
+    {_pid, listener, base_url} = HTTPServer.start(self(), [{200, body}])
+    on_exit(fn -> :gen_tcp.close(listener) end)
+
+    assert {:error, %Normalized{code: "invalid_ollama_response"}} =
+             Discovery.list(base_url: base_url)
+  end
+
   test "rejects invalid model names and discovery HTTP modules" do
     assert {:error, %Normalized{code: "invalid_ollama_model"}} = Discovery.fetch("")
 

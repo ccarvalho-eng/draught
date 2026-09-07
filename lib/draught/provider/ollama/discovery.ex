@@ -9,6 +9,7 @@ defmodule Draught.Provider.Ollama.Discovery do
   alias Draught.Provider.Ollama.Discovery.HTTP.Req
   alias Draught.Provider.Ollama.Discovery.HTTP.Response
   alias Draught.Provider.Ollama.Discovery.Model
+  alias Draught.Provider.Ollama.Discovery.Model.Name
   alias Draught.Provider.Ollama.Protocol
 
   @doc "Lists locally available Ollama model names."
@@ -82,14 +83,10 @@ defmodule Draught.Provider.Ollama.Discovery do
     configuration.base_url <> path
   end
 
-  defp model_name(model) when is_binary(model) and byte_size(model) > 0 do
+  defp model_name(model) do
     model
-    |> String.valid?()
+    |> Name.valid?()
     |> model_name_result(model)
-  end
-
-  defp model_name(_model) do
-    Protocol.invalid_model()
   end
 
   defp model_name_result(true, model) do

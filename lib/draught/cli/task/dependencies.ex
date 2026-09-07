@@ -20,7 +20,8 @@ defmodule Draught.CLI.Task.Dependencies do
   @spec new(map() | keyword(), module()) :: Error.result(t())
   def new(attributes, discovery_http) do
     with {:ok, normalized} <- Attributes.normalize(attributes, [:identifier, :provider]),
-         {:ok, identifier} <- identifier(Map.get(normalized, :identifier, &Identifier.generate/0)),
+         {:ok, identifier} <-
+           identifier(Map.get(normalized, :identifier, &Identifier.generate/0)),
          {:ok, provider} <-
            provider(
              Map.get(normalized, :provider, {

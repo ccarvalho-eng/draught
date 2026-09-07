@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.Request do
-  @moduledoc false
+  @moduledoc """
+  Rebuilds provider requests at the runner boundary.
+
+  Caller-supplied tool specifications are replaced with the canonical,
+  declaration-ordered specifications from the injected tool registry.
+  """
 
   alias Draught.Provider.Request
   alias Draught.Tool.Registry

@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.ReplaceInFile.AtomicWriter do
-  @moduledoc false
+  @moduledoc """
+  Replaces a file through a same-directory temporary file.
+
+  The temporary file receives the target's permission bits before an atomic
+  rename, and cleanup runs whether the write succeeds or fails.
+  """
 
   import Bitwise, only: [band: 2]
 

@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.RunCommand.Subprocess.State do
-  @moduledoc false
+  @moduledoc """
+  Holds the private lifecycle state for a running command subprocess.
+
+  State keeps the owner monitor, timeout reference, output byte count, and
+  ordered output chunks together so the subprocess loop can enforce its bounds.
+  """
 
   alias Draught.Tool.Builtin.RunCommand.Execution
 

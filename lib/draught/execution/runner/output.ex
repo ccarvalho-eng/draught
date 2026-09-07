@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.Output do
-  @moduledoc false
+  @moduledoc """
+  Enforces the runner's retention limit on canonical provider responses.
+
+  Provider failures pass through unchanged; oversized successful responses are
+  replaced with a stable non-retryable policy failure.
+  """
 
   alias Draught.Execution.Runner.Failure.Runtime
   alias Draught.Provider.Response

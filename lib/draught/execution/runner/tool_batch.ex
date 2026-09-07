@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.ToolBatch do
-  @moduledoc false
+  @moduledoc """
+  Derives semantic identity for an ordered batch of tool calls.
+
+  Provider-generated call identifiers are excluded so the runner can detect a
+  repeated request even when a provider assigns new identifiers.
+  """
 
   alias Draught.Tool.Call
 

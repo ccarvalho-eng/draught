@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.Failure do
-  @moduledoc false
+  @moduledoc """
+  Constructs safe failures shared by built-in workspace tools.
+
+  The returned messages describe stable failure categories without disclosing
+  resolved filesystem paths or operating-system error details.
+  """
 
   alias Draught.Error.Normalized
 

@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.SearchWorkspace.Walker do
-  @moduledoc false
+  @moduledoc """
+  Collects workspace files for bounded text search.
+
+  The walk is deterministic, excludes generated and repository metadata
+  directories, limits visited entries, and never follows symbolic links.
+  """
 
   @maximum_entries 5_000
   @excluded_directories MapSet.new([".git", "_build", "cover", "deps", "doc", "tmp"])

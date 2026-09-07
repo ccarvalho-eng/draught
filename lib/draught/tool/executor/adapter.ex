@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Executor.Adapter do
-  @moduledoc false
+  @moduledoc """
+  Validates modules injected as tool executors.
+
+  An executor is accepted only when its module is loaded and exports the
+  `execute/3` callback required by the executor contract.
+  """
 
   alias Draught.Validation.Error
 

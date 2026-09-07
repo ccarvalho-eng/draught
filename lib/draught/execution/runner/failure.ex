@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.Failure do
-  @moduledoc false
+  @moduledoc """
+  Constructs terminal policy failures produced by runner state transitions.
+
+  These failures are non-retryable and expose stable codes for bounded-loop
+  and repeated-tool-batch termination.
+  """
 
   alias Draught.Error.Normalized
 

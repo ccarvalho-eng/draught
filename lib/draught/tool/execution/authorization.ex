@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Execution.Authorization do
-  @moduledoc false
+  @moduledoc """
+  Enforces the allowed-risk set at the tool execution boundary.
+
+  A definition may proceed only when its registered risk is present in the
+  canonical execution policy; rejection produces a stable policy failure.
+  """
 
   alias Draught.Tool.Execution.Failure
   alias Draught.Tool.Execution.Policy

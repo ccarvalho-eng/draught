@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.ToolResults do
-  @moduledoc false
+  @moduledoc """
+  Validates tool-result messages against the runner's pending calls.
+
+  Reconciliation preserves declaration order and requires exactly one result
+  with the matching call identifier and tool name for every pending call.
+  """
 
   alias Draught.Conversation.Message
   alias Draught.Conversation.Message.Tool

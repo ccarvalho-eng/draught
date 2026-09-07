@@ -1,5 +1,10 @@
 defmodule Draught.Execution.BoundedTask do
-  @moduledoc false
+  @moduledoc """
+  Runs one effect under the execution task supervisor with a fixed deadline.
+
+  The boundary converts task exits and timeouts into caller-supplied normalized
+  failures and ensures the task is terminated if its owner dies.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Execution.BoundedTask.OwnerGuard

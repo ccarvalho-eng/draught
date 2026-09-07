@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.ProviderExecution do
-  @moduledoc false
+  @moduledoc """
+  Executes one provider completion within runner resource limits.
+
+  The provider call is supervised and time-bounded, and successful canonical
+  responses are rejected before retention when they exceed the output limit.
+  """
 
   alias Draught.Execution.BoundedTask
   alias Draught.Execution.Runner.Configuration

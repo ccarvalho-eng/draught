@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.WebSearch.Executor do
-  @moduledoc false
+  @moduledoc """
+  Executes the capability-gated web search tool.
+
+  Queries are byte-bounded and require network approval before the request is
+  delegated to the configured bounded search boundary.
+  """
 
   @behaviour Draught.Tool.Executor
 

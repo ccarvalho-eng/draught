@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.RunCommand.Environment do
-  @moduledoc false
+  @moduledoc """
+  Builds the controlled environment used for command execution.
+
+  Inherited variables are removed, a fixed set of process variables is
+  supplied, and the executable search path is returned for separate resolution.
+  """
 
   @default_path "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
 

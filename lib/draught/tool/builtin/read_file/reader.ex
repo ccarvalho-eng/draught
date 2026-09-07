@@ -1,5 +1,11 @@
 defmodule Draught.Tool.Builtin.ReadFile.Reader do
-  @moduledoc false
+  @moduledoc """
+  Reads UTF-8 file content without retaining data beyond a byte limit.
+
+  It reads at most one byte past the boundary so callers can distinguish an
+  oversized file from valid content while treating encoding and I/O errors as
+  unreadable input.
+  """
 
   @type result :: {:ok, String.t()} | {:error, :too_large | :unreadable}
 

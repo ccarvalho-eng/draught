@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.Step.ProviderResult do
-  @moduledoc false
+  @moduledoc """
+  Performs and applies one provider step in the runner loop.
+
+  The bounded provider result is emitted to the configured sink before it is
+  accepted by the provider state transition.
+  """
 
   alias Draught.Execution.Runner.Configuration
   alias Draught.Execution.Runner.ProviderExecution

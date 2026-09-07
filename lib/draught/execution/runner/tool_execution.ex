@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.ToolExecution do
-  @moduledoc false
+  @moduledoc """
+  Executes one ordered batch of tool calls for the runner.
+
+  Calls run sequentially under the configured timeout. Each canonical result
+  is emitted before its corresponding conversation message is returned.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Execution.BoundedTask

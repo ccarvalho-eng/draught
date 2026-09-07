@@ -1,5 +1,10 @@
 defmodule Draught.Execution.Runner.Failure.Runtime do
-  @moduledoc false
+  @moduledoc """
+  Constructs normalized failures for bounded runner effects.
+
+  It centralizes stable error kinds and codes for provider, tool, output, and
+  event-sink failures without retaining process exit reasons.
+  """
 
   alias Draught.Error.Normalized
 

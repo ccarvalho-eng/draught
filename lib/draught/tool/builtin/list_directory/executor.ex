@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.ListDirectory.Executor do
-  @moduledoc false
+  @moduledoc """
+  Executes bounded directory listings inside the configured workspace.
+
+  Paths pass through workspace resolution, symbolic-link policy is inherited
+  from that boundary, and output is sorted after enforcing an entry limit.
+  """
 
   @behaviour Draught.Tool.Executor
 

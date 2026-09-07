@@ -1,5 +1,10 @@
 defmodule Draught.Tool.Builtin.SearchWorkspace.Executor do
-  @moduledoc false
+  @moduledoc """
+  Executes bounded text searches within the configured workspace.
+
+  It validates the query, resolves the search root, walks eligible files, and
+  maps confinement and scan failures to stable tool errors.
+  """
 
   @behaviour Draught.Tool.Executor
 

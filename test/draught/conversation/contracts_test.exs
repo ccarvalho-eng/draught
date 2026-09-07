@@ -136,6 +136,12 @@ defmodule Draught.Conversation.ContractsTest do
     assert {:error, %Error{}} = Message.validate(:invalid)
   end
 
+  test "keeps the content-filtered assistant placeholder response-scoped" do
+    filtered = Assistant.filtered()
+
+    assert {:error, %Error{}} = Message.validate(filtered)
+  end
+
   test "rejects malformed assistant shortcuts, structs, and tool-call collections" do
     assert {:error, %Error{}} = Assistant.new(content: "")
     assert {:error, %Error{}} = Assistant.new(reasoning: "")

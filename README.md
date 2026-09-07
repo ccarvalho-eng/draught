@@ -57,21 +57,16 @@ Draught.Provider.complete({Draught.Provider.Fake, fake}, request)
 
 The included fake is pure and route-based. It provides deterministic offline tests without processes, global configuration, or network access.
 
-The [Ollama provider guide](docs/providers/ollama.md) documents model selection, capability checks, configuration, failures, and the manual smoke procedure.
+## Documentation
 
-The [tool execution guide](docs/tools.md) documents the standard catalog, definitions, registry lookup, risk and approval policy, parameter schemas, mutation sequencing, command process controls, structured results, and the executor boundary.
-
-The [agent runner guide](docs/runner.md) documents injected dependencies, pure state transitions, execution order, limits, recoverable tool results, terminal conditions, and synchronous events.
-
-The [session lifecycle guide](docs/sessions.md) documents asynchronous turns, status, event delivery, cancellation semantics, timeouts, supervision, and stale-result handling.
-
-The [session journal guide](docs/session-journals.md) documents the versioned record schema, replay validation, interruption recovery, retention, checkpoints, storage permissions, and adapter boundary.
-
-The [telemetry guide](docs/telemetry.md) documents event names, bounded measurements, allowlisted metadata, exception behavior, and deterministic test capture.
-
-The [workspace confinement guide](docs/workspace-confinement.md) documents lexical validation, symlink handling, read and write resolution, containment checks, and operating-system isolation boundaries.
-
-See the [architecture guide](docs/architecture.md) for the internal layers, dependency rules, runtime flows, effect boundaries, and contract invariants.
+- [Architecture](docs/architecture.md): internal layers, dependency rules, runtime flows, effect boundaries, and contract invariants.
+- [Ollama provider](docs/providers/ollama.md): model selection, capability checks, configuration, failures, and manual smoke testing.
+- [Tool execution](docs/tools.md): catalog, registry, risk and approval policy, parameter schemas, process controls, results, and executor boundary.
+- [Agent runner](docs/runner.md): dependencies, state transitions, execution order, limits, recoverable results, terminal conditions, and events.
+- [Session lifecycle](docs/sessions.md): asynchronous turns, status, events, cancellation, timeouts, supervision, and stale-result handling.
+- [Session journals](docs/session-journals.md): record schema, replay, interruption recovery, retention, checkpoints, permissions, and storage boundary.
+- [Telemetry](docs/telemetry.md): events, bounded measurements, allowlisted metadata, exception behavior, and deterministic test capture.
+- [Workspace confinement](docs/workspace-confinement.md): lexical validation, symlink handling, path resolution, containment checks, and operating-system isolation boundaries.
 
 ## Security
 

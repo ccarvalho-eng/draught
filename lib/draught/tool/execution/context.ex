@@ -3,23 +3,32 @@ defmodule Draught.Tool.Execution.Context do
   Explicit workspace and policy passed to each tool invocation.
   """
 
+  alias Draught.Tool.Approval.Policy.Adapter
+  alias Draught.Tool.Approval.Policy.Default
   alias Draught.Tool.Execution.Policy
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
   alias Draught.Validation.Value
 
-  @enforce_keys [:workspace, :policy]
-  defstruct [:workspace, :policy]
+  @default_approval {Default, nil}
 
-  @type t :: %__MODULE__{workspace: String.t(), policy: Policy.t()}
+  @enforce_keys [:workspace, :policy, :approval]
+  defstruct [:workspace, :policy, :approval]
+
+  @type t :: %__MODULE__{
+          workspace: String.t(),
+          policy: Policy.t(),
+          approval: Draught.Tool.Approval.policy()
+        }
 
   @doc "Builds an execution context with an absolute workspace path."
   @spec new(map() | keyword()) :: Error.result(t())
   def new(attributes) do
-    with {:ok, normalized} <- Attributes.normalize(attributes, [:workspace, :policy]),
+    with {:ok, normalized} <- Attributes.normalize(attributes, [:workspace, :policy, :approval]),
          {:ok, workspace} <- workspace(normalized),
-         {:ok, policy} <- policy(normalized) do
-      {:ok, %__MODULE__{workspace: workspace, policy: policy}}
+         {:ok, policy} <- policy(normalized),
+         {:ok, approval} <- approval(normalized) do
+      {:ok, %__MODULE__{workspace: workspace, policy: policy, approval: approval}}
     end
   end
 
@@ -56,6 +65,15 @@ defmodule Draught.Tool.Execution.Context do
 
       _policy ->
         Error.single([:policy], :invalid_type, "must be an execution policy")
+    end
+  end
+
+  defp approval(attributes) do
+    approval = Map.get(attributes, :approval, @default_approval)
+
+    case Adapter.validate(approval) do
+      {:ok, _module, _configuration} -> {:ok, approval}
+      {:error, _error} -> Error.single([:approval], :invalid_value, "must be an approval policy")
     end
   end
 end

@@ -6,12 +6,29 @@ defmodule Draught.CLI.Task.Preparation.Messages do
   alias Draught.Provider.Request
   alias Draught.Validation.Error
 
-  @doc "Builds the canonical initial system and user message request."
-  @spec request(term(), Selection.t(), term()) :: Error.result(Request.t())
-  def request(prompt, %Selection{} = selection, instruction) do
+  @doc "Builds a canonical request from a new prompt and optional replay history."
+  @spec request(term(), Selection.t(), term(), term()) :: Error.result(Request.t())
+  def request(prompt, %Selection{} = selection, instruction, []) do
     with {:ok, system} <- Conversation.system(instruction),
          {:ok, user} <- Conversation.user(prompt) do
       Request.new(model: selection.model, messages: [system, user])
     end
+  end
+
+  def request(prompt, %Selection{} = selection, _instruction, history) do
+    with {:ok, user} <- Conversation.user(prompt) do
+      Request.new(model: selection.model, messages: append(history, user))
+    end
+  end
+
+  defp append(history, user) when is_list(history) do
+    history
+    |> Enum.reverse()
+    |> then(&[user | &1])
+    |> Enum.reverse()
+  end
+
+  defp append(history, _user) do
+    history
   end
 end

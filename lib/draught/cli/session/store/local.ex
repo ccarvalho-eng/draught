@@ -39,6 +39,31 @@ defmodule Draught.CLI.Session.Store.Local do
     end
   end
 
+  @doc "Removes only a newly created marker-only session directory."
+  @spec abort(Paths.t()) :: :ok | {:error, Draught.Error.Normalized.t()}
+  def abort(%Paths{} = paths) do
+    with :ok <- validate(paths),
+         {:ok, [".draught-session"]} <- File.ls(paths.session),
+         :ok <- remove_marker(paths.marker, true) do
+      remove_session(paths.session)
+    else
+      {:error, %Normalized{} = error} -> {:error, error}
+      _result -> {:error, Failure.storage_unsafe()}
+    end
+  end
+
+  @doc "Creates a named session, recovering only an interrupted marker-only initialization."
+  @spec initialize(Paths.t()) :: :ok | {:error, Draught.Error.Normalized.t()}
+  def initialize(%Paths{} = paths) do
+    case create(paths) do
+      {:error, %Normalized{code: "session_already_exists"} = error} ->
+        recover_uninitialized(paths, error)
+
+      result ->
+        result
+    end
+  end
+
   defp validate_session_directory(session) do
     case File.lstat(session) do
       {:ok, %File.Stat{type: :directory, mode: mode}}
@@ -53,6 +78,20 @@ defmodule Draught.CLI.Session.Store.Local do
 
       {:error, _reason} ->
         {:error, Failure.storage_unavailable()}
+    end
+  end
+
+  defp recover_uninitialized(paths, error) do
+    case File.ls(paths.session) do
+      {:ok, [".draught-session"]} -> recover_marker_only(paths)
+      {:ok, _entries} -> {:error, error}
+      {:error, _reason} -> {:error, Failure.storage_unavailable()}
+    end
+  end
+
+  defp recover_marker_only(paths) do
+    with :ok <- abort(paths) do
+      create(paths)
     end
   end
 

@@ -92,18 +92,33 @@ The command creates a temporary supervised session, executes one turn, waits for
 
 The default `ask` risk mode permits read operations. Effectful operations require approval, but this anonymous command has no interactive approval prompt, so those operations are returned to the model as approval-required results. See [Configuration](configuration.md#task-risk-modes) before enabling effectful tools.
 
-## 6. Current execution limits
+## 6. Continue work in a named session
+
+Create a named session for work that spans multiple invocations:
+
+```shell
+./draught --session review "inspect this workspace"
+```
+
+Continue from its successful assistant response:
+
+```shell
+./draught --resume review "continue this work"
+```
+
+The session retains the complete provider conversation in the user state directory and remains bound to its original provider connection and exact model. Use a different identifier to start unrelated work.
+
+## 7. Current execution limits
 
 The following forms remain explicit unavailable results:
 
 ```shell
 ./draught
 ./draught interactive
-./draught "continue this work" --session SESSION_ID
 ./draught --resume SESSION_ID
 ./draught "search the web" --web
 ```
 
-Interactive input, named and resumed sessions, incremental streaming, and enabled web execution depend on later durability or capability work. Each anonymous task starts without prior conversation state.
+Interactive input, prompt-free resume, incremental streaming, and enabled web execution depend on later capability work. Each anonymous task starts without prior conversation state.
 
 See [CLI](cli.md) for command and exit behavior and [Ollama provider](providers/ollama.md) for discovery details.

@@ -63,10 +63,10 @@ defmodule Draught.CLI.Output.Text do
     "Agent execution is not available in this build. Run 'draught doctor' to check setup.\n"
   end
 
-  @doc "Renders the unavailable persistent-session result."
-  @spec persistent_sessions_unavailable() :: iodata()
-  def persistent_sessions_unavailable do
-    "Named sessions and resume are not available yet. Run an anonymous task without session options.\n"
+  @doc "Renders the named-task prompt requirement."
+  @spec task_prompt_required() :: iodata()
+  def task_prompt_required do
+    "A task prompt is required. Pass it after --session ID or --resume ID.\n"
   end
 
   @doc "Renders a safe task setup failure."

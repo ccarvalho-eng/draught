@@ -153,6 +153,18 @@ defmodule Draught.CLITest do
     assert Jason.decode!(version)["type"] == "version"
   end
 
+  test "requires a prompt for named session execution" do
+    dependencies = dependencies()
+
+    assert CLI.run(["--resume", "review"], dependencies) == 5
+    assert_receive {:cli_output, :stderr, text}
+    assert text =~ "task prompt is required"
+
+    assert CLI.run(["--session", "review", "--output", "jsonl"], dependencies) == 5
+    assert_receive {:cli_output, :stderr, jsonl}
+    assert Jason.decode!(jsonl)["code"] == "prompt_required"
+  end
+
   test "doctor reports one compatible local model without issuing a completion" do
     queue_list(["qwen3"])
     queue_model(["completion", "tools"])
@@ -294,10 +306,24 @@ defmodule Draught.CLITest do
     assert %{"type" => "task", "status" => "ok", "content" => "done"} = decoded
   end
 
-  test "keeps persistent and enabled-web task modes explicitly unavailable" do
-    assert CLI.run(["inspect", "--session", "named"], dependencies()) == 5
+  @tag :tmp_dir
+  test "creates and resumes named tasks while keeping enabled web unavailable", %{
+    tmp_dir: tmp_dir
+  } do
+    workspace = Path.join(tmp_dir, "workspace")
+    environment = %{"XDG_STATE_HOME" => Path.join(tmp_dir, "state")}
+    File.mkdir_p!(workspace)
+    dependencies = dependencies(cwd: workspace, environment: environment)
+
+    assert CLI.run(["inspect", "--session", "named"], dependencies) == 0
+    assert_receive {:cli_output, :stdout, "unused\n"}
+
+    assert CLI.run(["continue", "--resume", "named"], dependencies) == 0
+    assert_receive {:cli_output, :stdout, "unused\n"}
+
+    assert CLI.run(["inspect", "--session", "named"], dependencies) == 5
     assert_receive {:cli_output, :stderr, session_output}
-    assert session_output =~ "not available"
+    assert session_output =~ "already exists"
 
     assert CLI.run(["inspect", "--web"], dependencies()) == 4
     assert_receive {:cli_output, :stderr, web_output}
@@ -448,7 +474,7 @@ defmodule Draught.CLITest do
       {SystemAdapter,
        %{
          owner: self(),
-         cwd: "/workspace",
+         cwd: Keyword.get(options, :cwd, "/workspace"),
          environment: Keyword.get(options, :environment, %{}),
          files: Keyword.get(options, :files, %{})
        }}

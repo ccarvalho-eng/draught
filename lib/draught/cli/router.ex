@@ -39,6 +39,16 @@ defmodule Draught.CLI.Router do
     Task.Command.run(invocation, dependencies)
   end
 
+  def dispatch(
+        {:ok, %Command.Invocation{resume: resume, session: session} = invocation},
+        dependencies
+      )
+      when is_binary(resume) or is_binary(session) do
+    invocation.output
+    |> Output.task_prompt_required()
+    |> Writer.emit(:stderr, :session, dependencies)
+  end
+
   def dispatch({:ok, %Command.Invocation{} = invocation}, dependencies) do
     invocation.output
     |> Output.unavailable()

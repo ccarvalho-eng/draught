@@ -16,14 +16,15 @@ defmodule Draught.CLI.Task.Preparation.Builder do
     with :ok <- web_disabled(attributes),
          {:ok, limits} <- Limits.new(attributes),
          {:ok, {registry, context}} <- Tools.prepare(attributes, workspace),
-         {:ok, request} <- Messages.request(prompt, selection, instruction(attributes)),
+         {:ok, request} <-
+           Messages.request(prompt, selection, instruction(attributes), history(attributes)),
          {:ok, runner} <- runner(selection, registry, context, limits) do
       {:ok,
        %Preparation{
          request: request,
          runner: runner,
          session_options: [
-           journal: false,
+           journal: Map.get(attributes, :journal, false),
            turn_timeout_ms: Settings.default_turn_timeout_ms()
          ]
        }}
@@ -40,6 +41,10 @@ defmodule Draught.CLI.Task.Preparation.Builder do
 
   defp instruction(attributes) do
     Map.get(attributes, :system_prompt, Preparation.system_prompt())
+  end
+
+  defp history(attributes) do
+    Map.get(attributes, :history, [])
   end
 
   defp runner(selection, registry, context, limits) do

@@ -29,7 +29,7 @@ defmodule Draught.CLI.Task.Preparation do
   @doc "Builds a bounded one-shot execution preparation."
   @spec new(String.t(), Selection.t(), String.t(), map() | keyword()) :: Error.result(t())
   def new(prompt, %Selection{} = selection, workspace, options \\ []) do
-    keys = [:approval, :limits, :registry, :risk, :system_prompt, :web]
+    keys = [:approval, :history, :journal, :limits, :registry, :risk, :system_prompt, :web]
 
     with {:ok, normalized} <- Attributes.normalize(options, keys) do
       Builder.build(prompt, selection, workspace, normalized)

@@ -45,6 +45,17 @@ defmodule Draught.CLI.Session.StoreTest do
     assert :ok = Store.close(resumed)
   end
 
+  test "initialization recovers an interrupted marker-only session", %{tmp_dir: tmp_dir} do
+    {workspace, environment} = scope(tmp_dir)
+    assert {:ok, interrupted} = Store.open(:create, workspace, "review", environment)
+    assert :ok = Store.close(interrupted)
+
+    assert {:ok, recovered} = Store.initialize(workspace, "review", environment)
+    assert recovered.mode == :create
+    assert File.dir?(recovered.paths.session)
+    assert :ok = Store.close(recovered)
+  end
+
   test "close is safe after the lease owner has already exited", %{tmp_dir: tmp_dir} do
     {workspace, environment} = scope(tmp_dir)
     Process.flag(:trap_exit, true)

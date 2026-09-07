@@ -4,6 +4,8 @@ defmodule Draught.Session.Journal.Local.Checkpoint do
   alias Draught.Session.Journal.Failure
   alias Draught.Session.Journal.Local.AtomicFile
   alias Draught.Session.Journal.Local.Checkpoint.Codec
+  alias Draught.Session.Journal.Local.Limits
+  alias Draught.Session.Journal.Local.SafeFile
   alias Draught.Session.Journal.Replay
 
   @doc "Writes a disposable replay snapshot with journal identity metadata."
@@ -19,9 +21,9 @@ defmodule Draught.Session.Journal.Local.Checkpoint do
   end
 
   defp read_journal(path) do
-    case File.read(path) do
+    case SafeFile.read(path, Limits.journal_bytes()) do
       {:ok, content} -> {:ok, content}
-      {:error, :enoent} -> {:ok, ""}
+      {:error, :missing} -> {:ok, ""}
       {:error, _reason} -> {:error, Failure.io()}
     end
   end

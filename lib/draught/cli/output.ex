@@ -67,14 +67,14 @@ defmodule Draught.CLI.Output do
     JSONL.unavailable()
   end
 
-  @doc "Renders the explicit persistent-session boundary."
-  @spec persistent_sessions_unavailable(:text | :jsonl) :: result()
-  def persistent_sessions_unavailable(:text) do
-    {:ok, Text.persistent_sessions_unavailable()}
+  @doc "Renders the prompt requirement for named task execution."
+  @spec task_prompt_required(:text | :jsonl) :: result()
+  def task_prompt_required(:text) do
+    {:ok, Text.task_prompt_required()}
   end
 
-  def persistent_sessions_unavailable(:jsonl) do
-    JSONL.persistent_sessions_unavailable()
+  def task_prompt_required(:jsonl) do
+    JSONL.task_prompt_required()
   end
 
   @doc "Renders a bounded task setup failure without reflecting rejected input."

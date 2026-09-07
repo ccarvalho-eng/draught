@@ -4,6 +4,8 @@ defmodule Draught.CLI.Task.PreparationTest do
   alias Draught.CLI.Task.Approval.Fixed
   alias Draught.CLI.Task.Preparation
   alias Draught.CLI.Task.Provider.Selection
+  alias Draught.Conversation
+  alias Draught.Conversation.Message.Assistant
   alias Draught.Conversation.Message.System
   alias Draught.Conversation.Message.User
   alias Draught.Provider.Fake
@@ -58,5 +60,22 @@ defmodule Draught.CLI.Task.PreparationTest do
 
     violation = hd(error.violations)
     assert violation.path == [:web]
+  end
+
+  test "appends a prompt to explicit replay history and retains a journal adapter" do
+    assert {:ok, provider} = Fake.new()
+    assert {:ok, selection} = Selection.new({Fake, provider}, "free-model")
+    assert {:ok, system} = Conversation.system("trusted")
+    assert {:ok, assistant} = Conversation.assistant(content: "earlier")
+    journal = {Draught.Session.Journal.Local, :configuration}
+
+    assert {:ok, preparation} =
+             Preparation.new("Continue", selection, "/workspace",
+               history: [system, assistant],
+               journal: journal
+             )
+
+    assert [^system, %Assistant{}, %User{}] = preparation.request.messages
+    assert preparation.session_options[:journal] == journal
   end
 end

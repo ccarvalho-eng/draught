@@ -33,6 +33,84 @@ defmodule Draught.CLI.Session.Store.LocalTest do
     assert exists.code == "session_already_exists"
   end
 
+  test "recovers an empty directory left by an interrupted create", %{tmp_dir: tmp_dir} do
+    paths = paths(tmp_dir)
+    assert :ok = Local.prepare(paths)
+    File.mkdir!(paths.session)
+
+    assert {:error, unsafe} = Local.validate(paths)
+    assert unsafe.code == "session_storage_unsafe"
+    assert :ok = Local.create(paths)
+    assert :ok = Local.validate(paths)
+    assert File.read!(paths.marker) == "draught-session/v1\n"
+
+    assert {:ok, %File.Stat{mode: mode, type: :regular}} = File.lstat(paths.marker)
+    assert Bitwise.band(mode, 0o777) == 0o600
+  end
+
+  test "recovers only a strict marker prefix left by an interrupted write", %{tmp_dir: tmp_dir} do
+    paths = paths(tmp_dir)
+    assert :ok = Local.prepare(paths)
+    File.mkdir!(paths.session)
+    File.chmod!(paths.session, 0o700)
+    File.write!(paths.marker, "draught-session/")
+
+    assert :ok = Local.create(paths)
+    assert :ok = Local.validate(paths)
+  end
+
+  test "finishes permissions for a complete marker left before chmod", %{tmp_dir: tmp_dir} do
+    paths = paths(tmp_dir)
+    assert :ok = Local.prepare(paths)
+    File.mkdir!(paths.session)
+    File.chmod!(paths.session, 0o700)
+    File.write!(paths.marker, "draught-session/v1\n")
+    File.chmod!(paths.marker, 0o644)
+
+    assert :ok = Local.create(paths)
+    assert :ok = Local.validate(paths)
+    assert {:ok, %File.Stat{mode: mode}} = File.lstat(paths.marker)
+    assert Bitwise.band(mode, 0o777) == 0o600
+  end
+
+  test "preserves an arbitrary marker-only directory as unsafe", %{tmp_dir: tmp_dir} do
+    paths = paths(tmp_dir)
+    assert :ok = Local.prepare(paths)
+    File.mkdir!(paths.session)
+    File.chmod!(paths.session, 0o700)
+    File.write!(paths.marker, "user data")
+    File.chmod!(paths.marker, 0o600)
+
+    assert {:error, error} = Local.create(paths)
+    assert error.code == "session_storage_unsafe"
+    assert File.read!(paths.marker) == "user data"
+  end
+
+  test "preserves an oversized marker-only directory as unsafe", %{tmp_dir: tmp_dir} do
+    paths = paths(tmp_dir)
+    assert :ok = Local.prepare(paths)
+    File.mkdir!(paths.session)
+    File.chmod!(paths.session, 0o700)
+    contents = "draught-session/v1\nunexpected"
+    File.write!(paths.marker, contents)
+    File.chmod!(paths.marker, 0o600)
+
+    assert {:error, error} = Local.create(paths)
+    assert error.code == "session_storage_unsafe"
+    assert File.read!(paths.marker) == contents
+  end
+
+  test "preserves a committed marker when its directory becomes unsafe", %{tmp_dir: tmp_dir} do
+    paths = paths(tmp_dir)
+    assert :ok = Local.prepare(paths)
+    assert :ok = Local.create(paths)
+    File.chmod!(paths.session, 0o755)
+
+    assert {:error, error} = Local.create(paths)
+    assert error.code == "session_storage_unsafe"
+    assert File.read!(paths.marker) == "draught-session/v1\n"
+  end
+
   test "rejects a symlinked Draught-owned path", %{tmp_dir: tmp_dir} do
     paths = paths(tmp_dir)
     target = Path.join(tmp_dir, "target")

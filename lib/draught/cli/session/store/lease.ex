@@ -28,7 +28,7 @@ defmodule Draught.CLI.Session.Store.Lease do
   @doc "Releases a previously acquired session lease."
   @spec release(t()) :: :ok | {:error, Draught.Error.Normalized.t()}
   def release(%__MODULE__{} = lease) do
-    result = GenServer.call(lease.owner, :release)
+    result = GenServer.call(lease.owner, :release, :infinity)
     Process.demonitor(lease.monitor, [:flush])
     result
   catch

@@ -14,6 +14,7 @@ defmodule Draught.CLI.Session.Store.Paths do
     :checkpoint,
     :journal,
     :key,
+    :marker,
     :root,
     :session,
     :workspace
@@ -23,6 +24,7 @@ defmodule Draught.CLI.Session.Store.Paths do
     :checkpoint,
     :journal,
     :key,
+    :marker,
     :root,
     :session,
     :workspace
@@ -33,13 +35,14 @@ defmodule Draught.CLI.Session.Store.Paths do
           checkpoint: String.t(),
           journal: String.t(),
           key: String.t(),
+          marker: String.t(),
           root: String.t(),
           session: String.t(),
           workspace: String.t()
         }
 
   @doc "Builds trusted user-state paths for one canonical workspace and session."
-  @spec new(term(), term(), map()) :: Error.result(t())
+  @spec new(term(), term(), term()) :: Error.result(t())
   def new(workspace, identifier, environment) when is_map(environment) do
     with {:ok, id} <- Identifier.new(identifier),
          {:ok, canonical_workspace} <- Resolver.resolve(workspace, ".", :read),
@@ -66,6 +69,7 @@ defmodule Draught.CLI.Session.Store.Paths do
        checkpoint: Path.join(session, "checkpoint.json"),
        journal: Path.join(session, "journal.jsonl"),
        key: key,
+       marker: Path.join(session, ".draught-session"),
        root: root,
        session: session,
        workspace: workspace

@@ -5,12 +5,11 @@ defmodule Draught.CLI.Session.Binding.Local do
 
   alias Draught.CLI.Session.Binding
   alias Draught.CLI.Session.Failure
+  alias Draught.CLI.Session.Store.AtomicFile
   alias Draught.CLI.Session.Store.Paths
   alias Draught.Session.Journal.Local.SafeFile
 
   @maximum_bytes 4_096
-  @mode 0o600
-
   @doc "Atomically writes a new owner-only session binding."
   @spec create(Paths.t(), Binding.t()) :: :ok | {:error, Draught.Error.Normalized.t()}
   def create(%Paths{} = paths, %Binding{} = binding) do
@@ -37,52 +36,10 @@ defmodule Draught.CLI.Session.Binding.Local do
   end
 
   defp atomic_write(path, content, mode) do
-    temporary = temporary_path(path)
-
-    try do
-      with {:ok, device} <- File.open(temporary, [:write, :binary, :exclusive]),
-           :ok <- write(device, temporary, content),
-           :ok <- publish(temporary, path, mode) do
-        :ok
-      else
-        _result -> {:error, Failure.storage_unavailable()}
-      end
-    after
-      File.rm(temporary)
+    case AtomicFile.write(path, content, mode, "binding") do
+      :ok -> :ok
+      {:error, :io} -> {:error, Failure.storage_unavailable()}
+      {:error, :publication_unknown} -> {:error, Failure.publication_unknown()}
     end
-  end
-
-  defp publish(temporary, path, :create) do
-    File.ln(temporary, path)
-  end
-
-  defp publish(temporary, path, :replace) do
-    File.rename(temporary, path)
-  end
-
-  defp write(device, path, content) do
-    result =
-      with :ok <- File.chmod(path, @mode),
-           :ok <- IO.binwrite(device, content) do
-        :file.sync(device)
-      end
-
-    result
-  after
-    File.close(device)
-  end
-
-  defp temporary_path(path) do
-    token =
-      12
-      |> :crypto.strong_rand_bytes()
-      |> Base.url_encode64(padding: false)
-
-    sessions_directory =
-      path
-      |> Path.dirname()
-      |> Path.dirname()
-
-    Path.join(sessions_directory, ".binding-#{token}.tmp")
   end
 end

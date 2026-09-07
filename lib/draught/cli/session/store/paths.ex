@@ -3,13 +3,9 @@ defmodule Draught.CLI.Session.Store.Paths do
   Derives validated persistent-session paths from a workspace identity and user state directory.
   """
 
+  alias Draught.CLI.Session.Store.Scope
   alias Draught.Session.Identifier
   alias Draught.Validation.Error
-  alias Draught.Workspace.Filesystem.Local
-  alias Draught.Workspace.Path.Canonical
-  alias Draught.Workspace.Path.Resolver
-
-  @filesystem {Local, nil}
 
   @enforce_keys [
     :binding,
@@ -17,6 +13,7 @@ defmodule Draught.CLI.Session.Store.Paths do
     :journal,
     :key,
     :marker,
+    :metadata,
     :root,
     :session,
     :workspace
@@ -27,6 +24,7 @@ defmodule Draught.CLI.Session.Store.Paths do
     :journal,
     :key,
     :marker,
+    :metadata,
     :root,
     :session,
     :workspace
@@ -38,6 +36,7 @@ defmodule Draught.CLI.Session.Store.Paths do
           journal: String.t(),
           key: String.t(),
           marker: String.t(),
+          metadata: String.t(),
           root: String.t(),
           session: String.t(),
           workspace: String.t()
@@ -47,10 +46,8 @@ defmodule Draught.CLI.Session.Store.Paths do
   @spec new(term(), term(), term()) :: Error.result(t())
   def new(workspace, identifier, environment) when is_map(environment) do
     with {:ok, id} <- Identifier.new(identifier),
-         {:ok, canonical_workspace} <- Resolver.resolve(workspace, ".", :read),
-         {:ok, state_home} <- state_home(environment),
-         {:ok, canonical_state_home} <- canonical_state_home(state_home) do
-      build(canonical_workspace, id, canonical_state_home)
+         {:ok, scope} <- Scope.new(workspace, environment) do
+      from_scope(scope, id)
     end
   end
 
@@ -58,12 +55,18 @@ defmodule Draught.CLI.Session.Store.Paths do
     Error.single([:environment], :invalid_type, "must be a map")
   end
 
-  defp build(canonical_workspace, id, state_home) do
-    workspace_digest = digest(canonical_workspace)
-    root = Path.join(state_home, "draught")
-    workspace = Path.join([root, "workspaces", workspace_digest])
-    session = Path.join([workspace, "sessions", id])
-    key = digest(root <> <<0>> <> workspace_digest <> ":" <> id)
+  @doc "Builds trusted paths for one validated identifier inside an existing scope."
+  @spec from_scope(Scope.t(), term()) :: Error.result(t())
+  def from_scope(%Scope{} = scope, identifier) do
+    with {:ok, id} <- Identifier.new(identifier) do
+      build(scope, id)
+    end
+  end
+
+  defp build(scope, id) do
+    session = Path.join(scope.sessions, id)
+    workspace_digest = Path.basename(scope.workspace)
+    key = digest(scope.root <> <<0>> <> workspace_digest <> ":" <> id)
 
     {:ok,
      %__MODULE__{
@@ -72,52 +75,11 @@ defmodule Draught.CLI.Session.Store.Paths do
        journal: Path.join(session, "journal.jsonl"),
        key: key,
        marker: Path.join(session, ".draught-session"),
-       root: root,
+       metadata: Path.join(session, "metadata.json"),
+       root: scope.root,
        session: session,
-       workspace: workspace
+       workspace: scope.workspace
      }}
-  end
-
-  defp state_home(environment) do
-    case absolute_path(Map.get(environment, "XDG_STATE_HOME")) do
-      {:ok, path} -> {:ok, path}
-      :error -> home_state(environment)
-    end
-  end
-
-  defp canonical_state_home(path) do
-    case Canonical.resolve(@filesystem, path, :write) do
-      {:ok, canonical} ->
-        {:ok, canonical}
-
-      {:error, _reason} ->
-        Error.single([:state_home], :invalid_value, "cannot be resolved safely")
-    end
-  end
-
-  defp home_state(environment) do
-    case absolute_path(Map.get(environment, "HOME")) do
-      {:ok, home} -> {:ok, Path.join([home, ".local", "state"])}
-      :error -> Error.single([:state_home], :required, "requires XDG_STATE_HOME or HOME")
-    end
-  end
-
-  defp absolute_path(path) when is_binary(path) and byte_size(path) > 0 do
-    path
-    |> Path.type()
-    |> absolute_path_result(path)
-  end
-
-  defp absolute_path(_path) do
-    :error
-  end
-
-  defp absolute_path_result(:absolute, path) do
-    {:ok, Path.expand(path)}
-  end
-
-  defp absolute_path_result(_type, _path) do
-    :error
   end
 
   defp digest(value) do

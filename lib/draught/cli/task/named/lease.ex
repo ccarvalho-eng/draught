@@ -4,6 +4,7 @@ defmodule Draught.CLI.Task.Named.Lease do
   """
 
   alias Draught.CLI.Session.Store
+  alias Draught.Error.Normalized
 
   @doc "Opens a named store while categorizing its failures."
   @spec open(Store.mode(), String.t(), String.t(), map()) ::
@@ -47,9 +48,13 @@ defmodule Draught.CLI.Task.Named.Lease do
     observed_close_result(pair, initial_stream)
   end
 
-  @doc "Removes only an uninitialized create store."
+  @doc "Removes an uninitialized create store unless record publication is uncertain."
   @spec abort(Store.Handle.t(), Draught.CLI.Task.error()) ::
           {:error, :session, Draught.CLI.Task.error()}
+  def abort(_store, %Normalized{code: "session_publication_unknown"} = error) do
+    {:error, :session, error}
+  end
+
   def abort(store, error) do
     case Store.abort_create(store) do
       :ok -> {:error, :session, error}

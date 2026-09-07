@@ -13,6 +13,7 @@ defmodule Draught.CLI.DependenciesTest do
   test "rejects incomplete system and discovery boundaries" do
     assert {:error, %Error{}} = Dependencies.new(system: {String, nil})
     assert {:error, %Error{}} = Dependencies.new(discovery_http: String)
+    assert {:error, %Error{}} = Dependencies.new(catalog: {String, nil})
     assert {:error, %Error{}} = Dependencies.new(terminal: {String, nil})
   end
 end

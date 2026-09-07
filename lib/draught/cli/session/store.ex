@@ -5,6 +5,7 @@ defmodule Draught.CLI.Session.Store do
   Callers retain the returned handle until all session work has stopped, then release it with `close/1`.
   """
 
+  alias Draught.CLI.Session.Catalog.Metadata
   alias Draught.CLI.Session.Store.Handle
   alias Draught.CLI.Session.Store.Lease
   alias Draught.CLI.Session.Store.Local
@@ -12,9 +13,9 @@ defmodule Draught.CLI.Session.Store do
   alias Draught.Validation.Error
 
   @type error :: Draught.Error.Normalized.t() | Error.t()
-  @type mode :: :create | :resume
+  @type mode :: :create | :manage | :resume
 
-  @doc "Opens a process-owned create or resume session while retaining its exclusive lease."
+  @doc "Opens a process-owned session transaction while retaining its exclusive lease."
   @spec open(term(), term(), term(), term()) :: {:ok, Handle.t()} | {:error, error()}
   def open(mode, workspace, identifier, environment) do
     with :ok <- validate_mode(mode),
@@ -54,12 +55,12 @@ defmodule Draught.CLI.Session.Store do
     end
   end
 
-  defp validate_mode(mode) when mode in [:create, :resume] do
+  defp validate_mode(mode) when mode in [:create, :manage, :resume] do
     :ok
   end
 
   defp validate_mode(_mode) do
-    Error.single([:mode], :invalid_value, "must be create or resume")
+    Error.single([:mode], :invalid_value, "must be create, manage, or resume")
   end
 
   defp apply_mode(:create, paths) do
@@ -67,6 +68,12 @@ defmodule Draught.CLI.Session.Store do
   end
 
   defp apply_mode(:resume, paths) do
+    with :ok <- Local.validate(paths) do
+      Metadata.Local.require_active(paths)
+    end
+  end
+
+  defp apply_mode(:manage, paths) do
     Local.validate(paths)
   end
 

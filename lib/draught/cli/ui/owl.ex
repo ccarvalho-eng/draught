@@ -7,7 +7,7 @@ defmodule Draught.CLI.UI.Owl do
   """
 
   alias Draught.CLI.Interactive.State
-  alias Draught.CLI.Output.Sanitizer
+  alias Draught.CLI.UI.SafeLine
   alias Elixir.Owl.Box
   alias Elixir.Owl.Data
 
@@ -50,7 +50,7 @@ defmodule Draught.CLI.UI.Owl do
       [">_ Draught ", version()],
       ["model: ", safe(state.model)],
       ["provider: ", safe(state.provider)],
-      ["session: ", safe(state.session_id)]
+      ["session: ", safe(state.session_label)]
     ]
     |> Enum.map(&bounded_line(&1, width))
     |> Enum.intersperse("\n")
@@ -75,7 +75,7 @@ defmodule Draught.CLI.UI.Owl do
       "\n",
       label("session:", styled?),
       "   ",
-      safe(state.session_id),
+      safe(state.session_label),
       "\n",
       label("web:", styled?),
       "       ",
@@ -108,7 +108,7 @@ defmodule Draught.CLI.UI.Owl do
   end
 
   defp safe(value) do
-    Sanitizer.text(value, 2_048)
+    SafeLine.text(value, 2_048)
   end
 
   defp bounded_line(line, width) do

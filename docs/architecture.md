@@ -107,6 +107,7 @@ flowchart LR
   Interactive --> Input[Bounded interactive parser]
   Interactive --> Selection
   Interactive --> Named
+  Interactive --> Catalog[Session catalog context]
   Interactive --> State[Pure shell lifecycle state]
   Session --> Runner[Bounded agent runner]
   Runner --> Selection
@@ -124,7 +125,54 @@ flowchart LR
   Task -. rejected .-> Web[Enabled web execution]
 ```
 
-The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. Anonymous and named lifecycles both supervise one runner turn; only the named lifecycle attaches durable storage. The interactive controller retains one pure shell state, classifies each input before dispatch, and sends task prompts through the named lifecycle. The projector reduces content-bearing runtime events to a closed public vocabulary before pure renderers encode them. Owl is confined to the interactive presentation adapter. The system adapter owns terminal output, the terminal adapter owns line input and cleanup, and the executable entry point owns process termination.
+The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. Anonymous and named lifecycles both supervise one runner turn; only the named lifecycle attaches durable storage. The interactive controller retains one pure shell state, classifies each input before dispatch, sends task prompts through the named lifecycle, and delegates discovery or metadata transitions to the catalog context. The projector reduces content-bearing runtime events to a closed public vocabulary before pure renderers encode them. Owl is confined to the interactive presentation adapter. The system adapter owns terminal output, the terminal adapter owns line input and cleanup, and the executable entry point owns process termination.
+
+### CLI session catalog boundary
+
+The catalog is a read model over validated session metadata and bindings. It is separate from journal replay: listing remains bounded by directory count and record size, while the selected session's history is validated only by the resume path. Metadata mutations and resume share one lease authority.
+
+```mermaid
+flowchart LR
+  Command[Interactive session command] --> Catalog[Catalog context]
+  Catalog --> Adapter[Injected catalog adapter]
+  Adapter --> Scope[Read-only canonical scope]
+  Adapter --> Scanner[Bounded scanner]
+  Adapter --> Direct[Direct immutable-ID lookup]
+  Adapter --> Mutation[Metadata mutation]
+
+  Scope --> Directory[Owner-only directory-chain validation]
+  Directory --> Scanner
+  Directory --> Direct
+  Scanner --> Marker[Session marker validation]
+  Scanner --> Binding[Bounded provider binding]
+  Scanner --> Metadata[Bounded versioned metadata]
+  Scanner -. does not read .-> Journal[Append-only journal]
+  Direct --> Marker
+  Direct --> Binding
+  Direct --> Metadata
+
+  Mutation --> Lease[Exclusive session lease]
+  Lease --> Marker
+  Lease --> Metadata
+  Resume[Named resume] --> Lease
+  Lease --> Active{Metadata active?}
+  Active -->|yes| Journal
+  Active -->|no| Rejected[Normalized session error]
+```
+
+The catalog boundary preserves these invariants:
+
+- Session IDs are immutable and remain the directory, replay, and lease identity.
+- Display names and archive state are versioned metadata, not directory names or filesystem timestamps.
+- Missing metadata means a legacy active session; malformed or unsafe metadata fails closed.
+- Every existing application-owned catalog directory is owner-only and must not be a symbolic link.
+- Catalog discovery is read-only, bounded to 256 directory entries, and never replays journals.
+- Directory enumeration is isolated in a supervised task with fixed heap, deadline, entry-count, and returned-data limits.
+- Exact IDs use direct lookup, so management and recovery do not depend on a successful complete listing.
+- Bounded owner-only temporary records left by interrupted atomic writes are ignored; other unexpected directory entries fail closed.
+- Rename, archive, restore, and resume revalidate state while holding the same per-session lease.
+- Atomic record updates synchronize both file content and the containing directory before reporting success; a failed directory sync has an explicit unknown-publication outcome.
+- Selecting a session applies its binding to the unchanged base CLI configuration; bindings never leak into later selections.
 
 The CLI streaming boundary preserves these invariants:
 
@@ -320,6 +368,6 @@ The runtime will preserve these invariants:
 
 ## Delivery status
 
-Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. The CLI implements bounded parsing, configuration resolution, help, version, doctor, incremental text and JSONL task projection, anonymous tasks, durable named-session resume, and the initial interactive prompt loop. Interactive approvals, session-management commands, active-turn cancellation, and enabled web execution remain planned. The diagrams distinguish connected boundaries from explicitly planned ones.
+Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. The CLI implements bounded parsing, configuration resolution, help, version, doctor, incremental text and JSONL task projection, anonymous tasks, durable named-session resume, and an interactive prompt loop with workspace-scoped session management. Interactive approvals, active-turn cancellation, searchable model and provider menus, and enabled web execution remain planned. The diagrams distinguish connected boundaries from explicitly planned ones.
 
 Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

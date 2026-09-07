@@ -49,6 +49,21 @@ defmodule Draught.CLI.UITest do
     refute output =~ <<27>>
   end
 
+  test "keeps filesystem-derived values on one structural line" do
+    state = %{state() | workspace: "/workspace\n* fake\trow\u2028next"}
+
+    status =
+      state
+      |> UI.status()
+      |> IO.iodata_to_binary()
+
+    refute status =~ "\n* fake"
+    refute status =~ "\t"
+    refute status =~ "\u2028"
+    refute render_banner(state, 50, false) =~ "\n* fake"
+    refute render_banner(state, 20, false) =~ "\n* fake"
+  end
+
   test "renders shell help and the stable exit record" do
     help = IO.iodata_to_binary(UI.help())
 

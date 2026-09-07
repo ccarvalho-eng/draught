@@ -67,6 +67,19 @@ defmodule Draught.CLI.Interactive.StateTest do
     assert stopped.phase == :stopped
   end
 
+  test "renames and selects sessions only while idle" do
+    current = state()
+    selected = %{state() | session_id: "session-02", session_label: "Second"}
+
+    assert {:ok, renamed} = State.rename(current, "Review session")
+    assert renamed.session_label == "Review session"
+    assert {:ok, ^selected} = State.select(current, selected)
+
+    assert {:ok, running} = State.start_turn(current, "work")
+    assert {:error, :busy} = State.rename(running, "Later")
+    assert {:error, :busy} = State.select(running, selected)
+  end
+
   defp state do
     {:ok, state} =
       State.new(

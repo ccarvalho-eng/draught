@@ -10,42 +10,35 @@ defmodule Draught.CLI.Interactive.Controller do
   alias Draught.CLI.Command.Invocation
   alias Draught.CLI.Configuration
   alias Draught.CLI.Dependencies
-  alias Draught.CLI.Doctor.Command
-  alias Draught.CLI.Interactive.Input
+  alias Draught.CLI.Interactive.Session.Command
+  alias Draught.CLI.Interactive.Session.Doctor
+  alias Draught.CLI.Interactive.Session.Terminal
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.Interactive.Turn
-  alias Draught.CLI.UI
-  alias Draught.CLI.Writer
 
   @internal_status ExitStatus.value(:internal)
+  @session_commands [:archive, :new, :rename, :restore, :resume, :sessions]
   @success_status ExitStatus.value(:success)
 
   @doc "Opens the prompt loop and restores its terminal boundary before returning."
   @spec open(State.t(), Configuration.t(), Invocation.t(), Dependencies.t()) ::
           non_neg_integer()
   def open(state, configuration, invocation, dependencies) do
-    case write_banner(state, invocation, dependencies) do
+    case Terminal.banner(state, invocation, dependencies) do
       0 -> loop(state, configuration, invocation, dependencies)
       status -> status
     end
   after
-    restore(dependencies.terminal)
+    Terminal.restore(dependencies)
   end
 
   defp loop(state, configuration, invocation, dependencies) do
-    case read(dependencies) do
-      {:ok, input} -> handle(Input.parse(input), state, configuration, invocation, dependencies)
+    case Terminal.read(dependencies) do
+      {:ok, parsed} -> handle(parsed, state, configuration, invocation, dependencies)
       :eof -> close(state, :success, dependencies)
       :interrupted -> close(state, :interrupted, dependencies)
       {:error, :write, status} -> status
       {:error, :io} -> terminal_error(dependencies)
-    end
-  end
-
-  defp read(dependencies) do
-    case write(UI.prompt(), :stdout, :success, dependencies) do
-      0 -> read_line(dependencies.terminal)
-      status -> {:error, :write, status}
     end
   end
 
@@ -58,25 +51,38 @@ defmodule Draught.CLI.Interactive.Controller do
   end
 
   defp handle({:ok, {:command, :help, nil}}, state, configuration, invocation, dependencies) do
-    continue(UI.help(), state, configuration, invocation, dependencies)
+    continue(:help, state, configuration, invocation, dependencies)
   end
 
   defp handle({:ok, {:command, :palette, nil}}, state, configuration, invocation, dependencies) do
-    continue(UI.help(), state, configuration, invocation, dependencies)
+    continue(:help, state, configuration, invocation, dependencies)
   end
 
   defp handle({:ok, {:command, :status, nil}}, state, configuration, invocation, dependencies) do
-    continue(UI.status(state), state, configuration, invocation, dependencies)
+    continue({:status, state}, state, configuration, invocation, dependencies)
   end
 
   defp handle({:ok, {:command, :doctor, nil}}, state, configuration, invocation, dependencies) do
     doctor_invocation = %{invocation | command: :doctor, prompt: nil, resume: nil, session: nil}
-    status = Command.run(doctor_invocation, dependencies)
+    status = Doctor.run(doctor_invocation, dependencies)
     continue_after(status, state, configuration, invocation, dependencies)
   end
 
   defp handle({:ok, {:prompt, prompt}}, state, configuration, invocation, dependencies) do
     run_turn(prompt, state, configuration, invocation, dependencies)
+  end
+
+  defp handle(
+         {:ok, {:command, command, argument}},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       )
+       when command in @session_commands do
+    command
+    |> Command.run(argument, state, configuration, invocation, dependencies)
+    |> handle_session_result(state, configuration, invocation, dependencies)
   end
 
   defp handle(
@@ -87,7 +93,7 @@ defmodule Draught.CLI.Interactive.Controller do
          dependencies
        ) do
     continue(
-      UI.unavailable_command(command),
+      {:unavailable_command, command},
       state,
       configuration,
       invocation,
@@ -97,12 +103,12 @@ defmodule Draught.CLI.Interactive.Controller do
 
   defp handle({:ok, {kind, _value}}, state, configuration, invocation, dependencies)
        when kind in [:file, :shell] do
-    continue(UI.unavailable_command(kind), state, configuration, invocation, dependencies)
+    continue({:unavailable_command, kind}, state, configuration, invocation, dependencies)
   end
 
   defp handle({:error, reason}, state, configuration, invocation, dependencies) do
     continue(
-      UI.input_error(reason),
+      {:input_error, reason},
       state,
       configuration,
       invocation,
@@ -121,7 +127,7 @@ defmodule Draught.CLI.Interactive.Controller do
 
       {:error, _reason} ->
         continue(
-          UI.terminal_error(),
+          :terminal_error,
           state,
           configuration,
           invocation,
@@ -132,10 +138,48 @@ defmodule Draught.CLI.Interactive.Controller do
   end
 
   defp close_after_failure(status, state, dependencies) do
-    case write(UI.session_closed(state.session_id), :stdout, :success, dependencies) do
+    case Terminal.emit(
+           {:session_closed, state.session_id},
+           :stdout,
+           :success,
+           dependencies
+         ) do
       @success_status -> status
       @internal_status -> @internal_status
     end
+  end
+
+  defp handle_session_result(
+         {:ok, next_state, next_configuration, view},
+         _state,
+         _configuration,
+         invocation,
+         dependencies
+       ) do
+    continue(
+      {:session_view, view, next_state},
+      next_state,
+      next_configuration,
+      invocation,
+      dependencies
+    )
+  end
+
+  defp handle_session_result(
+         {:error, reason},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    continue(
+      {:session_error, reason},
+      state,
+      configuration,
+      invocation,
+      dependencies,
+      :stderr
+    )
   end
 
   defp continue_after(@internal_status, _state, _configuration, _invocation, _dependencies) do
@@ -154,52 +198,17 @@ defmodule Draught.CLI.Interactive.Controller do
          dependencies,
          stream \\ :stdout
        ) do
-    case write(content, stream, :success, dependencies) do
+    case Terminal.emit(content, stream, :success, dependencies) do
       0 -> loop(state, configuration, invocation, dependencies)
       status -> status
     end
   end
 
-  defp write_banner(state, invocation, dependencies) do
-    {system, configuration} = dependencies.system
-    width = terminal_width(system.columns(configuration))
-    styled? = styled?(invocation.color, system.tty?(:stdout, configuration))
-    write(UI.banner(state, width, styled?), :stdout, :success, dependencies)
-  end
-
-  defp terminal_width({:ok, columns}) do
-    columns
-  end
-
-  defp terminal_width({:error, :unavailable}) do
-    50
-  end
-
-  defp styled?(:never, _terminal?) do
-    false
-  end
-
-  defp styled?(_color, terminal?) do
-    terminal?
-  end
-
   defp close(state, category, dependencies) do
-    write(UI.session_closed(state.session_id), :stdout, category, dependencies)
+    Terminal.emit({:session_closed, state.session_id}, :stdout, category, dependencies)
   end
 
   defp terminal_error(dependencies) do
-    write(UI.terminal_error(), :stderr, :internal, dependencies)
-  end
-
-  defp write(content, stream, category, dependencies) do
-    Writer.emit({:ok, content}, stream, category, dependencies)
-  end
-
-  defp read_line({terminal, configuration}) do
-    terminal.read_line(configuration)
-  end
-
-  defp restore({terminal, configuration}) do
-    terminal.restore(configuration)
+    Terminal.emit(:terminal_error, :stderr, :internal, dependencies)
   end
 end

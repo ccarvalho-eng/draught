@@ -7,11 +7,12 @@ defmodule Draught.CLI.Interactive.State do
   returned actions but cannot bypass these transitions.
   """
 
+  alias Draught.CLI.Session.Catalog.Name
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
   alias Draught.Validation.Value
 
-  @enforce_keys [:model, :provider, :session_id, :web, :workspace]
+  @enforce_keys [:model, :provider, :session_id, :session_label, :web, :workspace]
   defstruct [
     :active_prompt,
     :approval_id,
@@ -19,6 +20,7 @@ defmodule Draught.CLI.Interactive.State do
     :provider,
     :queued_prompt,
     :session_id,
+    :session_label,
     :web,
     :workspace,
     persisted?: false,
@@ -35,6 +37,7 @@ defmodule Draught.CLI.Interactive.State do
           provider: String.t(),
           queued_prompt: String.t() | nil,
           session_id: String.t(),
+          session_label: String.t(),
           web: boolean(),
           workspace: String.t()
         }
@@ -42,22 +45,10 @@ defmodule Draught.CLI.Interactive.State do
   @doc "Builds an idle session state from trusted, display-safe context."
   @spec new(map() | keyword()) :: Error.result(t())
   def new(attributes) do
-    keys = [:model, :provider, :session_id, :web, :workspace]
+    keys = [:model, :provider, :session_id, :session_label, :web, :workspace]
 
-    with {:ok, normalized} <- Attributes.normalize(attributes, keys),
-         {:ok, model} <- Value.required_string(normalized, :model),
-         {:ok, provider} <- Value.required_string(normalized, :provider),
-         {:ok, session_id} <- Value.required_string(normalized, :session_id),
-         {:ok, web} <- required_boolean(normalized, :web),
-         {:ok, workspace} <- Value.required_string(normalized, :workspace) do
-      {:ok,
-       %__MODULE__{
-         model: model,
-         provider: provider,
-         session_id: session_id,
-         web: web,
-         workspace: workspace
-       }}
+    with {:ok, normalized} <- Attributes.normalize(attributes, keys) do
+      build(normalized)
     end
   end
 
@@ -184,10 +175,63 @@ defmodule Draught.CLI.Interactive.State do
     %{state | persisted?: true}
   end
 
+  @doc "Selects a prepared idle session without carrying transient turn state."
+  @spec select(t(), t()) :: {:ok, t()} | {:error, :busy}
+  def select(%__MODULE__{phase: :idle}, %__MODULE__{phase: :idle} = selected) do
+    {:ok, selected}
+  end
+
+  def select(%__MODULE__{}, %__MODULE__{}) do
+    {:error, :busy}
+  end
+
+  @doc "Changes the display label of an idle session."
+  @spec rename(t(), String.t()) :: {:ok, t()} | {:error, :busy | :invalid_label}
+  def rename(%__MODULE__{phase: :idle} = state, label) do
+    case Name.validate(label) do
+      {:ok, validated} -> {:ok, %{state | session_label: validated}}
+      {:error, _error} -> {:error, :invalid_label}
+    end
+  end
+
+  def rename(%__MODULE__{}, _label) do
+    {:error, :busy}
+  end
+
+  defp build(attributes) do
+    with {:ok, model} <- Value.required_string(attributes, :model),
+         {:ok, provider} <- Value.required_string(attributes, :provider),
+         {:ok, session_id} <- Value.required_string(attributes, :session_id) do
+      build_session(attributes, model, provider, session_id)
+    end
+  end
+
+  defp build_session(attributes, model, provider, session_id) do
+    with {:ok, session_label} <- session_label(attributes, session_id),
+         {:ok, web} <- required_boolean(attributes, :web),
+         {:ok, workspace} <- Value.required_string(attributes, :workspace) do
+      {:ok,
+       %__MODULE__{
+         model: model,
+         provider: provider,
+         session_id: session_id,
+         session_label: session_label,
+         web: web,
+         workspace: workspace
+       }}
+    end
+  end
+
   defp required_boolean(attributes, key) do
     with {:ok, value} <- Attributes.fetch_required(attributes, key) do
       Value.boolean(value, [key])
     end
+  end
+
+  defp session_label(attributes, identifier) do
+    attributes
+    |> Map.get(:session_label, identifier)
+    |> Value.string([:session_label])
   end
 
   defp prompt(value) when is_binary(value) and byte_size(value) > 0 do

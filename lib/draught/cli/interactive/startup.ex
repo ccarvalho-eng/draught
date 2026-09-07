@@ -25,7 +25,7 @@ defmodule Draught.CLI.Interactive.Startup do
   def prepare(%Invocation{} = invocation, %Dependencies{} = dependencies) do
     with {:ok, configuration, workspace} <- load(invocation, dependencies),
          {:ok, identifier} <- session_identifier(invocation, dependencies),
-         {:ok, bound_configuration} <-
+         {:ok, bound_configuration, label} <-
            Resume.bind(
              invocation,
              configuration,
@@ -35,11 +35,60 @@ defmodule Draught.CLI.Interactive.Startup do
            ) do
       prepare_selected(
         invocation,
+        configuration,
         bound_configuration,
         workspace,
         identifier,
+        label,
         dependencies
       )
+    end
+  end
+
+  @doc "Prepares an existing session from the shell's unchanged base configuration."
+  @spec select(
+          String.t(),
+          Configuration.t(),
+          String.t(),
+          Invocation.t(),
+          Dependencies.t()
+        ) :: result()
+  def select(identifier, configuration, workspace, invocation, dependencies) do
+    selected = %{
+      invocation
+      | command: :interactive,
+        prompt: nil,
+        resume: identifier,
+        session: nil
+    }
+
+    with {:ok, bound, label} <-
+           Resume.bind(selected, configuration, workspace, identifier, dependencies) do
+      prepare_selected(
+        selected,
+        configuration,
+        bound,
+        workspace,
+        identifier,
+        label,
+        dependencies
+      )
+    end
+  end
+
+  @doc "Prepares a fresh unpersisted session from the shell's base configuration."
+  @spec fresh(
+          String.t(),
+          String.t(),
+          Configuration.t(),
+          String.t(),
+          Dependencies.t()
+        ) :: result()
+  def fresh(identifier, label, configuration, workspace, dependencies) do
+    with {:ok, selection} <- select_provider(configuration, dependencies),
+         {:ok, state} <-
+           build_state(identifier, label, selection.model, configuration, workspace) do
+      {:ok, state, configuration}
     end
   end
 
@@ -57,10 +106,19 @@ defmodule Draught.CLI.Interactive.Startup do
     end
   end
 
-  defp prepare_selected(invocation, configuration, workspace, identifier, dependencies) do
-    with {:ok, selection} <- select_provider(configuration, dependencies),
-         {:ok, state} <- build_state(identifier, selection.model, configuration, workspace) do
-      {:ok, loaded_state(state, invocation), configuration}
+  defp prepare_selected(
+         invocation,
+         base_configuration,
+         bound_configuration,
+         workspace,
+         identifier,
+         label,
+         dependencies
+       ) do
+    with {:ok, selection} <- select_provider(bound_configuration, dependencies),
+         {:ok, state} <-
+           build_state(identifier, label, selection.model, bound_configuration, workspace) do
+      {:ok, loaded_state(state, invocation), base_configuration}
     end
   end
 
@@ -89,9 +147,10 @@ defmodule Draught.CLI.Interactive.Startup do
     {:error, :session, error}
   end
 
-  defp build_state(identifier, model, configuration, workspace) do
+  defp build_state(identifier, label, model, configuration, workspace) do
     attributes = [
       session_id: identifier,
+      session_label: label || identifier,
       provider: Atom.to_string(configuration.provider),
       model: model,
       workspace: workspace,

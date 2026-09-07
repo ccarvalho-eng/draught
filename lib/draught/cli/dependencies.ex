@@ -3,44 +3,77 @@ defmodule Draught.CLI.Dependencies do
   Holds explicit effect adapters used at the CLI boundary.
   """
 
-  alias Draught.CLI.Interactive.Terminal
-  alias Draught.CLI.System.Local
-  alias Draught.CLI.Task
+  alias Draught.CLI.Task.Dependencies
   alias Draught.Provider.Ollama.Discovery.HTTP.Req
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
 
-  @enforce_keys [:discovery_http, :system, :task, :terminal]
-  defstruct [:discovery_http, :system, :task, :terminal]
+  @enforce_keys [:catalog, :discovery_http, :system, :task, :terminal]
+  defstruct [:catalog, :discovery_http, :system, :task, :terminal]
 
   @type system :: {module(), term()}
   @type t :: %__MODULE__{
+          catalog: {module(), term()},
           discovery_http: module(),
           system: system(),
-          task: Task.Dependencies.t(),
+          task: Dependencies.t(),
           terminal: system()
         }
 
   @doc "Builds and validates CLI effect dependencies."
   @spec new(map() | keyword()) :: Error.result(t())
   def new(attributes \\ %{}) do
-    keys = [:discovery_http, :system, :task, :terminal]
+    keys = [:catalog, :discovery_http, :system, :task, :terminal]
 
-    with {:ok, normalized} <- Attributes.normalize(attributes, keys),
-         {:ok, system} <- system(Map.get(normalized, :system, {Local, nil})),
-         {:ok, terminal} <-
-           terminal(Map.get(normalized, :terminal, {Terminal.Local, nil})),
-         {:ok, discovery_http} <-
-           discovery_http(Map.get(normalized, :discovery_http, Req)),
-         {:ok, task} <- task(normalized, discovery_http) do
+    with {:ok, normalized} <- Attributes.normalize(attributes, keys) do
+      build(normalized)
+    end
+  end
+
+  defp build(attributes) do
+    with {:ok, catalog} <- configured_catalog(attributes),
+         {:ok, system} <- configured_system(attributes) do
+      build_remaining(attributes, catalog, system)
+    end
+  end
+
+  defp build_remaining(attributes, catalog, system) do
+    with {:ok, terminal} <- configured_terminal(attributes),
+         {:ok, discovery_http} <- configured_discovery_http(attributes),
+         {:ok, task} <- task(attributes, discovery_http) do
       {:ok,
        %__MODULE__{
+         catalog: catalog,
          discovery_http: discovery_http,
          system: system,
          task: task,
          terminal: terminal
        }}
     end
+  end
+
+  defp configured_catalog(attributes) do
+    attributes
+    |> Map.get(:catalog, {Draught.CLI.Session.Catalog.Local, nil})
+    |> catalog()
+  end
+
+  defp configured_system(attributes) do
+    attributes
+    |> Map.get(:system, {Draught.CLI.System.Local, nil})
+    |> system()
+  end
+
+  defp configured_terminal(attributes) do
+    attributes
+    |> Map.get(:terminal, {Draught.CLI.Interactive.Terminal.Local, nil})
+    |> terminal()
+  end
+
+  defp configured_discovery_http(attributes) do
+    attributes
+    |> Map.get(:discovery_http, Req)
+    |> discovery_http()
   end
 
   defp system({module, configuration} = adapter) when is_atom(module) do
@@ -61,6 +94,23 @@ defmodule Draught.CLI.Dependencies do
 
   defp system(_adapter) do
     Error.single([:system], :invalid_value, "must implement the CLI system boundary")
+  end
+
+  defp catalog({module, _configuration} = adapter) when is_atom(module) do
+    valid =
+      implements?(module,
+        fetch: 4,
+        list: 3,
+        rename: 5,
+        archive: 4,
+        restore: 4
+      )
+
+    catalog_result(valid, adapter)
+  end
+
+  defp catalog(_adapter) do
+    Error.single([:catalog], :invalid_value, "must implement the session catalog boundary")
   end
 
   defp discovery_http(module) when is_atom(module) do
@@ -86,7 +136,7 @@ defmodule Draught.CLI.Dependencies do
   defp task(attributes, discovery_http) do
     attributes
     |> Map.get(:task, [])
-    |> Task.Dependencies.new(discovery_http)
+    |> Dependencies.new(discovery_http)
   end
 
   defp implements?(module, callbacks) do
@@ -108,6 +158,14 @@ defmodule Draught.CLI.Dependencies do
 
   defp discovery_http_result(false, _module) do
     Error.single([:discovery_http], :invalid_value, "must implement Ollama discovery HTTP")
+  end
+
+  defp catalog_result(true, adapter) do
+    {:ok, adapter}
+  end
+
+  defp catalog_result(false, _adapter) do
+    Error.single([:catalog], :invalid_value, "must implement the session catalog boundary")
   end
 
   defp terminal_result(true, adapter, _configuration) do

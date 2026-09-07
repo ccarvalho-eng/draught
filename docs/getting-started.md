@@ -116,7 +116,20 @@ Run Draught without a task argument from an interactive terminal:
 ./draught
 ```
 
-Startup resolves the same configuration as a one-shot task, discovers the effective model, generates one session identifier, and displays the provider, model, workspace, session, and web state before accepting input. Ordinary text starts the first durable named turn and subsequent successful turns resume that session. `/help`, `/status`, `/doctor`, and `/exit` are available in the prompt loop. Entering `/` displays the command index. End of input and `/exit` restore the terminal and print `Session ID: ID`.
+Startup resolves the same configuration as a one-shot task, discovers the effective model, generates one session identifier, and displays the provider, model, workspace, session, and web state before accepting input. Ordinary text starts the first durable named turn and subsequent successful turns resume that session. Entering `/` displays the command index. End of input and `/exit` restore the terminal and print `Session ID: ID`.
+
+Manage persistent sessions without leaving the shell:
+
+```text
+/sessions
+/rename Workspace review
+/new
+/resume Workspace review
+/archive
+/restore Workspace review
+```
+
+`/resume` and `/restore` accept either an immutable ID or a unique display name. Omitting their argument lists the relevant active or archived records. Archive is a reversible metadata transition; an archived record cannot resume until restored. The [CLI guide](cli.md#interactive-sessions) defines the complete command behavior.
 
 Start the shell with an explicit identifier or resume target when needed:
 
@@ -135,6 +148,6 @@ The following forms remain explicit unavailable results:
 ./draught "search the web" --web
 ```
 
-Interactive approval prompts, session selection and archive commands, direct commands, file selection, and enabled web execution depend on later capability work. Effectful tool requests continue to use the configured non-interactive approval policy until the interactive approval broker is connected. Each anonymous task starts without prior conversation state.
+Interactive approval prompts, searchable model and provider menus, direct commands, file selection, active-turn cancellation, and enabled web execution depend on later capability work. Effectful tool requests continue to use the configured non-interactive approval policy until the interactive approval broker is connected. Each anonymous task starts without prior conversation state.
 
 See [CLI](cli.md) for command and exit behavior and [Ollama provider](providers/ollama.md) for discovery details.

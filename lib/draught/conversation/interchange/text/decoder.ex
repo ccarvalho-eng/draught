@@ -25,6 +25,19 @@ defmodule Draught.Conversation.Interchange.Text.Decoder do
     Error.single([], :invalid_type, "must be UTF-8 text")
   end
 
+  @doc "Decodes one bounded artifact without the plain-Markdown fallback."
+  @spec decode_artifact(term(), pos_integer()) :: Error.result(Document.t())
+  def decode_artifact(input, maximum_bytes) when is_binary(input) do
+    with :ok <- validate_size(input, maximum_bytes),
+         :ok <- validate_utf8(input) do
+      decode_required_extension(input)
+    end
+  end
+
+  def decode_artifact(_input, _maximum_bytes) do
+    Error.single([], :invalid_type, "must be UTF-8 text")
+  end
+
   defp decode_valid_input(<<@extension_prefix, rest::binary>>) do
     Extension.decode(rest)
   end
@@ -33,6 +46,14 @@ defmodule Draught.Conversation.Interchange.Text.Decoder do
     input
     |> reserved_marker_line?()
     |> decode_markdown(input)
+  end
+
+  defp decode_required_extension(<<@extension_prefix, rest::binary>>) do
+    Extension.decode(rest)
+  end
+
+  defp decode_required_extension(_input) do
+    Error.single([], :invalid_format, "must contain a Draught conversation extension")
   end
 
   defp reserved_marker_line?(input) do

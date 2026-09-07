@@ -13,3 +13,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - A pure exact-route fake provider for deterministic offline testing.
 - Versioned conversation documents with portable attachment descriptors.
 - Deterministic Markdown-superset conversation import and export with explicit retention controls.
+- Deterministic bounded `.lmmlz` conversation bundles with descriptor-verified attachments.

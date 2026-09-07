@@ -29,6 +29,12 @@ defmodule Draught.Conversation.Interchange.Text do
     Decoder.decode(input, @maximum_input_bytes)
   end
 
+  @doc "Decodes a Draught text artifact and rejects plain Markdown input."
+  @spec decode_artifact(term()) :: Error.result(Draught.Conversation.Document.t())
+  def decode_artifact(input) do
+    Decoder.decode_artifact(input, @maximum_input_bytes)
+  end
+
   @doc "Returns the inclusive encoded-input limit in bytes."
   @spec max_input_bytes() :: pos_integer()
   def max_input_bytes do

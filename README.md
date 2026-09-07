@@ -7,7 +7,7 @@
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 
-The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, and bounded runner coordination are implemented. The remaining public-alpha scope includes local sessions, journaling, telemetry, the CLI, web access, and distribution.
+The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, and supervised session lifecycles are implemented. The remaining public-alpha scope includes journaling, telemetry, the CLI, web access, and distribution.
 
 ## Design constraints
 
@@ -29,7 +29,8 @@ The project is in pre-alpha development. Provider integrations, tool contracts, 
 | Tool registry, execution contract, and standard coding tools | Complete |
 | Approval policy and workspace confinement | Complete |
 | Bounded agent runner | Complete |
-| Durable sessions and telemetry | Planned |
+| Supervised session lifecycle | Complete |
+| Durable journals and telemetry | Planned |
 | Agentic CLI and one-command distribution | Planned |
 
 The [GitHub milestones](https://github.com/ccarvalho-eng/draught/milestones) are the authoritative implementation roadmap. APIs may change before the first tagged alpha.
@@ -60,6 +61,8 @@ The [Ollama provider guide](docs/providers/ollama.md) documents model selection,
 The [tool execution guide](docs/tools.md) documents the standard catalog, definitions, registry lookup, risk and approval policy, parameter schemas, mutation sequencing, command process controls, structured results, and the executor boundary.
 
 The [agent runner guide](docs/runner.md) documents injected dependencies, pure state transitions, execution order, limits, recoverable tool results, terminal conditions, and synchronous events.
+
+The [session lifecycle guide](docs/sessions.md) documents asynchronous turns, status, event delivery, cancellation semantics, timeouts, supervision, and stale-result handling.
 
 The [workspace confinement guide](docs/workspace-confinement.md) documents lexical validation, symlink handling, read and write resolution, containment checks, and operating-system isolation boundaries.
 

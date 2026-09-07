@@ -72,13 +72,6 @@ defmodule Draught.Tool.Execution.Policy do
 
   defp bounded(attributes, key, default, maximum) do
     value = Map.get(attributes, key, default)
-
-    with {:ok, validated} <- Value.positive_integer(value, [key]),
-         true <- validated <= maximum do
-      {:ok, validated}
-    else
-      false -> Error.single([key], :invalid_value, "must not exceed #{maximum}")
-      {:error, %Error{}} = result -> result
-    end
+    Value.positive_integer_at_most(value, maximum, [key])
   end
 end

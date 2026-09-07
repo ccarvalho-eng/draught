@@ -54,6 +54,18 @@ defmodule Draught.Validation.Value do
     Error.single(path, :invalid_value, "must be a positive integer")
   end
 
+  @doc "Validates a positive integer that does not exceed an inclusive maximum."
+  @spec positive_integer_at_most(term(), pos_integer(), [term()]) ::
+          Error.result(pos_integer())
+  def positive_integer_at_most(value, maximum, _path)
+      when is_integer(value) and value > 0 and value <= maximum do
+    {:ok, value}
+  end
+
+  def positive_integer_at_most(_value, maximum, path) do
+    Error.single(path, :invalid_value, "must be a positive integer not greater than #{maximum}")
+  end
+
   @doc "Validates a finite number inside an inclusive range."
   @spec number_in_range(term(), number(), number(), [term()]) :: Error.result(number())
   def number_in_range(value, minimum, maximum, _path)

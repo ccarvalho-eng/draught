@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Codec.Message do
-  @moduledoc false
+  @moduledoc """
+  Dispatches retention-aware encoding and decoding for canonical conversation message roles.
+  """
 
   alias Draught.Session.Journal.Codec.Message.Assistant
   alias Draught.Session.Journal.Codec.Message.Textual

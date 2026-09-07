@@ -1,5 +1,9 @@
 defmodule Draught.Session.Journal.Local.Checkpoint do
-  @moduledoc false
+  @moduledoc """
+  Writes a disposable replay checkpoint tied to the current bounded journal content.
+
+  Journal replay remains authoritative; a missing or corrupt checkpoint can be discarded.
+  """
 
   alias Draught.Session.Journal.Failure
   alias Draught.Session.Journal.Local.AtomicFile

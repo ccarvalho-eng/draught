@@ -1,5 +1,9 @@
 defmodule Draught.Session.Runtime.Server do
-  @moduledoc false
+  @moduledoc """
+  Coordinates one session's turns, cancellation, event delivery, and journal lifecycle.
+
+  The server admits at most one active turn and treats late worker results as stale input.
+  """
 
   use GenServer
 

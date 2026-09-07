@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Codec.Message.Tool do
-  @moduledoc false
+  @moduledoc """
+  Encodes and decodes canonical tool-result messages for journal persistence.
+  """
 
   alias Draught.Conversation.Message.Tool
   alias Draught.Session.Journal.Retention

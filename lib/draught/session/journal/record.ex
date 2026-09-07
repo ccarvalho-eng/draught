@@ -1,5 +1,9 @@
 defmodule Draught.Session.Journal.Record do
-  @moduledoc false
+  @moduledoc """
+  Encodes and decodes one versioned, sequenced journal record.
+
+  Records are newline-delimited JSON values whose event data is governed by the configured retention policy.
+  """
 
   alias Draught.Session.Journal.Codec.Event
   alias Draught.Session.Journal.Failure

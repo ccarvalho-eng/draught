@@ -1,5 +1,7 @@
 defmodule Draught.Session.Runtime.ActiveTurn do
-  @moduledoc false
+  @moduledoc """
+  Represents the monitored worker and timeout state for one active session turn.
+  """
 
   alias Draught.Session.Runtime.Delivery
 

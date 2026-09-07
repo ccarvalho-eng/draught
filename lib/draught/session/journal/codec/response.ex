@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Codec.Response do
-  @moduledoc false
+  @moduledoc """
+  Encodes and decodes canonical provider responses stored in the session journal.
+  """
 
   alias Draught.Provider.Response
   alias Draught.Provider.Usage

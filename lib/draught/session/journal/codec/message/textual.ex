@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Codec.Message.Textual do
-  @moduledoc false
+  @moduledoc """
+  Encodes and decodes canonical system and user text messages for the journal schema.
+  """
 
   alias Draught.Conversation.Message.System
   alias Draught.Conversation.Message.User

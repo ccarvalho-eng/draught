@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Failure do
-  @moduledoc false
+  @moduledoc """
+  Constructs stable failures for journal I/O, corruption, and schema incompatibility.
+  """
 
   alias Draught.Error.Normalized
 

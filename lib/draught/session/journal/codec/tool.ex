@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Codec.Tool do
-  @moduledoc false
+  @moduledoc """
+  Encodes and decodes tool calls and results according to journal retention policy.
+  """
 
   alias Draught.Session.Journal.Codec.Error
   alias Draught.Session.Journal.Retention

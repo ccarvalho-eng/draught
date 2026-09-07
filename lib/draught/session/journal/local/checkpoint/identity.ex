@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Local.Checkpoint.Identity do
-  @moduledoc false
+  @moduledoc """
+  Computes the byte length and digest used to bind a checkpoint to journal content.
+  """
 
   @doc "Encodes the byte length and SHA-256 digest of journal content."
   @spec encode(binary()) :: map()

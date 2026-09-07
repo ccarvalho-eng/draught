@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Local.Checkpoint.Snapshot do
-  @moduledoc false
+  @moduledoc """
+  Projects reconstructed replay state into retention-aware checkpoint data.
+  """
 
   alias Draught.Provider.Usage
   alias Draught.Session.Journal.Codec.Message

@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Local.Checkpoint.Codec do
-  @moduledoc false
+  @moduledoc """
+  Encodes replay state and journal identity into the versioned checkpoint representation.
+  """
 
   alias Draught.Session.Journal.Failure
   alias Draught.Session.Journal.Local.Checkpoint.Identity

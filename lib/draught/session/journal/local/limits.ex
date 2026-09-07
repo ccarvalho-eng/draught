@@ -1,5 +1,7 @@
 defmodule Draught.Session.Journal.Local.Limits do
-  @moduledoc false
+  @moduledoc """
+  Defines the encoded record and aggregate byte limits for local journals.
+  """
 
   @journal_bytes 67_108_864
   @record_bytes 4_194_304

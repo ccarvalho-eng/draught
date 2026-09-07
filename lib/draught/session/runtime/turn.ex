@@ -1,8 +1,8 @@
 defmodule Draught.Session.Runtime.Turn do
   @moduledoc false
 
+  alias Draught.Execution.BoundedTask.OwnerGuard
   alias Draught.Execution.Runner
-  alias Draught.Execution.Runner.BoundedTask.OwnerGuard
   alias Draught.Session.Runtime.ActiveTurn
   alias Draught.Session.Settings
   alias Draught.Telemetry.SessionTurn

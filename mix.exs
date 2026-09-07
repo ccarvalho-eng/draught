@@ -73,6 +73,7 @@ defmodule Draught.MixProject do
         "docs/sessions.md",
         "docs/telemetry.md",
         "docs/tools.md",
+        "docs/web-access.md",
         "docs/workspace-confinement.md",
         "docs/providers/ollama.md",
         "CHANGELOG.md",
@@ -88,6 +89,7 @@ defmodule Draught.MixProject do
           "docs/sessions.md",
           "docs/telemetry.md",
           "docs/tools.md",
+          "docs/web-access.md",
           "docs/workspace-confinement.md",
           "docs/providers/ollama.md"
         ]
@@ -98,6 +100,7 @@ defmodule Draught.MixProject do
   defp deps do
     [
       {:jason, "~> 1.4"},
+      {:mint, "~> 1.10"},
       {:req, "~> 0.5"},
       {:telemetry, "~> 1.3"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

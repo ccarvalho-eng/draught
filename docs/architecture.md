@@ -204,7 +204,7 @@ flowchart LR
 
 ## Web access and indirect prompt injection
 
-Web access is a separately controlled capability and is disabled by default. Search and fetch permissions are independent. Retrieved content is untrusted data with provenance, never an instruction source or authority grant.
+Web access is a separately controlled capability and is disabled by default. Search and fetch permissions are independent. Retrieved content is untrusted data with provenance, never an instruction source or authority grant. Disabled operations are omitted from the provider-visible registry and rechecked by their executor if called directly.
 
 ```mermaid
 flowchart TB
@@ -223,7 +223,7 @@ flowchart TB
   Context -. cannot alter .-> Enabled
 ```
 
-The web adapter must reject private, loopback, link-local, and cloud metadata destinations across initial resolution and redirects. It receives no ambient cookies, credentials, or proxy authority. Classifiers may add warnings or require stronger approval, but they cannot be the sole security boundary.
+The included fetch adapter resolves and validates each initial or redirect target, rejects non-global destinations, and pins a fresh connection to the validated address. It receives no ambient cookies, credentials, proxy authority, or shared connection state. Search is an injected adapter boundary with typed bounded results. Classifiers may add warnings or require stronger approval, but they cannot be the sole security boundary.
 
 ## State and durability
 
@@ -251,6 +251,6 @@ The runtime will preserve these invariants:
 
 ## Delivery status
 
-Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, and sanitized telemetry spans are also present. The CLI and web access remain planned. The diagrams include both implemented and planned boundaries; delivery status identifies which application capabilities are executable.
+Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. CLI configuration and rendering for web controls remain part of the planned CLI. The diagrams include both implemented and planned boundaries; delivery status identifies which application capabilities are executable.
 
 Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

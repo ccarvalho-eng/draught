@@ -1,7 +1,7 @@
-defmodule Draught.Execution.Runner.BoundedTaskTest do
+defmodule Draught.Execution.BoundedTaskTest do
   use ExUnit.Case, async: true
 
-  alias Draught.Execution.Runner.BoundedTask
+  alias Draught.Execution.BoundedTask
   alias Draught.Execution.Runner.Failure.Runtime
 
   test "returns the effect result while its owner remains alive" do

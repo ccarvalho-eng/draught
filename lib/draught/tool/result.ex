@@ -5,6 +5,7 @@ defmodule Draught.Tool.Result do
 
   alias Draught.Error.Normalized
   alias Draught.Tool.Name
+  alias Draught.Tool.Result.Provenance
   alias Draught.Validation
   alias Draught.Validation.Attributes
   alias Draught.Validation.Value
@@ -13,7 +14,7 @@ defmodule Draught.Tool.Result do
   @statuses [:error, :success]
 
   @enforce_keys [:call_id, :name, :content, :status]
-  defstruct [:call_id, :name, :content, :status, :error]
+  defstruct [:call_id, :name, :content, :status, :error, :provenance]
 
   @type status :: :error | :success
   @type t :: %__MODULE__{
@@ -21,28 +22,38 @@ defmodule Draught.Tool.Result do
           name: String.t(),
           content: String.t(),
           status: status(),
-          error: Normalized.t() | nil
+          error: Normalized.t() | nil,
+          provenance: Provenance.t() | nil
         }
 
   @doc "Builds a validated tool result from external attributes."
   @spec new(map() | keyword()) :: Validation.result(t())
   def new(attributes) do
     with {:ok, normalized} <-
-           Attributes.normalize(attributes, [:call_id, :name, :content, :status, :error]) do
+           Attributes.normalize(attributes, [
+             :call_id,
+             :name,
+             :content,
+             :status,
+             :error,
+             :provenance
+           ]) do
       normalize_result(normalized)
     end
   end
 
   defp normalize_result(attributes) do
     with {:ok, call_id, name} <- identity(attributes),
-         {:ok, content, status, error} <- outcome(attributes) do
+         {:ok, content, status, error} <- outcome(attributes),
+         {:ok, provenance} <- provenance(attributes) do
       {:ok,
        %__MODULE__{
          call_id: call_id,
          name: name,
          content: content,
          status: status,
-         error: error
+         error: error,
+         provenance: provenance
        }}
     end
   end
@@ -120,5 +131,27 @@ defmodule Draught.Tool.Result do
       :invalid_relationship,
       "must describe a tool execution failure"
     )
+  end
+
+  defp provenance(%{provenance: %Provenance{} = provenance}) do
+    provenance
+    |> Map.from_struct()
+    |> Provenance.new()
+  end
+
+  defp provenance(%{provenance: nil}) do
+    {:ok, nil}
+  end
+
+  defp provenance(%{provenance: provenance}) when is_map(provenance) or is_list(provenance) do
+    Provenance.new(provenance)
+  end
+
+  defp provenance(%{provenance: _provenance}) do
+    Validation.error([:provenance], :invalid_type, "must be canonical provenance")
+  end
+
+  defp provenance(_attributes) do
+    {:ok, nil}
   end
 end

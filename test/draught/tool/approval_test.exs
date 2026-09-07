@@ -60,6 +60,31 @@ defmodule Draught.Tool.ApprovalTest do
              )
   end
 
+  test "rejects Unicode controls that can spoof approval metadata" do
+    unsafe_characters = [
+      <<0x85::utf8>>,
+      <<0x61C::utf8>>,
+      <<0x200B::utf8>>,
+      <<0x200F::utf8>>,
+      <<0x202A::utf8>>,
+      <<0x202E::utf8>>,
+      <<0x2060::utf8>>,
+      <<0x206F::utf8>>,
+      <<0xFEFF::utf8>>
+    ]
+
+    for unsafe_character <- unsafe_characters do
+      assert {:error, %Error{}} =
+               Request.new(
+                 call_id: "call-1",
+                 tool: "write_file",
+                 target: "lib/example#{unsafe_character}.ex",
+                 arguments_summary: "path",
+                 risk: :write
+               )
+    end
+  end
+
   test "allows reads and asks for effectful risks by default" do
     for risk <- [:read, :write, :execute, :network] do
       {:ok, request} = request(risk)

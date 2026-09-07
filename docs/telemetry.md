@@ -36,7 +36,7 @@ Metadata is projected through a closed allowlist:
 | Provider stop | `operation`, `outcome`, `error_kind` |
 | Provider exception | `operation`, `outcome`, `exception_kind` |
 | Tool start | Empty map |
-| Tool stop | `outcome`, `error_kind` |
+| Tool stop | `outcome`, `error_kind`; web results also include `origin: :web` and `trust: :untrusted` |
 | Tool exception | `outcome`, `exception_kind` |
 | Session start | Empty map |
 | Session stop | `outcome`, `error_kind` |
@@ -44,7 +44,7 @@ Metadata is projected through a closed allowlist:
 
 `operation` is one of `:capabilities`, `:complete`, or `:stream`. `outcome` is `:ok`, `:error`, or `:exception`. `error_kind` is a canonical normalized-error category, `:validation`, or `nil`. `exception_kind` is `:error`, `:exit`, or `:throw`.
 
-Prompts, responses, reasoning, file contents, command output, tool names, tool call identifiers, tool arguments, provider configuration, model identifiers, URLs, credentials, exception reasons, stack traces, and session identifiers are not telemetry measurements or metadata.
+Prompts, responses, reasoning, file contents, command output, tool names, tool call identifiers, tool arguments, provider configuration, model identifiers, URLs, queries, source identifiers, resolved addresses, credentials, exception reasons, stack traces, and session identifiers are not telemetry measurements or metadata.
 
 ## Deterministic capture
 

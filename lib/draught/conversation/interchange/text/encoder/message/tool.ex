@@ -6,6 +6,7 @@ defmodule Draught.Conversation.Interchange.Text.Encoder.Message.Tool do
   alias Draught.Error.Normalized
   alias Draught.Tool.Call
   alias Draught.Tool.Result
+  alias Draught.Tool.Result.Provenance
 
   @doc "Encodes one canonical tool call."
   @spec encode_call(Call.t(), Options.t()) :: Jason.OrderedObject.t()
@@ -61,22 +62,40 @@ defmodule Draught.Conversation.Interchange.Text.Encoder.Message.Tool do
   end
 
   defp result_object(result, content) do
-    JSON.object([
+    result
+    |> base_fields(content)
+    |> JSON.object()
+  end
+
+  defp result_object(result, content, error) do
+    result
+    |> base_fields(content)
+    |> Kernel.++([{"error", error}])
+    |> JSON.object()
+  end
+
+  defp base_fields(result, content) do
+    [
       {"call_id", result.call_id},
       {"name", result.name},
       {"content", content},
       {"status", Atom.to_string(result.status)}
-    ])
+    ] ++ provenance_field(result.provenance)
   end
 
-  defp result_object(result, content, error) do
-    JSON.object([
-      {"call_id", result.call_id},
-      {"name", result.name},
-      {"content", content},
-      {"status", Atom.to_string(result.status)},
-      {"error", error}
-    ])
+  defp provenance_field(nil) do
+    []
+  end
+
+  defp provenance_field(%Provenance{} = provenance) do
+    value =
+      JSON.object([
+        {"origin", Atom.to_string(provenance.origin)},
+        {"trust", Atom.to_string(provenance.trust)},
+        {"sources", provenance.sources}
+      ])
+
+    [{"provenance", value}]
   end
 
   defp encode_error(%Normalized{hint: nil} = error) do

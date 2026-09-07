@@ -78,11 +78,15 @@ defmodule Draught.Session.Runtime.State do
   @doc "Projects internal runtime state into its public status value."
   @spec status(t()) :: Status.t()
   def status(%__MODULE__{active: nil} = state) do
-    Status.idle(state.settings.id, state.last_outcome)
+    Status.idle(state.settings.id, state.last_outcome, web_status(state))
   end
 
   def status(%__MODULE__{active: %ActiveTurn{} = active} = state) do
-    Status.running(state.settings.id, active.id, state.last_outcome)
+    Status.running(state.settings.id, active.id, state.last_outcome, web_status(state))
+  end
+
+  defp web_status(state) do
+    Status.web(state.settings.runner.tool_context.web.policy)
   end
 
   defp open_journal(%Settings{journal: nil, id: id}) do

@@ -68,6 +68,8 @@ Journals contain canonical Draught values, not raw provider requests or response
 
 Tool arguments and tool output content are omitted by default. Their canonical identities, statuses, and normalized errors remain available, while replay reconstructs valid tool calls with empty arguments and valid tool results with empty content.
 
+Successful web-originated tool results retain their closed `untrusted` classification and sanitized source URLs independently of raw tool-output retention. Failed web results retain their canonical tool identity and normalized error but have no source provenance. URL query strings, fragments, response headers, resolved addresses, and page content are not part of provenance. Replay reconstructs the result as a tool-role message and never restores a web capability or instruction authority.
+
 Retention can be changed explicitly when starting or replaying a local session:
 
 ```elixir

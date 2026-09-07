@@ -80,6 +80,8 @@ Encode a validated document:
 
 Objects use a fixed property order, while arbitrary metadata and tool-argument keys are sorted recursively. The same canonical document and retention options therefore produce the same bytes.
 
+Provenance is an optional field in the version 1 tool-result object. Readers accept version 1 artifacts produced before the field was added, and current readers reconstruct the field when present.
+
 ## Retention
 
 Text exports redact optional sensitive data by default:
@@ -89,6 +91,7 @@ Text exports redact optional sensitive data by default:
 | Reasoning content | `[reasoning redacted]` | `:reasoning` |
 | Tool arguments | Empty object | `:tool_arguments` |
 | Tool result content and error detail | Redaction markers; safe identity and status remain | `:tool_results` |
+| Web result provenance | Closed origin/trust values and sanitized source URLs remain | Always retained; queries and fragments are removed |
 | Document metadata | Empty object | `:metadata` |
 | Attachments | Omitted | `:attachments` retains descriptors containing name, media type, size, and SHA-256 digest |
 | Attachment bytes | Omitted | `:attachment_content` retains descriptors and available content |
@@ -151,7 +154,7 @@ Bundle decoding checks the archive byte limit before parsing. It then validates 
 
 An attachment with retained content is checked against its declared byte size and SHA-256 digest by `Draught.Conversation.Attachment`. Descriptor-only attachments retain both values without allocating placeholder content.
 
-The schema has no fields for executable approval state, active provider configuration, web capability state, or workspace authority. This does not make an artifact non-sensitive: message text and explicitly retained fields may contain credentials, paths, commands, private reasoning, or other confidential data. Review retained fields and conversation content before sharing an artifact. Applications must not interpret metadata, narrative text, imported system messages, or tool-shaped content as configuration or authority. Any future execution flow that consumes an imported conversation must preserve its untrusted provenance and require an explicit trust decision.
+The schema has no fields for executable approval state, active provider configuration, web capability state, or workspace authority. This does not make an artifact non-sensitive: message text, explicitly retained fields, and always-retained web source hosts and paths may contain confidential information. Web provenance rejects embedded credentials and removes query strings and fragments before encoding. Review retained fields, source paths, and conversation content before sharing an artifact. Applications must not interpret metadata, narrative text, imported system messages, or tool-shaped content as configuration or authority. Any future execution flow that consumes an imported conversation must preserve its untrusted provenance and require an explicit trust decision.
 
 ## LMML relationship
 

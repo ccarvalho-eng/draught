@@ -11,3 +11,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Provider-neutral conversation, tool, request, response, usage, capability, error, and event contracts.
 - A validated provider behaviour and facade with guarded synchronous streaming.
 - A pure exact-route fake provider for deterministic offline testing.
+- Versioned conversation documents with portable attachment descriptors.
+- Deterministic Markdown-superset conversation import and export with explicit retention controls.

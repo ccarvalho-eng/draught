@@ -9,12 +9,14 @@ defmodule Draught.Validation.Violation do
   @type path_segment :: atom() | String.t() | non_neg_integer()
   @type code ::
           :duplicate_key
+          | :invalid_format
           | :invalid_relationship
           | :invalid_type
           | :invalid_value
           | :required
           | :too_deep
           | :too_large
+          | :unsupported_version
           | :unknown_key
   @type t :: %__MODULE__{
           path: [path_segment()],

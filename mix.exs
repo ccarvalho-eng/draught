@@ -67,6 +67,7 @@ defmodule Draught.MixProject do
       extras: [
         "README.md",
         "docs/architecture.md",
+        "docs/conversation-interchange.md",
         "docs/runner.md",
         "docs/session-journals.md",
         "docs/sessions.md",
@@ -81,6 +82,7 @@ defmodule Draught.MixProject do
       groups_for_extras: [
         Guides: [
           "docs/architecture.md",
+          "docs/conversation-interchange.md",
           "docs/runner.md",
           "docs/session-journals.md",
           "docs/sessions.md",

@@ -53,6 +53,36 @@ defmodule Draught.CLI.Session.Failure do
     )
   end
 
+  @doc "Builds a failure when current provider selection differs from recorded session state."
+  @spec binding_mismatch() :: Normalized.t()
+  def binding_mismatch do
+    error(
+      "session_binding_mismatch",
+      "The selected provider or model does not match the named session",
+      "Resume with the provider and exact model recorded for this session"
+    )
+  end
+
+  @doc "Builds a failure for missing, malformed, or unsafe session binding state."
+  @spec invalid_binding() :: Normalized.t()
+  def invalid_binding do
+    error(
+      "session_binding_invalid",
+      "The named session binding is missing or invalid",
+      "Inspect the session state before continuing"
+    )
+  end
+
+  @doc "Builds a failure when the last durable turn is not safe to continue automatically."
+  @spec not_resumable() :: Normalized.t()
+  def not_resumable do
+    error(
+      "session_not_resumable",
+      "The named session did not end at a successful conversation boundary",
+      "Inspect the session history before starting recovery"
+    )
+  end
+
   defp error(code, message, hint) do
     {:ok, error} =
       Normalized.new(:configuration, code, message,

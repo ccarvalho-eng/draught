@@ -6,7 +6,9 @@ defmodule Draught.Session.Journal.LocalTest do
   alias Draught.Provider.Response
   alias Draught.Provider.Usage
   alias Draught.Session.Journal.Local
+  alias Draught.Session.Journal.Local.Append
   alias Draught.Session.Journal.Local.Configuration
+  alias Draught.Session.Journal.Local.Limits
   alias Draught.Session.Journal.Record
   alias Draught.Tool.Call
   alias Draught.Tool.Result
@@ -187,6 +189,7 @@ defmodule Draught.Session.Journal.LocalTest do
 
     content = Jason.encode!(record) <> "\n"
     :ok = File.write(configuration.paths.journal, content)
+    :ok = File.chmod(configuration.paths.journal, 0o600)
 
     assert {:error, error} = Local.open(configuration)
     assert error.code == "journal_version_unsupported"
@@ -228,6 +231,36 @@ defmodule Draught.Session.Journal.LocalTest do
     assert {:completed, 1, {:ok, ^final_response}} = replayed.terminal
   end
 
+  test "rejects journal symlinks without changing their target", %{tmp_dir: workspace} do
+    configuration = configuration(workspace, "symlink")
+    :ok = File.mkdir_p(configuration.paths.directory)
+    target = Path.join(workspace, "outside.jsonl")
+    :ok = File.write(target, "outside")
+    :ok = File.chmod(target, 0o600)
+    :ok = File.ln_s(target, configuration.paths.journal)
+
+    assert {:error, error} = Local.open(configuration)
+    assert error.code == "journal_io_error"
+    assert {:error, append_error} = Append.write(configuration.paths.journal, "record")
+    assert append_error.code == "journal_io_error"
+    assert File.read!(target) == "outside"
+  end
+
+  test "rejects records and journals that exceed durable limits", %{tmp_dir: workspace} do
+    configuration = configuration(workspace, "limits")
+    :ok = File.mkdir_p(configuration.paths.directory)
+
+    oversized_record = String.duplicate("x", Limits.record_bytes() + 1)
+    assert {:error, record_error} = Append.write(configuration.paths.journal, oversized_record)
+    assert record_error.code == "journal_io_error"
+    refute File.exists?(configuration.paths.journal)
+
+    :ok = sparse_file(configuration.paths.journal, Limits.journal_bytes())
+    assert {:error, journal_error} = Append.write(configuration.paths.journal, "record")
+    assert journal_error.code == "journal_io_error"
+    assert File.stat!(configuration.paths.journal).size == Limits.journal_bytes()
+  end
+
   test "validates identifiers before creating storage paths", %{tmp_dir: workspace} do
     assert {:error, error} = Configuration.new(workspace, "../escape")
     assert [%{path: [:session_id]}] = error.violations
@@ -239,6 +272,14 @@ defmodule Draught.Session.Journal.LocalTest do
     options = Keyword.put(options, :clock, fn -> @timestamp end)
     {:ok, configuration} = Configuration.new(workspace, id, options)
     configuration
+  end
+
+  defp sparse_file(path, size) do
+    {:ok, device} = File.open(path, [:write, :binary, :exclusive])
+    {:ok, _position} = :file.position(device, size - 1)
+    :ok = IO.binwrite(device, <<0>>)
+    :ok = File.close(device)
+    File.chmod(path, 0o600)
   end
 
   defp append_all(handle, events) do

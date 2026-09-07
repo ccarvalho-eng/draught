@@ -2,20 +2,22 @@ defmodule Draught.Session.Journal.Replay.Loader do
   @moduledoc false
 
   alias Draught.Session.Journal.Failure
+  alias Draught.Session.Journal.Local.Limits
+  alias Draught.Session.Journal.Local.SafeFile
   alias Draught.Session.Journal.Record
   alias Draught.Session.Journal.Replay
   alias Draught.Session.Journal.Replay.Reducer
 
-  @maximum_journal_bytes 67_108_864
-  @maximum_record_bytes 4_194_304
+  @journal_bytes Limits.journal_bytes()
+  @record_bytes Limits.record_bytes()
 
   @doc "Loads and reduces one complete append-only journal."
   @spec load(String.t(), String.t()) ::
           {:ok, Replay.t()} | {:error, Draught.Error.Normalized.t()}
   def load(path, id) do
-    case File.read(path) do
+    case SafeFile.read(path, Limits.journal_bytes()) do
       {:ok, binary} -> decode(binary, id)
-      {:error, :enoent} -> {:ok, Replay.empty(id)}
+      {:error, :missing} -> {:ok, Replay.empty(id)}
       {:error, _reason} -> {:error, Failure.io()}
     end
   end
@@ -23,7 +25,7 @@ defmodule Draught.Session.Journal.Replay.Loader do
   @doc "Decodes journal bytes for deterministic tests and local replay."
   @spec decode(binary(), String.t()) ::
           {:ok, Replay.t()} | {:error, Draught.Error.Normalized.t()}
-  def decode(binary, id) when byte_size(binary) <= @maximum_journal_bytes do
+  def decode(binary, id) when byte_size(binary) <= @journal_bytes do
     with {:ok, lines} <- lines(binary),
          {:ok, replay} <- reduce(lines, Replay.empty(id)) do
       {:ok, Reducer.finalize(replay)}
@@ -79,7 +81,7 @@ defmodule Draught.Session.Journal.Replay.Loader do
     end)
   end
 
-  defp record_size(line) when byte_size(line) <= @maximum_record_bytes do
+  defp record_size(line) when byte_size(line) <= @record_bytes do
     :ok
   end
 

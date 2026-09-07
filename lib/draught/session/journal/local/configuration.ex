@@ -18,9 +18,23 @@ defmodule Draught.Session.Journal.Local.Configuration do
   @spec new(term(), term(), map() | keyword()) :: Error.result(t())
   def new(workspace, identifier, options \\ []) do
     with {:ok, normalized} <- Attributes.normalize(options, [:clock, :retention]),
-         {:ok, paths} <- Paths.new(workspace, identifier),
-         {:ok, clock} <- clock(normalized),
-         {:ok, retention} <- retention(normalized) do
+         {:ok, paths} <- Paths.new(workspace, identifier) do
+      build(paths, normalized)
+    end
+  end
+
+  @doc "Builds configuration inside an already trusted absolute session directory."
+  @spec from_directory(term(), term(), map() | keyword()) :: Error.result(t())
+  def from_directory(identifier, directory, options \\ []) do
+    with {:ok, normalized} <- Attributes.normalize(options, [:clock, :retention]),
+         {:ok, paths} <- Paths.from_directory(identifier, directory) do
+      build(paths, normalized)
+    end
+  end
+
+  defp build(paths, attributes) do
+    with {:ok, clock} <- clock(attributes),
+         {:ok, retention} <- retention(attributes) do
       {:ok, %__MODULE__{clock: clock, paths: paths, retention: retention}}
     end
   end

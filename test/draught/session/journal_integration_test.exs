@@ -92,6 +92,7 @@ defmodule Draught.Session.JournalIntegrationTest do
       |> File.mkdir_p()
 
     :ok = File.write(path, "partial")
+    :ok = File.chmod(path, 0o600)
 
     before = File.read!(path)
     configuration = runner_configuration(workspace, secret_provider_configuration())

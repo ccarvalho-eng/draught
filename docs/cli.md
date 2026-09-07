@@ -1,6 +1,6 @@
 # Command-line interface
 
-The current CLI provides bounded argument parsing, configuration resolution, help, version reporting, diagnostics, and anonymous one-shot tasks. It renders terminal text or versioned JSONL and uses stable exit categories. Interactive input, named and resumed sessions, incremental streaming, and enabled web execution are not available in this slice.
+The current CLI provides bounded argument parsing, configuration resolution, help, version reporting, diagnostics, anonymous one-shot tasks, and persistent named tasks. It renders terminal text or versioned JSONL and uses stable exit categories. Interactive input, incremental streaming, and enabled web execution are not available.
 
 ## Available commands
 
@@ -11,8 +11,9 @@ The current CLI provides bounded argument parsing, configuration resolution, hel
 | `draught doctor` | Runs read-only configuration, workspace, and provider checks. |
 | `draught "TASK"` | Executes one anonymous task and prints its terminal result. |
 | `draught` or `draught interactive` | Parses interactive mode and returns an unavailable execution result. |
-| A task with `--session ID` or `--resume ID` | Returns an unavailable named-session result. |
-| `draught --resume ID` | Parses resume intent; resumed execution is unavailable. |
+| `draught --session ID "TASK"` | Creates a named session and executes its first task. |
+| `draught --resume ID "TASK"` | Continues an existing named session. |
+| `draught --resume ID` | Parses resume intent; interactive resumed execution is unavailable. |
 
 Use `--` when task text begins with an option-like token:
 
@@ -27,8 +28,8 @@ draught -- "--explain this argument"
 | `--provider NAME` | Selects a configured profile by name. |
 | `--model MODEL` | Selects a model for this invocation. |
 | `--base-url URL` | Overrides the selected profile endpoint when the profile is not credential-bound. |
-| `--session ID` | Requests a named session, which is unavailable in this slice. |
-| `--resume ID` | Requests a resumed session, which is unavailable in this slice. |
+| `--session ID` | Creates a persistent named session for the supplied task. |
+| `--resume ID` | Continues a persistent named session with the supplied task. |
 | `--web` / `--no-web` | Resolves the web setting. An enabled value makes task execution fail explicitly until a search adapter is connected. |
 | `--output text\|jsonl` | Selects human-readable or machine-readable output where supported. |
 | `--color auto\|always\|never` | Records the requested color mode; current output is unstyled. |
@@ -42,7 +43,7 @@ Help and version invocations cannot be combined with operational options. `docto
 
 `draught "TASK"` resolves configuration, constructs the selected provider, and prepares the standard coding-tool registry for the current working directory. It then starts a temporary Draught session with journaling disabled, runs one turn through the bounded agent runner, waits for the terminal result, and stops the session.
 
-The command is anonymous in the sense that it has no user-selected session identifier and retains no CLI conversation history. A subsequent command starts a separate task. Named sessions and resume are not aliases for this mode and are rejected explicitly. If a tool effect completes before a later failure, timeout, cancellation, or process interruption, that effect remains committed. The one-shot command does not attempt rollback and does not retain a task journal.
+The command is anonymous in the sense that it has no user-selected session identifier and retains no CLI conversation history. A subsequent command starts a separate task. If a tool effect completes before a later failure, timeout, cancellation, or process interruption, that effect remains committed. The one-shot command does not attempt rollback and does not retain a task journal.
 
 Ollama model selection follows the provider inventory:
 
@@ -64,6 +65,24 @@ The one-shot path uses provider completion rather than provider streaming. Text 
 ```
 
 When usage is available, `usage` contains the canonical provider token counts. A normalized task failure is written to standard error as text or as one JSONL error record with `category`, `kind`, `code`, `message`, `hint`, and `retryable` fields. A setup-validation failure uses `category`, `code`, and `message` because execution did not begin.
+
+## Named task execution
+
+Create a named session by supplying a task and a portable session identifier:
+
+```shell
+draught --session review "inspect the authentication changes"
+```
+
+Continue it with another task:
+
+```shell
+draught --resume review "address the remaining test failure"
+```
+
+Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the complete canonical conversation required by the provider, including retained tool arguments and results. A session is bound to its profile, provider connection, provider adapter, and exact model when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model.
+
+Only a session whose durable history ends at a successful assistant response can resume automatically. Interrupted, failed, malformed, oversized, unsafe, or concurrently leased session state fails closed. A second create with the same identifier is rejected. Bare `draught --resume ID` remains unavailable until interactive input is implemented.
 
 ## Doctor
 
@@ -93,11 +112,11 @@ Exit categories are stable at the CLI boundary:
 
 | Category | Code | Current use |
 | --- | ---: | --- |
-| Success | 0 | Help, version, a completed anonymous task, and a healthy doctor result. |
+| Success | 0 | Help, version, a completed anonymous or named task, and a healthy doctor result. |
 | Usage | 2 | Invalid syntax, option combinations, or configuration. |
 | Provider | 3 | Provider construction failures or provider and workspace checks reported by doctor. |
 | Execution | 4 | Task execution failures, enabled web execution, or an unavailable interactive path. |
-| Session | 5 | Named-session and task-resume requests, or session lifecycle failures. |
+| Session | 5 | Named-session lifecycle, binding, persistence, or resume failures. |
 | Internal | 70 | Unexpected internal failure. |
 | Interrupted | 130 | A normalized task cancellation. |
 

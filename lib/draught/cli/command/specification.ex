@@ -81,7 +81,7 @@ defmodule Draught.CLI.Command.Specification do
     "draught \"fix the tests\"",
     "draught doctor",
     "draught --provider ollama --model MODEL \"fix the tests\"",
-    "draught --resume SESSION_ID"
+    "draught --resume SESSION_ID \"continue this work\""
   ]
 
   @aliases [h: :help, v: :version]

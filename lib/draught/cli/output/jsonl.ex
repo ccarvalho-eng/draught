@@ -68,15 +68,15 @@ defmodule Draught.CLI.Output.JSONL do
     })
   end
 
-  @doc "Encodes the unavailable persistent-session result."
-  @spec persistent_sessions_unavailable() :: {:ok, iodata()} | {:error, :encoding}
-  def persistent_sessions_unavailable do
+  @doc "Encodes the named-task prompt requirement."
+  @spec task_prompt_required() :: {:ok, iodata()} | {:error, :encoding}
+  def task_prompt_required do
     encode(%{
       "schema" => @schema,
       "type" => "error",
       "category" => "session",
-      "code" => "not_available",
-      "message" => "Named sessions and resume are not available yet"
+      "code" => "prompt_required",
+      "message" => "A task prompt is required after the named session option"
     })
   end
 

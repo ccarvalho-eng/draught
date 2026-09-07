@@ -6,6 +6,7 @@ defmodule Draught.ApplicationTest do
   test "starts the runtime supervision tree" do
     assert Process.whereis(Draught.Supervisor)
     assert Process.whereis(Draught.Execution.TaskSupervisor)
+    assert Process.whereis(Draught.Tool.Mutation.Queue)
     assert Process.whereis(Draught.Session.Supervisor)
     assert Process.whereis(Draught.Session.Registry)
     assert Process.whereis(Draught.Session.DynamicSupervisor)

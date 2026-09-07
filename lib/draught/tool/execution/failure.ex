@@ -38,6 +38,18 @@ defmodule Draught.Tool.Execution.Failure do
     normalized(:tool, "tool_output_too_large", "Tool output exceeds the configured byte limit")
   end
 
+  @doc "Builds the policy failure returned when confirmation is required."
+  @spec approval_required() :: Normalized.t()
+  def approval_required do
+    normalized(:policy, "approval_required", "Tool execution requires approval")
+  end
+
+  @doc "Builds the policy failure returned when approval is denied."
+  @spec approval_denied(String.t() | nil) :: Normalized.t()
+  def approval_denied(reason) do
+    normalized(:policy, "approval_denied", "Tool execution was denied", hint: reason)
+  end
+
   defp normalized(kind, code, message, options \\ []) do
     {:ok, error} = Normalized.new(kind, code, message, Keyword.put(options, :retryable, false))
     error

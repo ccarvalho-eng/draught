@@ -77,16 +77,17 @@ defmodule Draught.SessionTest do
     final = response("done")
 
     assert Session.run(id, request, self()) == {:ok, 1}
-    assert_receive session_event(id, {:turn_started, 1})
-    assert_receive {:provider_started, provider, ^request}
+    assert_receive session_event(id, {:turn_started, 1}), @receive_timeout
+    assert_receive {:provider_started, provider, ^request}, @receive_timeout
     send(provider, {:provider_result, {:ok, final}})
 
     assert_receive session_event(
                      id,
                      {:runner, 1, {:provider_result, 1, {:ok, ^final}}}
-                   )
+                   ),
+                   @receive_timeout
 
-    assert_receive session_event(id, {:turn_terminal, 1, {:ok, ^final}})
+    assert_receive session_event(id, {:turn_terminal, 1, {:ok, ^final}}), @receive_timeout
 
     assert {:ok, %Status{} = status} = Session.status(id)
     assert status.phase == :idle
@@ -106,16 +107,19 @@ defmodule Draught.SessionTest do
 
     assert Enum.count(results, &match?({:ok, 1}, &1)) == 1
     assert Enum.count(results, &match?({:error, %{code: "session_busy"}}, &1)) == 1
-    assert_receive {:provider_started, provider, ^request}
+    assert_receive {:provider_started, provider, ^request}, @receive_timeout
 
     assert {:ok, %Status{phase: :running, active_turn_id: 1}} = Session.status(id)
     provider_monitor = Process.monitor(provider)
 
     assert Session.cancel(id) == :ok
-    assert_receive session_event(id, {:turn_terminal, 1, {:error, cancellation}})
+
+    assert_receive session_event(id, {:turn_terminal, 1, {:error, cancellation}}),
+                   @receive_timeout
+
     assert cancellation.kind == :cancellation
     assert cancellation.code == "session_cancelled"
-    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}
+    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}, @receive_timeout
   end
 
   test "cancellation propagates through the runner to a tool task", %{tmp_dir: workspace} do
@@ -132,8 +136,8 @@ defmodule Draught.SessionTest do
     tools = tool_response([call])
 
     assert Session.run(id, request, self()) == {:ok, 1}
-    assert_receive session_event(id, {:turn_started, 1})
-    assert_receive {:provider_started, provider, provider_request}
+    assert_receive session_event(id, {:turn_started, 1}), @receive_timeout
+    assert_receive {:provider_started, provider, provider_request}, @receive_timeout
     assert provider_request.messages == request.messages
     assert Enum.map(provider_request.tools, & &1.name) == ["blocking_tool"]
     send(provider, {:provider_result, {:ok, tools}})
@@ -141,13 +145,17 @@ defmodule Draught.SessionTest do
     assert_receive session_event(
                      id,
                      {:runner, 1, {:provider_result, 1, {:ok, ^tools}}}
-                   )
+                   ),
+                   @receive_timeout
 
     assert_receive {:tool_started, tool}, @receive_timeout
     tool_monitor = Process.monitor(tool)
 
     assert Session.cancel(id) == :ok
-    assert_receive session_event(id, {:turn_terminal, 1, {:error, cancellation}})
+
+    assert_receive session_event(id, {:turn_terminal, 1, {:error, cancellation}}),
+                   @receive_timeout
+
     assert cancellation.code == "session_cancelled"
     assert_receive {:DOWN, ^tool_monitor, :process, ^tool, :killed}, @receive_timeout
   end
@@ -163,13 +171,13 @@ defmodule Draught.SessionTest do
 
     request = request("timeout")
     assert Session.run(id, request, self()) == {:ok, 1}
-    assert_receive {:provider_started, provider, ^request}
+    assert_receive {:provider_started, provider, ^request}, @receive_timeout
     provider_monitor = Process.monitor(provider)
 
     assert_receive session_event(id, {:turn_terminal, 1, {:error, timeout}}), 500
     assert timeout.kind == :timeout
     assert timeout.code == "session_timeout"
-    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}
+    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}, @receive_timeout
   end
 
   test "turn worker crash becomes a terminal event without killing the session", %{
@@ -180,16 +188,16 @@ defmodule Draught.SessionTest do
     request = request("crash")
 
     assert Session.run(id, request, self()) == {:ok, 1}
-    assert_receive {:provider_started, provider, ^request}
+    assert_receive {:provider_started, provider, ^request}, @receive_timeout
     provider_monitor = Process.monitor(provider)
     {:ok, server} = Session.whereis(id)
     turn_task = :sys.get_state(server).active.task.pid
     Process.exit(turn_task, :boom)
 
-    assert_receive session_event(id, {:turn_terminal, 1, {:error, failure}})
+    assert_receive session_event(id, {:turn_terminal, 1, {:error, failure}}), @receive_timeout
     assert failure.kind == :protocol
     assert failure.code == "session_turn_failed"
-    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}
+    assert_receive {:DOWN, ^provider_monitor, :process, ^provider, :killed}, @receive_timeout
 
     assert Process.alive?(server)
     assert {:ok, %Status{phase: :idle, last_outcome: {:error, ^failure}}} = Session.status(id)
@@ -201,26 +209,29 @@ defmodule Draught.SessionTest do
     first_request = request("first")
 
     assert Session.run(id, first_request, self()) == {:ok, 1}
-    assert_receive {:provider_started, first_provider, ^first_request}
+    assert_receive {:provider_started, first_provider, ^first_request}, @receive_timeout
     first_monitor = Process.monitor(first_provider)
     {:ok, server} = Session.whereis(id)
     first_task_reference = :sys.get_state(server).active.task.ref
 
     assert Session.cancel(id) == :ok
-    assert_receive session_event(id, {:turn_terminal, 1, {:error, _cancellation}})
-    assert_receive {:DOWN, ^first_monitor, :process, ^first_provider, :killed}
+
+    assert_receive session_event(id, {:turn_terminal, 1, {:error, _cancellation}}),
+                   @receive_timeout
+
+    assert_receive {:DOWN, ^first_monitor, :process, ^first_provider, :killed}, @receive_timeout
 
     second_request = request("second")
     final = response("current")
     stale = response("stale")
     assert Session.run(id, second_request, self()) == {:ok, 2}
-    assert_receive {:provider_started, second_provider, ^second_request}
+    assert_receive {:provider_started, second_provider, ^second_request}, @receive_timeout
 
     send(server, {first_task_reference, {:ok, stale}})
     assert {:ok, %Status{phase: :running, active_turn_id: 2}} = Session.status(id)
 
     send(second_provider, {:provider_result, {:ok, final}})
-    assert_receive session_event(id, {:turn_terminal, 2, {:ok, ^final}})
+    assert_receive session_event(id, {:turn_terminal, 2, {:ok, ^final}}), @receive_timeout
     assert {:ok, %Status{last_outcome: {:ok, ^final}}} = Session.status(id)
   end
 
@@ -231,13 +242,13 @@ defmodule Draught.SessionTest do
     final = response("finished")
 
     assert Session.run(id, request, self()) == {:ok, 1}
-    assert_receive {:provider_started, provider, ^request}
+    assert_receive {:provider_started, provider, ^request}, @receive_timeout
 
     send(provider, {:provider_result, {:ok, final}})
     cancellation = Session.cancel(id)
 
     assert cancellation == :ok or match?({:error, %{code: "no_active_turn"}}, cancellation)
-    assert_receive session_event(id, {:turn_terminal, 1, outcome})
+    assert_receive session_event(id, {:turn_terminal, 1, outcome}), @receive_timeout
 
     assert outcome == {:ok, final} or match?({:error, %{code: "session_cancelled"}}, outcome)
     refute_receive session_event(id, {:turn_terminal, 1, _second_outcome}), 50

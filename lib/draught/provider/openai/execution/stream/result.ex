@@ -1,5 +1,10 @@
 defmodule Draught.Provider.OpenAI.Execution.Stream.Result do
-  @moduledoc false
+  @moduledoc """
+  Normalizes streaming transport results at the provider retry boundary.
+
+  It finalizes parser and accumulator state on success and reports whether output
+  crossed the external sink boundary when an attempt fails.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Provider.OpenAI.Execution.Stream.State

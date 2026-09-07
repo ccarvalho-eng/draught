@@ -1,5 +1,10 @@
 defmodule Draught.Provider.OpenAI.Stream.ToolCall.Partial do
-  @moduledoc false
+  @moduledoc """
+  Accumulates one indexed streamed tool call until it can be finalized.
+
+  Identity fields may arrive incrementally but cannot change once set. Finalization
+  requires complete function identity and a JSON object for arguments.
+  """
 
   alias Draught.Provider.OpenAI.Protocol
   alias Draught.Provider.OpenAI.Stream.ToolCall.Fragment

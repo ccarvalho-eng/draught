@@ -1,5 +1,11 @@
 defmodule Draught.Provider.OpenAI.Execution.Completion.Result do
-  @moduledoc false
+  @moduledoc """
+  Normalizes complete transport results at the provider retry boundary.
+
+  Successful responses are decoded into canonical provider values. HTTP,
+  transport, and protocol failures retain the retry classification without
+  exposing response bodies.
+  """
 
   alias Draught.Provider.OpenAI.Failure.Normalizer
   alias Draught.Provider.OpenAI.Protocol

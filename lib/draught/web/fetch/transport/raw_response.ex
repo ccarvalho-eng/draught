@@ -1,5 +1,10 @@
 defmodule Draught.Web.Fetch.Transport.RawResponse do
-  @moduledoc false
+  @moduledoc """
+  Represents the bounded scalar response returned by a web connection adapter.
+
+  Construction validates the status, body, header count, individual header sizes,
+  and aggregate header size before later policy checks consume the response.
+  """
 
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error

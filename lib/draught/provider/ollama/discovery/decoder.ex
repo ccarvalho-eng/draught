@@ -1,5 +1,10 @@
 defmodule Draught.Provider.Ollama.Discovery.Decoder do
-  @moduledoc false
+  @moduledoc """
+  Decodes Ollama discovery payloads into canonical model data.
+
+  Model lists require unique valid names. Model details derive only the provider
+  capabilities and context-window information understood by Draught.
+  """
 
   alias Draught.Provider.Capabilities
   alias Draught.Provider.Ollama.Discovery.Model

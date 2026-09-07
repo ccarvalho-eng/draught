@@ -1,5 +1,10 @@
 defmodule Draught.Provider.Ollama.Selection do
-  @moduledoc false
+  @moduledoc """
+  Resolves the exact Ollama model used by an adapter.
+
+  Explicit model names are discovered directly. Automatic selection succeeds only
+  when exactly one installed model satisfies every required capability.
+  """
 
   alias Draught.Provider.Ollama.Configuration
   alias Draught.Provider.Ollama.Discovery

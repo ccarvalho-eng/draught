@@ -1,5 +1,10 @@
 defmodule Draught.Web.Fetch.Transport.Configuration do
-  @moduledoc false
+  @moduledoc """
+  Validates the resolver and address-pinned connection dependencies for web fetches.
+
+  Each dependency is represented as a module and configuration tuple and must
+  export the operation required by the transport boundary.
+  """
 
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error

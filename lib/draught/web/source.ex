@@ -1,5 +1,10 @@
 defmodule Draught.Web.Source do
-  @moduledoc false
+  @moduledoc """
+  Sanitizes source URLs before they enter tool output or provenance records.
+
+  Sources are bounded HTTP(S) URLs with an ASCII host. Embedded credentials,
+  queries, and fragments are never retained.
+  """
 
   alias Draught.Validation.Error
   alias Draught.Validation.Value

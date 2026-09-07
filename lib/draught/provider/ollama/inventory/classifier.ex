@@ -1,5 +1,10 @@
 defmodule Draught.Provider.Ollama.Inventory.Classifier do
-  @moduledoc false
+  @moduledoc """
+  Classifies a discovered Ollama model against required provider capabilities.
+
+  The resulting inventory entry retains every missing requirement so callers can
+  explain why a model is incompatible.
+  """
 
   alias Draught.Provider.Capabilities
   alias Draught.Provider.Ollama.Discovery.Model

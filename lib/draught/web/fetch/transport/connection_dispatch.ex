@@ -1,5 +1,10 @@
 defmodule Draught.Web.Fetch.Transport.ConnectionDispatch do
-  @moduledoc false
+  @moduledoc """
+  Resolves, validates, and dispatches one address-pinned web connection.
+
+  All resolved addresses must pass the public-address policy before a connection
+  is attempted, and the remaining operation deadline bounds that attempt.
+  """
 
   alias Draught.Error.Normalized
   alias Draught.Validation.Error

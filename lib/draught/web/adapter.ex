@@ -1,5 +1,10 @@
 defmodule Draught.Web.Adapter do
-  @moduledoc false
+  @moduledoc """
+  Validates adapter dependencies for individual web operations.
+
+  An adapter is a module and configuration tuple whose module exports the callback
+  required by either the search or fetch boundary.
+  """
 
   alias Draught.Validation.Error
 

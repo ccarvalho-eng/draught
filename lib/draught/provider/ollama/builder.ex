@@ -1,5 +1,10 @@
 defmodule Draught.Provider.Ollama.Builder do
-  @moduledoc false
+  @moduledoc """
+  Assembles an Ollama adapter from validated settings and explicit dependencies.
+
+  Construction discovers or selects the exact installed model, verifies required
+  capabilities, and fixes that model in the OpenAI-compatible runtime.
+  """
 
   alias Draught.Provider.Ollama
   alias Draught.Provider.Ollama.Capability.Validator

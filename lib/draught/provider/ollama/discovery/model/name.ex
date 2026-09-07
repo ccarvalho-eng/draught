@@ -1,5 +1,10 @@
 defmodule Draught.Provider.Ollama.Discovery.Model.Name do
-  @moduledoc false
+  @moduledoc """
+  Validates Ollama model identifiers used in requests and diagnostic output.
+
+  Accepted identifiers are bounded ASCII strings using Ollama's name and tag
+  separators.
+  """
 
   @pattern ~r/\A[A-Za-z0-9][A-Za-z0-9._:\/-]{0,255}\z/
 

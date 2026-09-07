@@ -11,6 +11,7 @@ defmodule Draught.Tool.Builtin.RunCommandTest do
   alias Draught.Tool.Execution.Policy
   alias Draught.Tool.Registry
 
+  @receive_timeout 1_000
   @moduletag :tmp_dir
 
   defmodule ApprovalPolicy do
@@ -85,23 +86,32 @@ defmodule Draught.Tool.Builtin.RunCommandTest do
   end
 
   test "a subprocess handle supports explicit cancellation", %{tmp_dir: workspace} do
-    {:ok, environment, _path} = Environment.build(workspace, %{})
-
-    execution =
-      Execution.new(
-        arguments: ["1"],
-        environment: environment,
-        executable: "/bin/sleep",
-        max_output_bytes: 128,
-        timeout_ms: 5_000,
-        workspace: workspace
-      )
+    execution = sleep_execution(workspace)
 
     assert {:ok, handle} = Subprocess.start(execution)
     assert :ok = Subprocess.cancel(handle)
     assert {:error, error} = Subprocess.await(handle)
     assert error.kind == :cancellation
     assert error.code == "command_cancelled"
+  end
+
+  test "a subprocess closes when its owner exits", %{tmp_dir: workspace} do
+    parent = self()
+    execution = sleep_execution(workspace)
+
+    owner =
+      spawn(fn ->
+        {:ok, handle} = Subprocess.start(execution)
+        send(parent, {:subprocess_started, self(), handle})
+        Subprocess.await(handle)
+      end)
+
+    assert_receive {:subprocess_started, ^owner, handle}, @receive_timeout
+    subprocess_monitor = Process.monitor(handle.pid)
+    Process.exit(owner, :kill)
+
+    assert_receive {:DOWN, ^subprocess_monitor, :process, subprocess, :normal}, @receive_timeout
+    assert subprocess == handle.pid
   end
 
   defp execute(_workspace, executable, arguments, context) do
@@ -135,5 +145,18 @@ defmodule Draught.Tool.Builtin.RunCommandTest do
     |> Keyword.put_new(:allowed_risks, [:execute])
     |> Policy.new()
     |> then(fn {:ok, policy} -> policy end)
+  end
+
+  defp sleep_execution(workspace) do
+    {:ok, environment, _path} = Environment.build(workspace, %{})
+
+    Execution.new(
+      arguments: ["1"],
+      environment: environment,
+      executable: "/bin/sleep",
+      max_output_bytes: 128,
+      timeout_ms: 5_000,
+      workspace: workspace
+    )
   end
 end

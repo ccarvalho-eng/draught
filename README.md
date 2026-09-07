@@ -7,7 +7,7 @@
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 
-The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, and workspace confinement are implemented. The remaining public-alpha scope includes runner coordination, local sessions, journaling, telemetry, the CLI, web access, and distribution.
+The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, and bounded runner coordination are implemented. The remaining public-alpha scope includes local sessions, journaling, telemetry, the CLI, web access, and distribution.
 
 ## Design constraints
 
@@ -28,7 +28,7 @@ The project is in pre-alpha development. Provider integrations, tool contracts, 
 | OpenAI-compatible and Ollama providers | Complete |
 | Tool registry, execution contract, and standard coding tools | Complete |
 | Approval policy and workspace confinement | Complete |
-| Bounded agent runner | Planned |
+| Bounded agent runner | Complete |
 | Durable sessions and telemetry | Planned |
 | Agentic CLI and one-command distribution | Planned |
 
@@ -58,6 +58,8 @@ The included fake is pure and route-based. It provides deterministic offline tes
 The [Ollama provider guide](docs/providers/ollama.md) documents model selection, capability checks, configuration, failures, and the manual smoke procedure.
 
 The [tool execution guide](docs/tools.md) documents the standard catalog, definitions, registry lookup, risk and approval policy, parameter schemas, mutation sequencing, command process controls, structured results, and the executor boundary.
+
+The [agent runner guide](docs/runner.md) documents injected dependencies, pure state transitions, execution order, limits, recoverable tool results, terminal conditions, and synchronous events.
 
 The [workspace confinement guide](docs/workspace-confinement.md) documents lexical validation, symlink handling, read and write resolution, containment checks, and operating-system isolation boundaries.
 

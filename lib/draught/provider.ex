@@ -13,6 +13,7 @@ defmodule Draught.Provider do
   alias Draught.Provider.Request
   alias Draught.Provider.Response
   alias Draught.Provider.Stream
+  alias Draught.Telemetry.ProviderSpan
 
   @type config :: term()
   @type adapter :: {module(), config()}
@@ -38,15 +39,36 @@ defmodule Draught.Provider do
   @doc "Returns a provider's validated advertised capabilities."
   @spec capabilities(adapter()) :: provider_result(Capabilities.t())
   def capabilities(adapter) do
+    ProviderSpan.run(:capabilities, fn ->
+      do_capabilities(adapter)
+    end)
+  end
+
+  @doc "Completes a request through an explicitly injected adapter."
+  @spec complete(adapter(), Request.t() | map() | keyword()) :: provider_result(Response.t())
+  def complete(adapter, request) do
+    ProviderSpan.run(:complete, fn ->
+      do_complete(adapter, request)
+    end)
+  end
+
+  @doc "Streams validated events synchronously and returns the completed response."
+  @spec stream(adapter(), Request.t() | map() | keyword(), consumer_sink()) ::
+          provider_result(Response.t())
+  def stream(adapter, request, sink) do
+    ProviderSpan.run(:stream, fn ->
+      do_stream(adapter, request, sink)
+    end)
+  end
+
+  defp do_capabilities(adapter) do
     with {:ok, module, config} <- Adapter.validate(adapter),
          result <- module.capabilities(config) do
       normalize_capabilities(result)
     end
   end
 
-  @doc "Completes a request through an explicitly injected adapter."
-  @spec complete(adapter(), Request.t() | map() | keyword()) :: provider_result(Response.t())
-  def complete(adapter, request) do
+  defp do_complete(adapter, request) do
     with {:ok, module, config} <- Adapter.validate(adapter),
          {:ok, canonical_request} <- normalize_request(request),
          result <- module.complete(canonical_request, config) do
@@ -54,17 +76,14 @@ defmodule Draught.Provider do
     end
   end
 
-  @doc "Streams validated events synchronously and returns the completed response."
-  @spec stream(adapter(), Request.t() | map() | keyword(), consumer_sink()) ::
-          provider_result(Response.t())
-  def stream(adapter, request, sink) when is_function(sink, 1) do
+  defp do_stream(adapter, request, sink) when is_function(sink, 1) do
     with {:ok, module, config} <- Adapter.validate(adapter),
          {:ok, canonical_request} <- normalize_request(request) do
       invoke_stream(module, config, canonical_request, sink)
     end
   end
 
-  def stream(_adapter, _request, _sink) do
+  defp do_stream(_adapter, _request, _sink) do
     configuration_error("stream sink must be a function with arity one")
   end
 

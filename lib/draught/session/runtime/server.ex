@@ -198,11 +198,13 @@ defmodule Draught.Session.Runtime.Server do
 
     case State.record(state, event) do
       {:ok, recorded} ->
+        :ok = Turn.complete_span(active, outcome)
         :ok = terminal(recorded, active, outcome)
         {:ok, State.finish_turn(recorded, outcome)}
 
       {:error, error} ->
         failure = {:error, error}
+        :ok = Turn.complete_span(active, failure)
         :ok = terminal(state, active, failure)
         {:error, error, State.finish_turn(state, failure)}
     end
@@ -221,6 +223,7 @@ defmodule Draught.Session.Runtime.Server do
   defp journal_failure(state, active, error) do
     :ok = Turn.stop(active)
     outcome = {:error, error}
+    :ok = Turn.complete_span(active, outcome)
     :ok = terminal(state, active, outcome)
     {:stop, :normal, State.finish_turn(state, outcome)}
   end
@@ -238,6 +241,7 @@ defmodule Draught.Session.Runtime.Server do
   end
 
   defp cleanup_active(%State{active: %ActiveTurn{} = active}) do
+    :ok = Turn.exception_span(active, :exit)
     Turn.stop(active)
   end
 

@@ -4,6 +4,7 @@ defmodule Draught.Tool do
   """
 
   alias Draught.Error.Normalized
+  alias Draught.Telemetry.ToolSpan
   alias Draught.Tool.Call
   alias Draught.Tool.Execution.Context
   alias Draught.Tool.Execution.Invocation
@@ -14,14 +15,20 @@ defmodule Draught.Tool do
   @doc "Executes a tool call under an explicit workspace and policy context."
   @spec execute(Registry.t(), Call.t() | map() | keyword(), Context.t() | map() | keyword()) ::
           execution_result()
-  def execute(%Registry{} = registry, call, context) do
+  def execute(registry, call, context) do
+    ToolSpan.run(fn ->
+      execute_call(registry, call, context)
+    end)
+  end
+
+  defp execute_call(%Registry{} = registry, call, context) do
     with {:ok, canonical_call} <- normalize_call(call),
          {:ok, canonical_context} <- normalize_context(context) do
       {:ok, Invocation.run(registry, canonical_call, canonical_context)}
     end
   end
 
-  def execute(_registry, _call, _context) do
+  defp execute_call(_registry, _call, _context) do
     configuration_error("invalid_tool_registry", "tool registry is invalid")
   end
 

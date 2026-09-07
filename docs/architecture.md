@@ -188,6 +188,20 @@ flowchart LR
 
 Canonical events provide one vocabulary for the CLI, telemetry, and persistence layers without exposing provider or tool types. Events may contain model text, reasoning, and tool content. The CLI and journal apply explicit display and retention policies, while telemetry receives only derived, bounded measurements and sanitized metadata.
 
+Telemetry instrumentation sits at the application and effect boundaries. Each instrumented operation projects its canonical result into bounded scalar measurements and a closed metadata vocabulary before calling `:telemetry`. Raw domain values do not cross that projection.
+
+```mermaid
+flowchart LR
+  Boundary[Session, provider, or tool boundary] --> Span[Lifecycle span]
+  Span --> Result[Canonical result]
+  Result --> Measurements[Bounded measurements]
+  Result --> Metadata[Allowlisted metadata]
+  Measurements --> Execute[Telemetry event]
+  Metadata --> Execute
+  Execute --> Consumer[Host-provided consumer]
+  Result -. content excluded .-> Execute
+```
+
 ## Web access and indirect prompt injection
 
 Web access is a separately controlled capability and is disabled by default. Search and fetch permissions are independent. Retrieved content is untrusted data with provenance, never an instruction source or authority grant.
@@ -235,6 +249,6 @@ The runtime will preserve these invariants:
 
 ## Delivery status
 
-Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, and versioned local journals are also present. Telemetry, the CLI, and web access remain planned. The diagrams include both implemented and planned boundaries; delivery status identifies which application capabilities are executable.
+Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, and sanitized telemetry spans are also present. The CLI and web access remain planned. The diagrams include both implemented and planned boundaries; delivery status identifies which application capabilities are executable.
 
 Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

@@ -4,6 +4,8 @@ Draught filesystem tools resolve paths through one workspace boundary before per
 
 Workspace confinement validates paths. It is not an operating-system sandbox. It does not restrict arbitrary application code, subprocesses, native code, or filesystem changes made concurrently by another process. Tool implementations remain responsible for using only the resolved path and applying operation-specific limits.
 
+The command tool uses the canonical workspace as its working directory and scrubs its child environment, but an approved subprocess is not confined by workspace path resolution. It retains the operating-system permissions and network access of the Draught process. Use an operating-system or container boundary when executing commands against untrusted repositories or concurrently mutable filesystems.
+
 ## Resolution contract
 
 Callers provide an absolute workspace and a relative path using forward-slash separators. Resolution applies the following stages:

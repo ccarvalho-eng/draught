@@ -220,6 +220,6 @@ The runtime will preserve these invariants:
 
 ## Delivery status
 
-Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the tool registry and invocation boundary, workspace path confinement, and the application supervision tree are also present. Session lifecycle orchestration, runner coordination, built-in tool operations, journaling, the CLI, and web access are planned in later roadmap slices. The diagrams describe target boundaries; each slice must preserve dependency direction as those layers become executable.
+Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, and application supervision tree are also present. Session lifecycle orchestration, runner coordination, journaling, the CLI, and web access are planned in later roadmap slices. The diagrams describe target boundaries; each slice must preserve dependency direction as those layers become executable.
 
 Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

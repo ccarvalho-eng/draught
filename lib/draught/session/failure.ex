@@ -57,6 +57,12 @@ defmodule Draught.Session.Failure do
     error(:protocol, "session_turn_failed", "Session turn task terminated unexpectedly")
   end
 
+  @doc "Builds the recovery outcome for a turn interrupted by process termination."
+  @spec interrupted() :: Normalized.t()
+  def interrupted do
+    error(:protocol, "session_interrupted", "Session turn was interrupted before completion")
+  end
+
   defp error(kind, code, message) do
     {:ok, error} = Normalized.new(kind, code, message, retryable: false)
     error

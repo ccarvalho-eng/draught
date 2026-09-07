@@ -40,6 +40,14 @@ defmodule Draught.Session.Runtime.Client do
     {:error, Failure.already_started()}
   end
 
+  defp start_result({:error, {:journal_open_failed, error}}) do
+    {:error, error}
+  end
+
+  defp start_result({:error, {:shutdown, {:journal_open_failed, error}}}) do
+    {:error, error}
+  end
+
   defp start_result({:error, _reason}) do
     {:error, Failure.start_failed()}
   end

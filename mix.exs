@@ -68,6 +68,7 @@ defmodule Draught.MixProject do
         "README.md",
         "docs/architecture.md",
         "docs/runner.md",
+        "docs/session-journals.md",
         "docs/sessions.md",
         "docs/tools.md",
         "docs/workspace-confinement.md",
@@ -80,6 +81,7 @@ defmodule Draught.MixProject do
         Guides: [
           "docs/architecture.md",
           "docs/runner.md",
+          "docs/session-journals.md",
           "docs/sessions.md",
           "docs/tools.md",
           "docs/workspace-confinement.md",

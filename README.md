@@ -7,7 +7,7 @@
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 
-The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, and supervised session lifecycles are implemented. The remaining public-alpha scope includes journaling, telemetry, the CLI, web access, and distribution.
+The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, and local journals are implemented. The remaining public-alpha scope includes telemetry, the CLI, web access, and distribution.
 
 ## Design constraints
 
@@ -30,7 +30,8 @@ The project is in pre-alpha development. Provider integrations, tool contracts, 
 | Approval policy and workspace confinement | Complete |
 | Bounded agent runner | Complete |
 | Supervised session lifecycle | Complete |
-| Durable journals and telemetry | Planned |
+| Versioned local journals and replay | Complete |
+| Privacy-safe telemetry | Planned |
 | Agentic CLI and one-command distribution | Planned |
 
 The [GitHub milestones](https://github.com/ccarvalho-eng/draught/milestones) are the authoritative implementation roadmap. APIs may change before the first tagged alpha.
@@ -63,6 +64,8 @@ The [tool execution guide](docs/tools.md) documents the standard catalog, defini
 The [agent runner guide](docs/runner.md) documents injected dependencies, pure state transitions, execution order, limits, recoverable tool results, terminal conditions, and synchronous events.
 
 The [session lifecycle guide](docs/sessions.md) documents asynchronous turns, status, event delivery, cancellation semantics, timeouts, supervision, and stale-result handling.
+
+The [session journal guide](docs/session-journals.md) documents the versioned record schema, replay validation, interruption recovery, retention, checkpoints, storage permissions, and adapter boundary.
 
 The [workspace confinement guide](docs/workspace-confinement.md) documents lexical validation, symlink handling, read and write resolution, containment checks, and operating-system isolation boundaries.
 

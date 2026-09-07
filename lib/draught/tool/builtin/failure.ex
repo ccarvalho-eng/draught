@@ -27,6 +27,24 @@ defmodule Draught.Tool.Builtin.Failure do
     error("list_failed", "Directory could not be listed")
   end
 
+  @doc "Builds a safe failure for an invalid search query."
+  @spec invalid_query() :: {:error, Normalized.t()}
+  def invalid_query do
+    error("invalid_query", "Search query must be a non-empty string of at most 256 bytes")
+  end
+
+  @doc "Builds a safe failure for a workspace search error."
+  @spec search_failed() :: {:error, Normalized.t()}
+  def search_failed do
+    error("search_failed", "Workspace could not be searched")
+  end
+
+  @doc "Builds a safe failure for a search scan limit."
+  @spec search_limit_exceeded() :: {:error, Normalized.t()}
+  def search_limit_exceeded do
+    error("search_limit_exceeded", "Workspace search exceeded a scan limit")
+  end
+
   defp error(code, message) do
     {:ok, error} = Normalized.new(:tool, code, message, retryable: false)
     {:error, error}

@@ -2,6 +2,7 @@ defmodule Draught.CLI.UITest do
   use ExUnit.Case, async: true
 
   alias Draught.CLI.Interactive.State
+  alias Draught.CLI.Session.Catalog.Entry
   alias Draught.CLI.UI
 
   test "renders a bounded unstyled session card" do
@@ -79,6 +80,23 @@ defmodule Draught.CLI.UITest do
     assert exit == "Session ID: session-01\n"
   end
 
+  test "numbers only the sessions visible in the requested view" do
+    entries = [
+      entry("active-one", :active),
+      entry("archived", {:archived, ~U[2026-09-07 12:00:00Z]}),
+      entry("active-two", :active)
+    ]
+
+    output =
+      entries
+      |> UI.sessions("active-one", :active)
+      |> IO.iodata_to_binary()
+
+    assert output =~ "1. * active-one"
+    assert output =~ "2.   active-two"
+    refute output =~ "archived"
+  end
+
   defp state do
     {:ok, state} =
       State.new(
@@ -96,5 +114,17 @@ defmodule Draught.CLI.UITest do
     state
     |> UI.banner(width, styled?)
     |> IO.iodata_to_binary()
+  end
+
+  defp entry(identifier, archive) do
+    %Entry{
+      archive: archive,
+      availability: :available,
+      id: identifier,
+      label: identifier,
+      model: "qwen3",
+      profile: "ollama",
+      provider: "ollama"
+    }
   end
 end

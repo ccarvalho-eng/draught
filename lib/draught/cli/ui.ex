@@ -28,7 +28,7 @@ defmodule Draught.CLI.UI do
       "  /status        Show the active session configuration\n",
       "  /doctor        Run diagnostics\n",
       "  /sessions      List sessions in this workspace\n",
-      "  /resume [ID]   Select an active session\n",
+      "  /resume [REF]  Select an active session by number, ID, or name\n",
       "  /new [ID]      Start a fresh session\n",
       "  /rename NAME   Change the session display name\n",
       "  /archive [ID]  Archive a session\n",
@@ -111,7 +111,7 @@ defmodule Draught.CLI.UI do
 
     case visible do
       [] -> "No matching sessions.\n"
-      records -> ["Sessions:\n", Enum.map(records, &session_line(&1, current_identifier))]
+      records -> ["Sessions:\n", session_lines(records, current_identifier)]
     end
   end
 
@@ -205,8 +205,16 @@ defmodule Draught.CLI.UI do
     false
   end
 
-  defp session_line(entry, current_identifier) do
+  defp session_lines(entries, current_identifier) do
+    entries
+    |> Enum.with_index(1)
+    |> Enum.map(fn {entry, position} -> session_line(entry, current_identifier, position) end)
+  end
+
+  defp session_line(entry, current_identifier, position) do
     [
+      Integer.to_string(position),
+      ". ",
       current(entry.id == current_identifier),
       safe(entry.label),
       "  ",

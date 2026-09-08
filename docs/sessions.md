@@ -61,6 +61,8 @@ stateDiagram-v2
 
 Session switching applies the selected session's durable provider and model binding to the unchanged base CLI configuration. This prevents one selected session from changing the configuration used to validate a later selection.
 
+Rendered catalog views assign one-based positions after filtering. A command such as `/resume 2` selects the second active record in the same deterministic ordering. Exact identifiers and unique labels remain authoritative when they match. Positions are convenience references and are not persisted.
+
 ## Events
 
 Session events are tagged with the canonical session identifier:

@@ -174,6 +174,22 @@ defmodule Draught.CLI.Session.CatalogTest do
     assert {:error, :not_found} = Catalog.resolve(entries, "two", :active)
   end
 
+  test "resolves one-based positions within the requested session view", %{tmp_dir: root} do
+    {workspace, environment} = context(root)
+    create_session(workspace, environment, "one", "qwen3")
+    create_session(workspace, environment, "two", "qwen3")
+    create_session(workspace, environment, "three", "qwen3")
+    assert {:ok, _entry} = Catalog.archive(adapter(), workspace, "two", environment)
+    assert {:ok, entries} = Catalog.list(adapter(), workspace, environment)
+
+    assert {:ok, %{id: "one"}} = Catalog.resolve_position(entries, "1", :active)
+    assert {:ok, %{id: "three"}} = Catalog.resolve_position(entries, "2", :active)
+    assert {:ok, %{id: "two"}} = Catalog.resolve_position(entries, "1", :archived)
+    assert {:error, :not_found} = Catalog.resolve_position(entries, "0", :active)
+    assert {:error, :not_found} = Catalog.resolve_position(entries, "02", :active)
+    assert {:error, :not_found} = Catalog.resolve_position(entries, "4", :any)
+  end
+
   test "serializes metadata mutations with active session work", %{tmp_dir: root} do
     {workspace, environment} = context(root)
     create_session(workspace, environment, "session-01", "qwen3")

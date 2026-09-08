@@ -3,20 +3,23 @@ defmodule Draught.CLI.Task.Preparation.Tools do
   Builds the standard workspace tool registry and applies CLI web-capability policy.
   """
 
+  alias Draught.CLI.Task.Preparation.Web
   alias Draught.CLI.Task.Risk
   alias Draught.Tool.Builtin
   alias Draught.Tool.Execution.Context
   alias Draught.Tool.Execution.Policy
   alias Draught.Tool.Registry
   alias Draught.Validation.Error
-  alias Draught.Web.Capability
 
   @type prepared :: {Registry.t(), Context.t()}
 
   @doc "Builds the bounded registry, execution context, and runner limits."
   @spec prepare(map(), String.t()) :: Error.result(prepared())
   def prepare(attributes, workspace) do
-    with {:ok, capability} <- Capability.new(),
+    with {:ok, capability} <-
+           attributes
+           |> Map.get(:web, false)
+           |> Web.capability(),
          {:ok, registry} <- registry(attributes, capability),
          {:ok, context} <- context(attributes, workspace, capability) do
       {:ok, {registry, context}}

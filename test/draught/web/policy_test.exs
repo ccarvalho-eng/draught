@@ -36,6 +36,15 @@ defmodule Draught.Web.PolicyTest do
     end
   end
 
+  defmodule CrashingAdapter do
+    @behaviour Draught.Web.Fetch.Adapter
+
+    @impl Draught.Web.Fetch.Adapter
+    def fetch(_url, _policy, _configuration) do
+      exit(:adapter_failed)
+    end
+  end
+
   test "keeps both web operations disabled by default" do
     assert {:ok, policy} = Policy.new()
     refute Policy.enabled?(policy, :search)
@@ -108,5 +117,17 @@ defmodule Draught.Web.PolicyTest do
       monitor = Process.monitor(process)
       assert_receive {:DOWN, ^monitor, :process, ^process, :noproc}, 500
     end)
+  end
+
+  test "contains a crashing fetch adapter as a recoverable operation failure" do
+    capability =
+      Capability.new!(
+        policy: [fetch: true],
+        fetch: {CrashingAdapter, nil}
+      )
+
+    assert {:error, error} = Fetch.run(capability, "https://example.com", 1_024)
+    assert error.code == "web_request_failed"
+    assert Process.alive?(self())
   end
 end

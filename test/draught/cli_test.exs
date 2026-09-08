@@ -815,7 +815,7 @@ defmodule Draught.CLITest do
   end
 
   @tag :tmp_dir
-  test "creates and resumes named tasks while keeping enabled web unavailable", %{
+  test "creates and resumes named tasks and accepts explicit guarded web access", %{
     tmp_dir: tmp_dir
   } do
     workspace = Path.join(tmp_dir, "workspace")
@@ -835,9 +835,9 @@ defmodule Draught.CLITest do
     assert_receive {:cli_output, :stderr, session_output}
     assert session_output =~ "already exists"
 
-    assert CLI.run(["inspect", "--web"], dependencies()) == 4
-    assert_receive {:cli_output, :stderr, web_output}
-    assert web_output =~ "Web execution"
+    assert CLI.run(["inspect", "--web"], dependencies()) == 0
+    assert_receive {:cli_output, :stdout, "unused"}
+    assert_receive {:cli_output, :stdout, "\n"}
   end
 
   test "uses stable provider, execution, and session exits" do

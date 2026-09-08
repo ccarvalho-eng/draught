@@ -76,11 +76,11 @@ Risk mode controls which registered tool risk classes may execute and how effect
 | `ask` | Read operations are allowed. Effectful operations require a one-time decision on a text terminal; redirected or JSONL commands return `approval_required` instead. |
 | `allow` | All risk classes are admitted and available effectful tools may execute without an approval prompt. |
 
-The default is `ask`. Web tools are not registered in the current one-shot CLI, so `allow` does not add the guarded web capability. An approved command still retains the ambient network access of the Draught operating-system process. Use `allow` only when the selected workspace and task may perform writes or run commands without confirmation. Tool effects completed before a later error, timeout, cancellation, or process interruption remain committed. Anonymous tasks do not roll back those effects and do not retain a task journal. See [Workspace confinement](workspace-confinement.md) for the operating-system boundary.
+The default is `ask`. When web access is enabled, `allow` permits the guarded fetch capability without a terminal prompt; `ask` requires approval for each request. An approved command still retains the ambient network access of the Draught operating-system process. Use `allow` only when the selected workspace and task may perform writes, run commands, or fetch pages without confirmation. Tool effects completed before a later error, timeout, cancellation, or process interruption remain committed. Anonymous tasks do not roll back those effects and do not retain a task journal. See [Workspace confinement](workspace-confinement.md) for the operating-system boundary.
 
 Risk mode can be set in user configuration or with `DRAUGHT_RISK`. Project configuration may only narrow it to `deny`; there is no command-line risk flag in this slice.
 
-An effective `web` value of `true` is retained in configuration and status output, but an anonymous task rejects it with `web_execution_unavailable` until a search adapter is configured. `web: false` remains the default.
+An effective `web` value of `true` registers the guarded `web_fetch` tool. Search remains a separate library adapter boundary and is not registered by the CLI. `web: false` remains the default.
 
 ## User profiles
 

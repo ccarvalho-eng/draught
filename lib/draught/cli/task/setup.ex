@@ -9,7 +9,6 @@ defmodule Draught.CLI.Task.Setup do
 
   alias Draught.CLI.Configuration
   alias Draught.CLI.Task.Dependencies
-  alias Draught.CLI.Task.Failure
   alias Draught.CLI.Task.Preparation
   alias Draught.CLI.Task.Provider
 
@@ -19,8 +18,7 @@ defmodule Draught.CLI.Task.Setup do
   def prepare(prompt, configuration, workspace, dependencies, options \\ []) do
     options = approval_options(options, dependencies.approval)
 
-    with :ok <- web(configuration),
-         {:ok, selection} <- provider(configuration, dependencies) do
+    with {:ok, selection} <- provider(configuration, dependencies) do
       build_preparation(prompt, selection, workspace, configuration, options)
     end
   end
@@ -37,14 +35,6 @@ defmodule Draught.CLI.Task.Setup do
 
   defp approval_options(options, policy) do
     Keyword.put(options, :approval, policy)
-  end
-
-  defp web(%Configuration{web: false}) do
-    :ok
-  end
-
-  defp web(%Configuration{web: true}) do
-    {:error, :execution, Failure.web_unavailable()}
   end
 
   defp provider(configuration, dependencies) do

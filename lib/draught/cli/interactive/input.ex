@@ -6,24 +6,10 @@ defmodule Draught.CLI.Interactive.Input do
   actions so they cannot be forwarded to a provider as ordinary prompts.
   """
 
+  alias Draught.CLI.Interactive.Command.Catalog
+  alias Draught.CLI.Interactive.Command.Catalog.Entry
+
   @maximum_bytes 65_536
-  @argument_commands [:archive, :model, :new, :provider, :rename, :restore, :resume]
-  @optional_argument_commands [:archive, :model, :new, :provider, :restore, :resume]
-  @plain_commands [
-    :compact,
-    :context,
-    :details,
-    :diff,
-    :doctor,
-    :exit,
-    :help,
-    :permissions,
-    :review,
-    :sessions,
-    :status,
-    :tools,
-    :web
-  ]
 
   @type command ::
           :archive
@@ -135,32 +121,31 @@ defmodule Draught.CLI.Interactive.Input do
   end
 
   defp command_name(name) do
-    Enum.find(@argument_commands ++ @plain_commands, fn command ->
-      Atom.to_string(command) == name
-    end)
+    Catalog.find(name)
   end
 
   defp command_result(nil, _argument) do
     {:error, :unknown_command}
   end
 
-  defp command_result(command, nil) when command in @optional_argument_commands do
-    {:ok, {:command, command, nil}}
+  defp command_result(%Entry{argument: :optional, name: name}, nil) do
+    {:ok, {:command, name, nil}}
   end
 
-  defp command_result(command, nil) when command in @argument_commands do
+  defp command_result(%Entry{argument: :required}, nil) do
     {:error, :argument_required}
   end
 
-  defp command_result(command, nil) when command in @plain_commands do
-    {:ok, {:command, command, nil}}
+  defp command_result(%Entry{argument: :none, name: name}, nil) do
+    {:ok, {:command, name, nil}}
   end
 
-  defp command_result(command, argument) when command in @argument_commands do
-    {:ok, {:command, command, argument}}
+  defp command_result(%Entry{argument: argument, name: name}, value)
+       when argument in [:optional, :required] do
+    {:ok, {:command, name, value}}
   end
 
-  defp command_result(command, _argument) when command in @plain_commands do
+  defp command_result(%Entry{argument: :none}, _argument) do
     {:error, :unexpected_argument}
   end
 

@@ -6,6 +6,7 @@ defmodule Draught.Tool.Builtin.RunCommand.Preparation do
   executable, and supplies the controlled environment and execution limits.
   """
 
+  alias Draught.Tool.Approval.Preview
   alias Draught.Tool.Builtin.Approval
   alias Draught.Tool.Builtin.RunCommand.Environment
   alias Draught.Tool.Builtin.RunCommand.Executable
@@ -34,7 +35,15 @@ defmodule Draught.Tool.Builtin.RunCommand.Preparation do
 
   defp authorize(call, context, input) do
     summary = "#{length(input.arguments)} arguments; isolated environment"
-    Approval.authorize(call, context, :execute, input.executable, summary)
+
+    preview =
+      Preview.build(%{
+        "executable" => input.executable,
+        "arguments" => input.arguments,
+        "workspace" => context.workspace
+      })
+
+    Approval.authorize(call, context, :execute, input.executable, summary, preview)
   end
 
   defp execution(input, context, workspace, environment, executable) do

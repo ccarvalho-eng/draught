@@ -44,7 +44,9 @@ defmodule Draught.Tool.Builtin.ReplaceInFileTest do
     assert File.read!(path) == "before"
   end
 
-  test "denial is a normal result with no side effect or raw content", %{tmp_dir: workspace} do
+  test "denial has no side effect and separates the summary from operation details", %{
+    tmp_dir: workspace
+  } do
     path = Path.join(workspace, "sample.txt")
     File.write!(path, "before")
     context = context(workspace, :deny)
@@ -60,6 +62,13 @@ defmodule Draught.Tool.Builtin.ReplaceInFileTest do
     assert request.arguments_summary == "path; expected: 6 bytes; replacement: 5 bytes"
     refute String.contains?(request.arguments_summary, "before")
     refute String.contains?(request.arguments_summary, "after")
+
+    assert Jason.decode!(request.preview) == %{
+             "path" => "sample.txt",
+             "expected" => "before",
+             "replacement" => "after",
+             "workspace" => workspace
+           }
   end
 
   test "approved exact replacement changes only the intended occurrence", %{tmp_dir: workspace} do

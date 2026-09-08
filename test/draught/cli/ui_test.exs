@@ -6,7 +6,7 @@ defmodule Draught.CLI.UITest do
   alias Draught.CLI.UI
 
   test "separates the input area without speaker names or cursor controls" do
-    assert render_input(:open, 12) == "\n╭───────────\n│ › "
+    assert render_input(:open, 12) == "\n╭─ qwen3 · …\n│ › "
     assert render_input(:close, 12) == "╰───────────\n"
 
     tool =
@@ -18,11 +18,12 @@ defmodule Draught.CLI.UITest do
   end
 
   test "bounds input separators and uses a plain prompt for narrow terminals" do
-    assert render_input(:open, 1) == "\n>"
-    assert render_input(:open, 6) == "\n> "
+    assert render_input(:open, 1) == "\n…\n>"
+    assert render_input(:open, 6) == "\nqwen3…\n> "
     assert render_input(:close, 6) == "\n"
 
     opening = render_input(:open, 500)
+    assert opening =~ "qwen3 · /workspace"
     assert opening =~ "/help · /model"
 
     assert opening
@@ -48,7 +49,7 @@ defmodule Draught.CLI.UITest do
   test "input styling is explicit and resets before terminal echo" do
     output =
       :open
-      |> UI.input_area(40, true)
+      |> UI.input_area(state(), 40, true)
       |> IO.iodata_to_binary()
 
     assert output =~ "\e["
@@ -56,35 +57,15 @@ defmodule Draught.CLI.UITest do
     assert Regex.replace(~r/\e\[[0-9;]*m/, output, "") == render_input(:open, 40)
   end
 
-  test "renders the active model and workspace beneath submitted input" do
-    output =
-      state()
-      |> UI.prompt_context(40, false)
-      |> IO.iodata_to_binary()
-
-    assert output == "qwen3  ·  /workspace\n"
-    refute output =~ <<27>>
-  end
-
-  test "styles prompt context only when explicitly enabled" do
-    styled =
-      state()
-      |> UI.prompt_context(40, true)
-      |> IO.iodata_to_binary()
-
-    assert styled =~ "\e["
-    assert Regex.replace(~r/\e\[[0-9;]*m/, styled, "") == "qwen3  ·  /workspace\n"
-  end
-
-  test "bounds prompt context and sanitizes terminal-derived values" do
+  test "bounds input context and sanitizes terminal-derived values" do
     state = %{state() | model: "safe\e[31mhidden", workspace: "/workspace\nforged"}
 
     output =
-      state
-      |> UI.prompt_context(20, false)
+      :open
+      |> UI.input_area(state, 20, false)
       |> IO.iodata_to_binary()
 
-    assert output == "safehidden  ·  /wor…\n"
+    assert output =~ "safehidden · /wo…"
     refute output =~ <<27>>
     refute output =~ "\nforged"
   end
@@ -196,7 +177,7 @@ defmodule Draught.CLI.UITest do
 
   defp render_input(phase, width) do
     phase
-    |> UI.input_area(width)
+    |> UI.input_area(state(), width)
     |> IO.iodata_to_binary()
   end
 

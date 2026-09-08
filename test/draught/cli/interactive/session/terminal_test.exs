@@ -80,15 +80,15 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
   test "frames a line before returning its parsed command" do
     dependencies = dependencies({:ok, "/exit\n"})
     assert {:ok, {:ok, {:command, :exit, nil}}} = Terminal.read(state(), dependencies)
-    assert_receive {:output, :stdout, "\n╭───────────\n│ › "}
+    assert_receive {:output, :stdout, "\n╭─ qwen3 · …\n│ › "}
     assert_receive :input_read
-    assert_receive {:output, :stdout, "╰───────────\nqwen3  ·  /…\n\n"}
+    assert_receive {:output, :stdout, "╰───────────\n\n"}
   end
 
   test "does not read any input when the opening output fails" do
     dependencies = dependencies({:ok, "unread"}, true)
     assert {:error, :write, 70} = Terminal.read(state(), dependencies)
-    assert_receive {:output, :stdout, "\n╭───────────\n│ › "}
+    assert_receive {:output, :stdout, "\n╭─ qwen3 · …\n│ › "}
     refute_receive :input_read
     refute_receive {:output, _, _}
   end
@@ -97,23 +97,23 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
     dependencies = dependencies({:ok, "do not run this task\n"}, false)
     assert {:error, :write, 70} = Terminal.read(state(), dependencies)
     assert_receive :input_read
-    assert_receive {:output, :stdout, "╰───────────\nqwen3  ·  /…\n\n"}
+    assert_receive {:output, :stdout, "╰───────────\n\n"}
   end
 
   test "closes incomplete input lines before the next output without reflecting input" do
     input = "text without trailing newline"
     dependencies = dependencies({:ok, input})
     assert {:ok, {:ok, {:prompt, ^input}}} = Terminal.read(state(), dependencies)
-    assert_receive {:output, :stdout, "\n╰───────────\nqwen3  ·  /…\n\n"}
+    assert_receive {:output, :stdout, "\n╰───────────\n\n"}
   end
 
   test "preserves EOF, interruption and input errors after closing the input area" do
     for result <- [:eof, :interrupted, {:error, :io}] do
       dependencies = dependencies(result)
       assert ^result = Terminal.read(state(), dependencies)
-      assert_receive {:output, :stdout, "\n╭───────────\n│ › "}
+      assert_receive {:output, :stdout, "\n╭─ qwen3 · …\n│ › "}
       assert_receive :input_read
-      assert_receive {:output, :stdout, "\n╰───────────\nqwen3  ·  /…\n\n"}
+      assert_receive {:output, :stdout, "\n╰───────────\n\n"}
     end
   end
 
@@ -122,10 +122,10 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
 
     opening =
       :open
-      |> UI.input_area(50)
+      |> UI.input_area(state(), 50)
       |> IO.iodata_to_binary()
 
-    closing = ["\n", UI.input_area(:close, 50), UI.prompt_context(state(), 50), "\n"]
+    closing = ["\n", UI.input_area(:close, state(), 50), "\n"]
     expected_closing = IO.iodata_to_binary(closing)
 
     assert :eof = Terminal.read(state(), dependencies)

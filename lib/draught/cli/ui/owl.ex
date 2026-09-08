@@ -9,6 +9,7 @@ defmodule Draught.CLI.UI.Owl do
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.UI.Owl.InputArea
   alias Draught.CLI.UI.SafeLine
+  alias Draught.CLI.UI.Workspace
   alias Elixir.Owl.Box
   alias Elixir.Owl.Data
 
@@ -22,22 +23,16 @@ defmodule Draught.CLI.UI.Owl do
     render_banner(state, safe_width, styled?)
   end
 
-  @doc "Renders rounded input boundaries that permit ordinary terminal line wrapping."
-  @spec input_area(:open | :close, pos_integer(), boolean()) :: iodata()
-  def input_area(phase, width, styled?) do
-    InputArea.render(phase, width, styled?)
-  end
-
-  @doc "Renders the active model and workspace as bounded submitted-input context."
-  @spec prompt_context(State.t(), pos_integer(), boolean()) :: iodata()
-  def prompt_context(%State{} = state, width, styled?) do
-    selected_model = model(state.model)
-    workspace = safe(state.workspace)
-    width = min(width, @maximum_width)
-
-    selected_model
-    |> context_line(workspace, width, styled?)
-    |> then(&[&1, "\n"])
+  @doc "Renders rounded input boundaries with active model and workspace context."
+  @spec input_area(:open | :close, State.t(), pos_integer(), boolean()) :: iodata()
+  def input_area(phase, %State{} = state, width, styled?) do
+    InputArea.render(
+      phase,
+      model(state.model),
+      Workspace.display(state.workspace),
+      width,
+      styled?
+    )
   end
 
   @doc "Renders a fixed tool label without styling untrusted conversation text."
@@ -99,7 +94,7 @@ defmodule Draught.CLI.UI.Owl do
       "\n",
       label("directory:", styled?),
       " ",
-      safe(state.workspace),
+      Workspace.display(state.workspace),
       "\n",
       label("session:", styled?),
       "   ",
@@ -109,33 +104,6 @@ defmodule Draught.CLI.UI.Owl do
       "       ",
       web(state.web)
     ]
-  end
-
-  defp context_line(selected_model, workspace, width, styled?) do
-    content = [selected_model, "  ·  ", workspace]
-    fits? = Data.length(content) <= width
-
-    render_context(fits?, content, selected_model, workspace, width, styled?)
-  end
-
-  defp render_context(true, _content, selected_model, workspace, _width, styled?) do
-    [
-      decorate(selected_model, [:yellow, :bright], styled?),
-      "  ·  ",
-      decorate(workspace, :green, styled?)
-    ]
-  end
-
-  defp render_context(false, content, _selected_model, _workspace, width, _styled?) do
-    Data.truncate(content, width)
-  end
-
-  defp decorate(content, sequences, true) do
-    IO.ANSI.format([sequences, content, :reset], true)
-  end
-
-  defp decorate(content, _sequences, false) do
-    content
   end
 
   defp title(styled?) do

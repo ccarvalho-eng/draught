@@ -19,7 +19,7 @@ defmodule Draught.Execution.Runner.Step.Tools do
   def run(configuration, state) do
     with {:ok, messages} <-
            ToolExecution.run(configuration, state.iteration, State.pending_calls(state)) do
-      Transition.accept_tools(state, messages)
+      Transition.accept_tools(state, messages, configuration.registry)
     end
   end
 end

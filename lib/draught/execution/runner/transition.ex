@@ -6,8 +6,10 @@ defmodule Draught.Execution.Runner.Transition do
   alias Draught.Error.Normalized
   alias Draught.Execution.Runner.Failure
   alias Draught.Execution.Runner.State
+  alias Draught.Execution.Runner.ToolBatch.Progress
   alias Draught.Execution.Runner.ToolResults
   alias Draught.Provider.Request
+  alias Draught.Tool.Registry
   alias Draught.Validation.Error
 
   @doc "Starts the next provider iteration or stops at a terminal condition."
@@ -25,22 +27,25 @@ defmodule Draught.Execution.Runner.Transition do
     invalid_transition(:next_request)
   end
 
-  @doc "Appends exactly one ordered tool-result message per pending call."
-  @spec accept_tools(State.t(), [Draught.Conversation.Message.Tool.t()]) ::
+  @doc "Appends ordered results and refreshes read history when registry risks prove eligibility."
+  @spec accept_tools(State.t(), [Draught.Conversation.Message.Tool.t()], Registry.t() | nil) ::
           {:ok, State.t()} | {:error, Error.t()}
-  def accept_tools(%State{status: :waiting_tools} = state, messages) do
+  def accept_tools(state, messages, registry \\ nil)
+
+  def accept_tools(%State{status: :waiting_tools} = state, messages, registry) do
     with {:ok, canonical} <- ToolResults.reconcile(state.pending_calls, messages) do
       {:ok,
        %State{
          state
          | messages: state.messages ++ canonical,
            pending_calls: [],
+           seen_batches: Progress.refresh(state.seen_batches, canonical, registry),
            status: :ready
        }}
     end
   end
 
-  def accept_tools(%State{}, _messages) do
+  def accept_tools(%State{}, _messages, _registry) do
     invalid_transition(:accept_tools)
   end
 

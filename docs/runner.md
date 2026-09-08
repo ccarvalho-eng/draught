@@ -108,7 +108,7 @@ The defaults and accepted maxima are:
 | Tool time | 30,000 ms | 600,000 ms | Produces one recoverable error result when one tool exceeds the limit |
 | Retained output | 1 MiB | 16 MiB | Bounds each canonical provider response, cumulative transient provider stream, and tool result |
 
-The runner terminates with a normalized error when a provider call fails, a provider task terminates, provider time or output is exceeded, the iteration limit is reached, or a semantic tool batch repeats. Duplicate detection compares the ordered tool names and argument maps without provider-generated call identifiers.
+The runner terminates with a normalized error when a provider call fails, a provider task terminates, provider time or output is exceeded, the iteration limit is reached, or a semantic tool batch repeats without an allowed verification reset. Duplicate detection compares the ordered tool names and argument maps without provider-generated call identifiers. After a successful registered write or command execution, previously seen read-only batches may run again to verify the resulting workspace. Effectful, mixed, and unknown-tool batches remain guarded for the entire turn; failed operations do not reset history. Risk classes come from the trusted registry, not model-supplied names. Iteration and time limits remain unchanged.
 
 Tool denials, unknown tools, invalid arguments, executor failures, tool timeouts, and oversized tool output are represented as error tool results. They are added to the conversation so the provider may recover in the next iteration. The runner does not retry provider calls or tool effects; retry policy remains inside the relevant adapter or a higher application layer.
 

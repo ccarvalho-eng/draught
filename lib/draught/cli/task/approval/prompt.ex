@@ -7,23 +7,25 @@ defmodule Draught.CLI.Task.Approval.Prompt do
   or its deadline expires. Terminal adapters must refuse reuse of abandoned input.
   """
 
+  alias Draught.CLI.Task.Approval.Presentation
   alias Draught.CLI.Task.Approval.Prompt.Pending
   alias Draught.CLI.Task.Stream.Emitter
   alias Draught.Tool.Approval.Request
 
-  @enforce_keys [:scope, :terminal]
-  defstruct [:scope, :terminal, :pending]
+  @enforce_keys [:scope, :styled?, :terminal]
+  defstruct [:scope, :terminal, :pending, styled?: false]
 
   @type t :: %__MODULE__{
           scope: reference(),
+          styled?: boolean(),
           terminal: {module(), term()},
           pending: Pending.t() | nil
         }
 
   @doc "Builds the terminal side of one fresh invocation's approval channel."
-  @spec new(reference(), {module(), term()}) :: t()
-  def new(scope, terminal) do
-    %__MODULE__{scope: scope, terminal: terminal}
+  @spec new(reference(), {module(), term()}, boolean()) :: t()
+  def new(scope, terminal, styled? \\ false) do
+    %__MODULE__{scope: scope, styled?: styled?, terminal: terminal}
   end
 
   @doc "Returns the active scope, input reference, and requester monitor for selective receive."
@@ -56,21 +58,13 @@ defmodule Draught.CLI.Task.Approval.Prompt do
   def request(%__MODULE__{pending: nil} = prompt, operation, system) do
     {requester, reference, deadline, request} = operation
 
-    with {:ok, validated} <- validate_operation(requester, deadline, request),
-         :ok <- Emitter.write(system, :stderr, render(validated)),
-         {:ok, input} <- request_line(prompt.terminal) do
-      pending = Pending.new(requester, reference, deadline, input)
-      {:ok, %{prompt | pending: pending}}
-    else
-      _failure ->
-        send_decision(prompt.scope, requester, reference, :deny)
-        {:error, prompt}
-    end
+    prompt
+    |> prepare_operation(requester, deadline, request)
+    |> begin_request(prompt, requester, reference, deadline, system)
   end
 
   def request(%__MODULE__{} = prompt, {requester, reference, _deadline, _request}, _system) do
-    send_decision(prompt.scope, requester, reference, :deny)
-    {:error, prompt}
+    reject(prompt, requester, reference)
   end
 
   @doc "Consumes one matching input record, granting only an explicit timely yes."
@@ -101,16 +95,56 @@ defmodule Draught.CLI.Task.Approval.Prompt do
     prompt
   end
 
-  defp render(request) do
+  defp begin_request(
+         {:ok, validated, presentation},
+         prompt,
+         requester,
+         reference,
+         deadline,
+         system
+       ) do
+    with :ok <- Emitter.write(system, :stderr, render(validated, presentation)),
+         {:ok, input} <- request_line(prompt.terminal) do
+      pending = Pending.new(requester, reference, deadline, input)
+      {:ok, %{prompt | pending: pending}}
+    else
+      _failure -> reject(prompt, requester, reference)
+    end
+  end
+
+  defp begin_request(
+         _unavailable,
+         prompt,
+         requester,
+         reference,
+         _deadline,
+         _system
+       ) do
+    reject(prompt, requester, reference)
+  end
+
+  defp render(request, presentation) do
     [
       "\nApproval required (25 seconds)\nTool: ",
       request.tool,
       "\nRisk: ",
       Atom.to_string(request.risk),
-      "\nOperation (escaped JSON):\n",
-      request.preview,
+      "\n",
+      presentation,
       "\nApprove this operation once? [y/N] "
     ]
+  end
+
+  defp prepare_operation(prompt, requester, deadline, request) do
+    with {:ok, validated} <- validate_operation(requester, deadline, request),
+         {:ok, presentation} <- Presentation.render(validated, prompt.styled?) do
+      {:ok, validated, presentation}
+    end
+  end
+
+  defp reject(prompt, requester, reference) do
+    send_decision(prompt.scope, requester, reference, :deny)
+    {:error, prompt}
   end
 
   defp validate_operation(requester, deadline, request) do

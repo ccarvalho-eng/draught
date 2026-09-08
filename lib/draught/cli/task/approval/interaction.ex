@@ -15,9 +15,13 @@ defmodule Draught.CLI.Task.Approval.Interaction do
   @doc "Returns invocation-local dependencies and an optional terminal approval channel."
   @spec setup(Invocation.t(), Configuration.t(), Dependencies.t()) ::
           {Dependencies.t(), Prompt.t() | nil}
-  def setup(%Invocation{output: :text}, %Configuration{risk: :ask}, dependencies) do
+  def setup(
+        %Invocation{color: color, output: :text},
+        %Configuration{risk: :ask},
+        dependencies
+      ) do
     available = dependencies.task.approval == nil and available?(dependencies)
-    install(available, dependencies)
+    install(available, dependencies, color != :never)
   end
 
   def setup(_invocation, _configuration, dependencies) do
@@ -35,14 +39,14 @@ defmodule Draught.CLI.Task.Approval.Interaction do
       system.tty?(:stderr, system_configuration)
   end
 
-  defp install(true, dependencies) do
+  defp install(true, dependencies, styled?) do
     scope = make_ref()
     policy = {Interactive, %{owner: self(), scope: scope, timeout_ms: 25_000}}
     task = %{dependencies.task | approval: policy}
-    {%{dependencies | task: task}, Prompt.new(scope, dependencies.terminal)}
+    {%{dependencies | task: task}, Prompt.new(scope, dependencies.terminal, styled?)}
   end
 
-  defp install(false, dependencies) do
+  defp install(false, dependencies, _styled?) do
     {dependencies, nil}
   end
 end

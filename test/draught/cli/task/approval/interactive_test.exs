@@ -68,6 +68,14 @@ defmodule Draught.CLI.Task.Approval.InteractiveTest do
     refute_receive {:draught_approval_decision, ^scope, ^reference, :allow}
   end
 
+  test "retains an explicit presentation style decision" do
+    scope = make_ref()
+    terminal = {Draught.CLI.Interactive.Terminal.Local, nil}
+
+    assert Prompt.new(scope, terminal, true).styled?
+    refute Prompt.new(scope, terminal, false).styled?
+  end
+
   defp start_policy(configuration) do
     Task.Supervisor.async_nolink(Draught.Execution.TaskSupervisor, fn ->
       Interactive.decide(%{request(:write) | preview: ~s({"path":"sample.txt"})}, configuration)

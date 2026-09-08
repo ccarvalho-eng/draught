@@ -70,7 +70,9 @@ When the final provider iteration emitted no visible text delta, the terminal re
 
 With the default `ask` risk mode, effectful operations display a separate approval block when standard input, output, and error are attached to terminals and output is text. This applies to anonymous tasks, named tasks, and the interactive prompt. Read operations do not prompt.
 
-The block identifies the tool and risk and shows the complete operation as escaped JSON, including the workspace and exact command arguments or replacement text. Type `y` or `yes` to approve that operation once. Enter, `n`, and other input deny it. Missing or oversized previews are denied without requesting input. There is no session-wide grant, and a resumed session never reuses an earlier decision.
+The block identifies the tool and risk and shows the complete operation as indented JSON, including the workspace and exact command arguments or replacement text. Interactive colour modes highlight JSON token types; `--color never` keeps the same structure without terminal controls. Exact file replacements also show a bounded proposed diff derived from the validated expected and replacement fragments. The diff does not read the workspace, infer line numbers, or replace the complete JSON details.
+
+Type `y` or `yes` to approve that operation once. Enter, `n`, and other input deny it. Missing, malformed, deeply nested, or oversized presentations are denied without requesting input; values are never truncated. There is no session-wide grant, and a resumed session never reuses an earlier decision.
 
 Approval has a 25-second deadline within the existing 30-second tool budget. The activity indicator pauses while input is pending. End of input, input failure, requester termination, and expiry fail closed; the turn stops and the CLI must be restarted. Cancellation remains responsive while waiting. Already completed effects are not rolled back.
 

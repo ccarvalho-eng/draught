@@ -654,8 +654,10 @@ defmodule Draught.CLITest do
     request_edit()
     assert_receive {:cli_output, :stderr, preview}, @receive_timeout
     assert preview =~ "Approval required"
-    assert preview =~ ~s("expected":"before")
-    assert preview =~ ~s("replacement":"after")
+    assert preview =~ "Operation (JSON):"
+    assert preview =~ ~s("expected": "before")
+    assert preview =~ ~s("replacement": "after")
+    refute preview =~ <<27>>
     assert_receive {:approval_input, caller, reference}, @receive_timeout
     assert File.read!(path) == "before"
 

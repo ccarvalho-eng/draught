@@ -9,6 +9,8 @@ Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. R
 
 ## Motivation
 
+[Draught](https://www.merriam-webster.com/dictionary/draught), pronounced "draft", can mean a drink or a dose of medicine. The name draws on Elixir's alchemical vocabulary and suggests a measured approach to assistance: use what helps, while retaining your own judgment and understanding.
+
 ### Access without a paid model subscription
 
 Subscription fees and metered APIs can put coding assistance out of reach. Draught aims to make agentic work accessible to developers who cannot afford premium tools, using freely available models on their own machines through Ollama. Local inference avoids per-request API charges, but still requires suitable hardware, electricity, and a model whose license permits the intended use. Provider-agnostic interfaces leave that choice with the user.

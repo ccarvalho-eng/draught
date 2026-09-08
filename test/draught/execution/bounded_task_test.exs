@@ -30,6 +30,10 @@ defmodule Draught.Execution.BoundedTaskTest do
     assert_receive {:effect_started, effect}, 5_000
     effect_monitor = Process.monitor(effect)
 
+    # The acknowledgment orders monitor establishment before the guard's kill.
+    send(effect, {:confirm_monitor, effect_monitor})
+    assert_receive {:monitor_confirmed, ^effect_monitor}, 5_000
+
     Process.exit(owner, :kill)
 
     assert_receive {:DOWN, ^owner_monitor, :process, ^owner, :killed}, 5_000
@@ -38,6 +42,10 @@ defmodule Draught.Execution.BoundedTaskTest do
 
   defp blocking_effect(test_process) do
     send(test_process, {:effect_started, self()})
+
+    receive do
+      {:confirm_monitor, reference} -> send(test_process, {:monitor_confirmed, reference})
+    end
 
     receive do
       :finish -> {:ok, :completed}

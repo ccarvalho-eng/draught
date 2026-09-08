@@ -28,7 +28,8 @@ defmodule Draught.Web.Search.Result.Item do
     with {:ok, normalized} <- Attributes.normalize(attributes, [:title, :url, :snippet]),
          {:ok, title} <- bounded(normalized, :title, @maximum_title_bytes),
          {:ok, url, source} <- urls(normalized),
-         {:ok, snippet} <- bounded(normalized, :snippet, @maximum_snippet_bytes) do
+         {:ok, snippet} <-
+           bounded(normalized, :snippet, @maximum_snippet_bytes, allow_empty: true) do
       {:ok, %__MODULE__{title: title, url: url, source: source, snippet: snippet}}
     end
   end
@@ -41,8 +42,8 @@ defmodule Draught.Web.Search.Result.Item do
     end
   end
 
-  defp bounded(attributes, key, maximum) do
-    with {:ok, value} <- Value.required_string(attributes, key),
+  defp bounded(attributes, key, maximum, options \\ []) do
+    with {:ok, value} <- Value.required_string(attributes, key, options),
          true <- byte_size(value) <= maximum do
       {:ok, value}
     else

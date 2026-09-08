@@ -25,4 +25,19 @@ defmodule Draught.Web.Search.ResultTest do
              "https://example.com/item?id=2"
            ]
   end
+
+  test "accepts an empty snippet without relaxing title or URL validation" do
+    {:ok, policy} = Policy.new(max_search_results: 1)
+
+    assert {:ok, result} =
+             Result.new(
+               [%{title: "Result", url: "https://example.com", snippet: ""}],
+               policy
+             )
+
+    assert hd(result.items).snippet == ""
+
+    assert {:error, _error} =
+             Result.new([%{title: "", url: "https://example.com", snippet: ""}], policy)
+  end
 end

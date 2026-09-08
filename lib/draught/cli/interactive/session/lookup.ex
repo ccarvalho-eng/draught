@@ -50,7 +50,14 @@ defmodule Draught.CLI.Interactive.Session.Lookup do
 
   defp resolve_name(reference, archive, state, dependencies) do
     with {:ok, entries} <- list(state, dependencies) do
-      Catalog.resolve(entries, reference, archive)
+      resolve_catalog_reference(entries, reference, archive)
+    end
+  end
+
+  defp resolve_catalog_reference(entries, reference, archive) do
+    case Catalog.resolve(entries, reference, archive) do
+      {:error, :not_found} -> Catalog.resolve_position(entries, reference, archive)
+      result -> result
     end
   end
 

@@ -372,12 +372,15 @@ defmodule Draught.CLI.Interactive.CommandTest do
 
     assert receive_output() =~ "completed"
 
-    input({:ok, "/resume #{second}\n"})
+    input({:ok, "/resume\n"})
+    input({:ok, "/resume 2\n"})
     input({:ok, "/exit\n"})
 
     assert CLI.run(["--resume", first], dependencies) == 0
     output = plain(receive_output())
     assert output =~ "model:     qwen3"
+    assert output =~ "1. * #{first}"
+    assert output =~ "2.   #{second}"
     assert output =~ "Selected session #{second}."
     assert output =~ "Model: deepseek-r1"
     assert output =~ "Session ID: #{second}"

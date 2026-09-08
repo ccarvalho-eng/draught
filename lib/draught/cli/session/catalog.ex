@@ -53,6 +53,23 @@ defmodule Draught.CLI.Session.Catalog do
     end
   end
 
+  @doc "Resolves one available entry by its one-based position in a filtered catalog view."
+  @spec resolve_position([Entry.t()], String.t(), :active | :any | :archived) ::
+          {:ok, Entry.t()} | {:error, :not_found}
+  def resolve_position(entries, reference, archive) when is_binary(reference) do
+    with {position, ""} <- Integer.parse(reference),
+         true <- position > 0,
+         true <- Integer.to_string(position) == reference,
+         %Entry{} = entry <-
+           entries
+           |> Enum.filter(&candidate?(&1, archive))
+           |> Enum.at(position - 1) do
+      {:ok, entry}
+    else
+      _invalid -> {:error, :not_found}
+    end
+  end
+
   defp candidate?(%Entry{availability: :available, archive: :active}, :active) do
     true
   end

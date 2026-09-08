@@ -51,7 +51,7 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
     {system, configuration} = dependencies.system
     width = terminal_width(system.columns(configuration))
     styled? = styled?(color, system.tty?(:stdout, configuration))
-    opening = UI.input_area(:open, width, styled?)
+    opening = UI.input_area(:open, state, width, styled?)
 
     case write(opening, :stdout, :success, dependencies) do
       0 ->
@@ -89,8 +89,7 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
   defp finish_read(result, {state, width, styled?}, dependencies) do
     closing = [
       read_separator(result),
-      UI.input_area(:close, width, styled?),
-      UI.prompt_context(state, width, styled?),
+      UI.input_area(:close, state, width, styled?),
       "\n"
     ]
 

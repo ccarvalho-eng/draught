@@ -21,3 +21,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Ordered provider streaming with bounded transient delivery, incremental text and JSONL projection, and a terminal-aware activity indicator.
 - Interactive compatible-model listing and pre-persistence model selection for fresh sessions.
 - Opt-in guarded page fetching through the CLI web capability.
+
+### Changed
+
+- Interactive input rails now retain the active model and compact workspace beside the command hints.

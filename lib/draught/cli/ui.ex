@@ -74,18 +74,11 @@ defmodule Draught.CLI.UI do
     ]
   end
 
-  @doc "Renders a bounded line-mode input boundary without cursor movement or speaker names."
-  @spec input_area(:open | :close, pos_integer(), boolean()) :: iodata()
-  def input_area(phase, width, styled? \\ false)
+  @doc "Renders a bounded input boundary with persistent session context in its rail."
+  @spec input_area(:open | :close, State.t(), pos_integer(), boolean()) :: iodata()
+  def input_area(phase, %State{} = state, width, styled? \\ false)
       when phase in [:open, :close] and is_integer(width) and width > 0 and is_boolean(styled?) do
-    Owl.input_area(phase, width, styled?)
-  end
-
-  @doc "Renders the active model and workspace beneath submitted interactive input."
-  @spec prompt_context(State.t(), pos_integer(), boolean()) :: iodata()
-  def prompt_context(%State{} = state, width, styled? \\ false)
-      when is_integer(width) and width > 0 and is_boolean(styled?) do
-    Owl.prompt_context(state, width, styled?)
+    Owl.input_area(phase, state, width, styled?)
   end
 
   @doc "Renders the fixed tool-activity label with an explicit terminal styling decision."

@@ -2,20 +2,22 @@ defmodule Draught.CLI.UI.Owl.InputArea do
   @moduledoc """
   Renders a bounded, open-sided input frame for ordinary terminal line editing.
 
-  Rounded rails and optional command hints separate input from assistant output.
-  No right-hand border or cursor repositioning interferes with wrapped input.
-  Styling is reset before the terminal echoes any user text.
+  The top rail keeps active model and workspace context beside command hints.
+  No right-hand border or cursor repositioning interferes with wrapped input,
+  and styling is reset before the terminal echoes any user text.
   """
 
+  alias Elixir.Owl.Data
+
   @maximum_width 96
-  @hint " /help · /model "
+  @hint "  /help · /model "
 
   @doc "Renders one input boundary with explicit terminal width and styling."
-  @spec render(:open | :close, pos_integer(), boolean()) :: iodata()
-  def render(:open, width, styled?) when width >= 8 do
+  @spec render(:open | :close, String.t(), String.t(), pos_integer(), boolean()) :: iodata()
+  def render(:open, model, workspace, width, styled?) when width >= 8 do
     [
       "\n",
-      decorate(top(width), :light_black, styled?),
+      top(model, workspace, width, styled?),
       "\n",
       decorate("│ ", :light_black, styled?),
       decorate("›", [:cyan, :bright], styled?),
@@ -23,29 +25,65 @@ defmodule Draught.CLI.UI.Owl.InputArea do
     ]
   end
 
-  def render(:open, 1, _styled?) do
-    "\n>"
+  def render(:open, model, workspace, 1, styled?) do
+    ["\n", narrow_context(model, workspace, 1, styled?), "\n>"]
   end
 
-  def render(:open, _width, _styled?) do
-    "\n> "
+  def render(:open, model, workspace, width, styled?) do
+    ["\n", narrow_context(model, workspace, width, styled?), "\n> "]
   end
 
-  def render(:close, width, styled?) when width >= 8 do
+  def render(:close, _model, _workspace, width, styled?) when width >= 8 do
     [decorate(["╰", rule(width - 1)], :light_black, styled?), "\n"]
   end
 
-  def render(:close, _width, _styled?) do
+  def render(:close, _model, _workspace, _width, _styled?) do
     "\n"
   end
 
-  defp top(width) when width >= 32 do
+  defp top(model, workspace, width, styled?) do
     bounded_width = min(width, @maximum_width)
-    ["╭─", @hint, rule(bounded_width - 2 - String.length(@hint))]
+    available = bounded_width - 3
+    context = model <> " · " <> workspace
+    label = context <> @hint
+    fits? = Data.length(label) <= available
+
+    render_top(fits?, label, model, workspace, available, styled?)
   end
 
-  defp top(width) do
-    ["╭", rule(width - 1)]
+  defp render_top(true, label, model, workspace, available, styled?) do
+    remainder = available - Data.length(label)
+
+    [
+      decorate("╭─ ", :light_black, styled?),
+      decorate(model, [:yellow, :bright], styled?),
+      decorate(" · ", :light_black, styled?),
+      decorate(workspace, :green, styled?),
+      decorate(@hint, :light_black, styled?),
+      decorate(rule(remainder), :light_black, styled?)
+    ]
+  end
+
+  defp render_top(false, label, _model, _workspace, available, styled?) do
+    truncated = truncate(label, available)
+
+    [
+      decorate("╭─ ", :light_black, styled?),
+      decorate(truncated, :light_black, styled?)
+    ]
+  end
+
+  defp narrow_context(model, workspace, width, styled?) do
+    model
+    |> Kernel.<>(" · " <> workspace)
+    |> truncate(width)
+    |> decorate(:light_black, styled?)
+  end
+
+  defp truncate(content, width) do
+    content
+    |> Data.truncate(width)
+    |> Data.to_chardata()
   end
 
   defp rule(width) do

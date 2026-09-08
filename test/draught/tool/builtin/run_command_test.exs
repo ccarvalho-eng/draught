@@ -24,7 +24,7 @@ defmodule Draught.Tool.Builtin.RunCommandTest do
     end
   end
 
-  test "denial does not start the command and exposes only bounded metadata", %{
+  test "denial does not start the command and provides bounded operation details", %{
     tmp_dir: workspace
   } do
     target = Path.join(workspace, "created.txt")
@@ -38,6 +38,23 @@ defmodule Draught.Tool.Builtin.RunCommandTest do
     assert request.target == "/usr/bin/touch"
     assert request.arguments_summary == "1 arguments; isolated environment"
     refute String.contains?(request.arguments_summary, target)
+
+    assert Jason.decode!(request.preview) == %{
+             "executable" => "/usr/bin/touch",
+             "arguments" => [target],
+             "workspace" => workspace
+           }
+  end
+
+  test "an unavailable preview does not change the approval decision", %{tmp_dir: workspace} do
+    arguments =
+      "x"
+      |> String.duplicate(4_096)
+      |> List.duplicate(5)
+
+    assert {:ok, result} = execute(workspace, "/bin/echo", arguments, context(workspace, :deny))
+    assert result.error.code == "approval_denied"
+    assert_received {:approval_request, %{preview: :unavailable}}
   end
 
   test "runs an executable without interpreting argument text as shell input", %{

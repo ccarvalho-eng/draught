@@ -1,10 +1,12 @@
 defmodule Draught.Tool.Approval.Request do
   @moduledoc """
-  Sanitized metadata presented when a tool needs an approval decision.
+  Bounded metadata presented when a tool needs an approval decision.
 
-  Raw tool arguments are deliberately excluded from this value.
+  Summaries exclude raw arguments. An optional display-only preview carries
+  escaped operation details and must be treated as sensitive content, not logs.
   """
 
+  alias Draught.Tool.Approval.Preview
   alias Draught.Tool.Name
   alias Draught.Tool.Risk
   alias Draught.Validation.Attributes
@@ -18,14 +20,16 @@ defmodule Draught.Tool.Approval.Request do
   @unicode_display_controls ~r/[\x{0080}-\x{009F}\x{061C}\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2060}-\x{206F}\x{FEFF}]/u
 
   @enforce_keys [:call_id, :tool, :target, :arguments_summary, :risk]
-  defstruct [:call_id, :tool, :target, :arguments_summary, :risk]
+  defstruct [:call_id, :tool, :target, :arguments_summary, :risk, :preview]
 
+  @type preview :: Preview.t() | nil
   @type t :: %__MODULE__{
           call_id: String.t(),
           tool: String.t(),
           target: String.t(),
           arguments_summary: String.t(),
-          risk: Risk.t()
+          risk: Risk.t(),
+          preview: preview()
         }
 
   @doc "Builds an approval request from pre-sanitized bounded metadata."
@@ -34,9 +38,22 @@ defmodule Draught.Tool.Approval.Request do
     with {:ok, normalized} <-
            Attributes.normalize(
              attributes,
-             [:call_id, :tool, :target, :arguments_summary, :risk]
+             [:call_id, :tool, :target, :arguments_summary, :risk, :preview]
            ),
-         {:ok, call_id} <- bounded_string(normalized, :call_id, @maximum_call_id_bytes),
+         {:ok, request} <- build(normalized),
+         {:ok, preview} <- preview(normalized) do
+      {:ok, %{request | preview: preview}}
+    end
+  end
+
+  defp preview(attributes) do
+    attributes
+    |> Map.get(:preview)
+    |> Preview.validate()
+  end
+
+  defp build(normalized) do
+    with {:ok, call_id} <- bounded_string(normalized, :call_id, @maximum_call_id_bytes),
          {:ok, tool} <- tool(normalized),
          {:ok, target} <- bounded_string(normalized, :target, @maximum_target_bytes),
          {:ok, summary} <-

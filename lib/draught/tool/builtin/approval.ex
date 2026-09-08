@@ -2,8 +2,9 @@ defmodule Draught.Tool.Builtin.Approval do
   @moduledoc """
   Applies the configured approval policy to built-in tool operations.
 
-  Only bounded, sanitized metadata crosses the approval boundary. Decisions
-  are normalized to permission or stable policy failures before execution.
+  Summaries remain bounded and sanitized. Optional operation previews contain
+  escaped sensitive details for the trusted display boundary. Decisions are
+  normalized to permission or stable policy failures before execution.
   """
 
   alias Draught.Error.Normalized
@@ -17,10 +18,10 @@ defmodule Draught.Tool.Builtin.Approval do
   alias Draught.Validation.Error
 
   @doc "Requests approval from sanitized built-in tool metadata."
-  @spec authorize(Call.t(), Context.t(), Risk.t(), String.t(), String.t()) ::
+  @spec authorize(Call.t(), Context.t(), Risk.t(), String.t(), String.t(), Request.preview()) ::
           :ok | {:error, Normalized.t()}
-  def authorize(%Call{} = call, %Context{} = context, risk, target, summary) do
-    with {:ok, request} <- request(call, risk, target, summary),
+  def authorize(%Call{} = call, %Context{} = context, risk, target, summary, preview \\ nil) do
+    with {:ok, request} <- request(call, risk, target, summary, preview),
          {:ok, decision} <- Approval.decide(context.approval, request) do
       decision(decision)
     else
@@ -29,13 +30,14 @@ defmodule Draught.Tool.Builtin.Approval do
     end
   end
 
-  defp request(call, risk, target, summary) do
+  defp request(call, risk, target, summary, preview) do
     Request.new(
       call_id: call.id,
       tool: call.name,
       target: target,
       arguments_summary: summary,
-      risk: risk
+      risk: risk,
+      preview: preview
     )
   end
 

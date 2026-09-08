@@ -8,20 +8,22 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
 
   alias Draught.CLI.Command.Invocation
   alias Draught.CLI.Dependencies
+  alias Draught.CLI.Interactive.Command.Help
+  alias Draught.CLI.Interactive.Completion.Context
   alias Draught.CLI.Interactive.Input
-  alias Draught.CLI.Interactive.Model
   alias Draught.CLI.Interactive.Session.Command
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.UI
   alias Draught.CLI.Writer
 
   @type parsed_input :: {:ok, Input.action()} | {:error, Input.error()}
+  @type model_view :: {:models, [String.t()], String.t() | nil} | {:selected, String.t()}
   @type view ::
           :help
           | :terminal_error
           | {:input_error, atom()}
           | {:model_error, term()}
-          | {:model_view, Model.Command.view()}
+          | {:model_view, model_view()}
           | {:session_closed, String.t()}
           | {:session_error, term()}
           | {:session_view, Command.view(), State.t()}
@@ -55,8 +57,9 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
 
     case write(opening, :stdout, :success, dependencies) do
       0 ->
-        dependencies.terminal
-        |> read_line()
+        state
+        |> Context.from_state()
+        |> read_line(dependencies.terminal)
         |> finish_read({state, styled?}, dependencies)
 
       status ->
@@ -121,7 +124,7 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
   end
 
   defp render(:help) do
-    UI.help()
+    Help.render()
   end
 
   defp render(:terminal_error) do
@@ -189,7 +192,17 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
     terminal?
   end
 
-  defp read_line({terminal, configuration}) do
+  defp read_line(context, {terminal, configuration}) do
+    terminal
+    |> function_exported?(:read_line, 2)
+    |> read_line_result(context, terminal, configuration)
+  end
+
+  defp read_line_result(true, context, terminal, configuration) do
+    terminal.read_line(context, configuration)
+  end
+
+  defp read_line_result(false, _context, terminal, configuration) do
     terminal.read_line(configuration)
   end
 end

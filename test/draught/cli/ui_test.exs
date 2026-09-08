@@ -147,18 +147,12 @@ defmodule Draught.CLI.UITest do
     refute render_banner(state, 20, false) =~ "\n* fake"
   end
 
-  test "renders shell help and the stable exit record" do
-    help = IO.iodata_to_binary(UI.help())
-
+  test "renders the stable exit record" do
     exit =
       "session-01"
       |> UI.session_closed()
       |> IO.iodata_to_binary()
 
-    assert help =~ "Available commands"
-    assert help =~ "/status"
-    assert help =~ "/sessions"
-    assert help =~ "Reserved for confined direct commands"
     assert exit == "Session ID: session-01\n"
   end
 

@@ -19,38 +19,6 @@ defmodule Draught.CLI.UI do
     Owl.banner(state, width, styled?)
   end
 
-  @doc "Renders the interactive command index."
-  @spec help() :: iodata()
-  def help do
-    [
-      "Available commands:\n",
-      "  /help          Show commands and input forms\n",
-      "  /status        Show the active session configuration\n",
-      "  /doctor        Run diagnostics\n",
-      "  /sessions      List sessions in this workspace\n",
-      "  /resume [REF]  Select an active session by number, ID, or name\n",
-      "  /new [ID]      Start a fresh session\n",
-      "  /rename NAME   Change the session display name\n",
-      "  /archive [ID]  Archive a session\n",
-      "  /restore [ID]  Restore an archived session\n",
-      "  /model [REF]   List or select a model by number or exact name\n",
-      "  /exit          Close the interactive session\n",
-      "\nReserved commands:\n",
-      "  /provider      Inspect or select a provider\n",
-      "  /permissions   Inspect the approval policy\n",
-      "  /web           Inspect web capability state\n",
-      "  /context       Show retained context sources\n",
-      "  /compact       Create a summary checkpoint\n",
-      "  /diff          Show workspace changes\n",
-      "  /review        Review workspace changes\n",
-      "  /tools         Show available tools and risk classes\n",
-      "  /details       Toggle bounded execution metadata\n",
-      "\nInput forms:\n",
-      "  @QUERY         Reserved for workspace file selection\n",
-      "  !COMMAND       Reserved for confined direct commands\n"
-    ]
-  end
-
   @doc "Renders the active session configuration without credential material."
   @spec status(State.t()) :: iodata()
   def status(%State{} = state) do

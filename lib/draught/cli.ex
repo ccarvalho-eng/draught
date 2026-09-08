@@ -12,6 +12,12 @@ defmodule Draught.CLI do
   def run(arguments, %Dependencies{} = dependencies) do
     arguments
     |> Command.parse()
-    |> Router.dispatch(dependencies)
+    |> run_parsed(dependencies)
+  end
+
+  @doc "Runs one already parsed command result through the CLI router."
+  @spec run_parsed(term(), Dependencies.t()) :: non_neg_integer()
+  def run_parsed(parsed, %Dependencies{} = dependencies) do
+    Router.dispatch(parsed, dependencies)
   end
 end

@@ -3,9 +3,9 @@ defmodule Draught.CLI.EntryPoint do
   Starts the application and executes the operating-system CLI entry point.
   """
 
-  alias Draught.CLI
   alias Draught.CLI.Command.ExitStatus
   alias Draught.CLI.Dependencies
+  alias Draught.CLI.EntryPoint.Dispatch
   alias Draught.CLI.EntryPoint.Failure
   alias Draught.CLI.EntryPoint.Guard
 
@@ -40,7 +40,7 @@ defmodule Draught.CLI.EntryPoint do
 
   defp run(arguments) do
     case Dependencies.new() do
-      {:ok, dependencies} -> CLI.run(arguments, dependencies)
+      {:ok, dependencies} -> Dispatch.run(arguments, dependencies)
       _error -> startup_failure()
     end
   end

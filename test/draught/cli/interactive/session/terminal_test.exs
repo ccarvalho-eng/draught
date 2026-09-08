@@ -85,6 +85,12 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
     end
 
     @impl Draught.CLI.Interactive.Terminal.Adapter
+    def read_line(completion, configuration) do
+      send(configuration.owner, {:input_read, completion})
+      configuration.result
+    end
+
+    @impl Draught.CLI.Interactive.Terminal.Adapter
     def restore(_configuration) do
       :ok
     end
@@ -94,7 +100,9 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
     dependencies = dependencies({:ok, "/exit\n"})
     assert {:ok, {:ok, {:command, :exit, nil}}} = Terminal.read(state(), dependencies)
     assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ › "}
-    assert_receive :input_read
+    assert_receive {:input_read, completion}
+    assert "/help" in completion.commands
+    assert completion.models == []
     assert_receive {:output, :stdout, "╰──────────╯\n\n"}
   end
 
@@ -102,14 +110,14 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
     dependencies = dependencies({:ok, "unread"}, true)
     assert {:error, :write, 70} = Terminal.read(state(), dependencies)
     assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ › "}
-    refute_receive :input_read
+    refute_receive {:input_read, _completion}
     refute_receive {:output, _, _}
   end
 
   test "does not return a parsed task if the closing output fails" do
     dependencies = dependencies({:ok, "do not run this task\n"}, false)
     assert {:error, :write, 70} = Terminal.read(state(), dependencies)
-    assert_receive :input_read
+    assert_receive {:input_read, _completion}
     assert_receive {:output, :stdout, "╰──────────╯\n\n"}
   end
 
@@ -125,7 +133,7 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
       dependencies = dependencies(result)
       assert ^result = Terminal.read(state(), dependencies)
       assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ › "}
-      assert_receive :input_read
+      assert_receive {:input_read, _completion}
       assert_receive {:output, :stdout, "\n╰──────────╯\n\n"}
     end
   end
@@ -144,7 +152,7 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
     assert {:ok, {:ok, {:command, :exit, nil}}} = Terminal.read(state(), dependencies)
 
     assert_receive {:output, :stdout, opening}
-    assert_receive :input_read
+    assert_receive {:input_read, _completion}
     assert_receive {:output, :stdout, closing}
 
     opening_width =

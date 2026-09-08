@@ -32,54 +32,7 @@ These studies concern learning in specific settings. They do not establish long-
 
 ## Documentation
 
-### Start here
-
-- [Getting started](docs/getting-started.md)
-- [CLI](docs/cli.md)
-- [Configuration](docs/configuration.md)
-
-### Design and runtime
-
-- [Architecture](docs/architecture.md)
-- [Tool execution](docs/tools.md)
-- [Agent runner](docs/runner.md)
-- [Session lifecycle](docs/sessions.md)
-- [Session journals](docs/session-journals.md)
-
-### Providers and data
-
-- [Ollama provider](docs/providers/ollama.md)
-- [Conversation interchange](docs/conversation-interchange.md)
-
-### Operations and security
-
-- [Telemetry](docs/telemetry.md)
-- [Web access](docs/web-access.md)
-- [Workspace confinement](docs/workspace-confinement.md)
-
-## Built-in agent tools
-
-| Tool | Purpose |
-| --- | --- |
-| `read_file` | Read a workspace file. |
-| `list_directory` | List a workspace directory. |
-| `search_workspace` | Search workspace files for literal text. |
-| `replace_in_file` | Replace one exact occurrence in a file. |
-| `run_command` | Run an executable with arguments. |
-| `web_search` | Search through an injected adapter. |
-| `web_fetch` | Retrieve text from an HTTP(S) page. |
-
-Tool execution is governed by capability and approval policies. Web tools are opt-in runtime capabilities; CLI web execution is unavailable. See [Tool execution](docs/tools.md) for permissions, limits, and executable dependencies.
-
-## Libraries
-
-| Library | Role |
-| --- | --- |
-| [Owl](https://github.com/fuelen/owl) | Terminal rendering. |
-| [Req](https://github.com/wojtekmach/req) | Provider HTTP requests. |
-| [Mint](https://github.com/elixir-mint/mint) | Guarded web fetching. |
-
-Mix installs these libraries with the project dependencies. Workspace file tools are implemented in Elixir and require no external search utility.
+Read [Getting started](docs/getting-started.md) for setup, or browse the [documentation index](docs/index.md) for CLI, provider, architecture, and security guides.
 
 ## Security
 

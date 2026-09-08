@@ -67,6 +67,16 @@ Discovery is bounded to 16 installed models and is sequential. A larger automati
 
 The interactive CLI handles the multiple-compatible-model case inside its shell: `/model` lists the compatible inventory and `/model REF` selects an exact name or one-based position before the first durable turn. A persisted session cannot change its recorded model binding. One-shot commands continue to require an explicit model when automatic selection is ambiguous.
 
+The Ollama catalog currently identifies both [`qwen3`](https://ollama.com/library/qwen3) and [`deepseek-r1`](https://ollama.com/library/deepseek-r1) as tool-capable model families. They are examples rather than an allowlist. Draught checks the metadata reported by each installed tag before selection. To try a local DeepSeek variant:
+
+```sh
+ollama pull deepseek-r1:8b
+draught doctor --model deepseek-r1:8b
+draught --model deepseek-r1:8b
+```
+
+Available memory, context requirements, speed, and model licenses vary by tag and hardware. Consult the model catalog before downloading weights.
+
 The read-only `draught doctor` command uses this inventory when model selection is automatic. When a model is explicit, doctor requests and checks only that model. See [Getting started](../getting-started.md) for local setup and model selection.
 
 ## Failures

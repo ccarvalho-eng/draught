@@ -50,7 +50,7 @@ The command boundary enforces process timeout, output limits, explicit cancellat
 
 The default registry contains no web tools. Passing an explicit web capability to `Draught.Tool.Builtin.registry/1` adds only its enabled operations. The default execution policy admits read risk only. Read tools do not request a second approval. A caller must first admit write, execute, or network risk in the execution policy; when admitted, the default approval policy returns `approval_required` for that effectful operation. Injected approval policies can allow or deny those requests.
 
-Web tools are opt-in runtime capabilities. The CLI registers guarded `web_fetch` only when its effective web setting is enabled. Search remains available through an explicitly supplied library capability.
+Web tools are opt-in runtime capabilities. The CLI registers guarded `web_fetch` when page fetching is enabled and `web_search` when search is enabled with an explicit SearXNG-compatible JSON endpoint. The permissions are independent and disabled by default. Library consumers may supply other adapters through the same capability boundary.
 
 Approval requests contain the call identifier, tool name, declared target, risk, and a bounded argument summary. Summaries exclude raw arguments and replacement content. Command and replacement requests also include an optional display-only `preview`: an ASCII JSON object containing the exact proposed executable and arguments or replacement text, plus the workspace. Control and non-ASCII characters are escaped losslessly. This is operation data, not trusted instructions or shell syntax. The terminal may render this validated object as indented, highlighted JSON and may derive a safe replacement diff; neither presentation changes the request.
 

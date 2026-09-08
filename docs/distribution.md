@@ -2,6 +2,53 @@
 
 Draught's native executable includes its Erlang runtime. Users do not need Elixir, Erlang, Zig, or XZ to run the resulting binary. Ollama and model weights remain separate installations. The native executable and escript share the same command implementation, configuration, permission policy, and session storage.
 
+## Install a published release
+
+Choose the target that matches the current system:
+
+| System | Architecture | Target |
+| --- | --- | --- |
+| macOS | Apple silicon | `macos_arm64` |
+| macOS | Intel | `macos_x86_64` |
+| Linux | ARM64 | `linux_arm64` |
+| Linux | x86_64 | `linux_x86_64` |
+
+Set `TARGET` to that value and download the versioned archive and checksum:
+
+```sh
+VERSION=0.1.0-beta.1
+TARGET=macos_arm64
+BASE_URL="https://github.com/ccarvalho-eng/draught/releases/download/v${VERSION}"
+ARCHIVE="draught-${TARGET}.tar.gz"
+
+curl --fail --location --remote-name "${BASE_URL}/${ARCHIVE}"
+curl --fail --location --remote-name "${BASE_URL}/${ARCHIVE}.sha256"
+```
+
+Verify the downloaded archive on Linux:
+
+```sh
+sha256sum --check "${ARCHIVE}.sha256"
+```
+
+On macOS, verify it with:
+
+```sh
+shasum -a 256 --check "${ARCHIVE}.sha256"
+```
+
+Install it into a user-owned executable directory:
+
+```sh
+tar -xzf "${ARCHIVE}"
+mkdir -p "$HOME/.local/bin"
+install -m 755 "draught_${TARGET}" "$HOME/.local/bin/draught"
+export PATH="$HOME/.local/bin:$PATH"
+draught --version
+```
+
+Add the PATH export to the shell startup file if `$HOME/.local/bin` is not already present. Continue with [Getting started](getting-started.md) to configure Ollama and select a model.
+
 ## Build requirements
 
 Native builds use the Elixir and OTP versions in `.tool-versions`, Burrito 1.6.0 from `mix.lock`, Zig 0.16.0, and XZ. Burrito's published 1.6.0 changelog specifies Zig 0.16.0; its README may describe an older Zig version.
@@ -17,6 +64,25 @@ MIX_TARGET=cli MIX_ENV=prod BURRITO_TARGET=macos_arm64 mix release draught
 Supported build targets are `macos_arm64`, `macos_x86_64`, `linux_arm64`, and `linux_x86_64`. The native workflow executes each artifact on its matching architecture before uploading an archive and SHA-256 checksum. These workflow artifacts are development builds, not published releases. Build and smoke success is required before a target is included in a release.
 
 The `cli` Mix target selects the executable application callback. The default target retains library and escript startup. The executable starts the runtime supervisors and dispatches one invocation synchronously from its callback. The entry point halts with the command's status; it does not return to Burrito's Elixir argument parser or retry the invocation automatically.
+
+## Build an escript from source
+
+The escript path requires the Elixir and Erlang/OTP versions declared by the project:
+
+```sh
+git clone https://github.com/ccarvalho-eng/draught.git
+cd draught
+mix setup
+mix escript.build
+./draught --version
+```
+
+Install the verified escript with the same user-owned path used for the native executable:
+
+```sh
+mkdir -p "$HOME/.local/bin"
+install -m 755 draught "$HOME/.local/bin/draught"
+```
 
 ## Maintainer checklist
 

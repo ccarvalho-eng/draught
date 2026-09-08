@@ -4,8 +4,8 @@
 [![Elixir](https://img.shields.io/badge/Elixir-1.18%2B-4B275F?style=flat-square&logo=elixir&logoColor=white)](mix.exs)
 [![Erlang/OTP](https://img.shields.io/badge/Erlang%2FOTP-27%20%7C%2029-D97B80?style=flat-square&logo=erlang&logoColor=white)](.github/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/Coverage-90%25%2B-2E7D32?style=flat-square)](mix.exs)
-[![Doc coverage](https://img.shields.io/badge/Doc%20coverage-100%25-1565C0?style=flat-square)](mix.exs)
-[![License](https://img.shields.io/badge/License-Apache--2.0-orange?style=flat-square&logo=apache&logoColor=white)](https://github.com/ccarvalho-eng/draught/blob/main/LICENSE)
+[![Doc coverage](https://img.shields.io/badge/Doc%20coverage-100%25-FD4F00?style=flat-square)](mix.exs)
+[![License](https://img.shields.io/badge/License-Apache--2.0-8CC8E8?style=flat-square&logo=apache&logoColor=white)](https://github.com/ccarvalho-eng/draught/blob/main/LICENSE)
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 

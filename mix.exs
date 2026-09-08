@@ -74,13 +74,35 @@ defmodule Draught.MixProject do
       draught: [
         steps: [&validate_release_target/1, :assemble, &Burrito.wrap/1],
         burrito: [
-          targets: [
-            macos_arm64: [os: :darwin, cpu: :aarch64],
-            macos_x86_64: [os: :darwin, cpu: :x86_64],
-            linux_arm64: [os: :linux, cpu: :aarch64],
-            linux_x86_64: [os: :linux, cpu: :x86_64]
-          ]
+          extra_steps: [
+            fetch: [pre: [Draught.Distribution.Burrito.MuslRuntime]]
+          ],
+          targets: burrito_targets()
         ]
+      ]
+    ]
+  end
+
+  defp burrito_targets do
+    runtime_archive = System.get_env("DRAUGHT_ERTS_ARCHIVE")
+    musl_archive = System.get_env("DRAUGHT_MUSL_ARCHIVE")
+
+    [
+      macos_arm64: [os: :darwin, cpu: :aarch64, custom_erts: runtime_archive],
+      macos_x86_64: [os: :darwin, cpu: :x86_64, custom_erts: runtime_archive],
+      linux_arm64: [
+        os: :linux,
+        cpu: :aarch64,
+        custom_erts: runtime_archive,
+        musl_archive: musl_archive,
+        musl_sha256: "6b558025200a5ed1308e2ce2675217afec71b6c5a9d561e52262ca948d59905e"
+      ],
+      linux_x86_64: [
+        os: :linux,
+        cpu: :x86_64,
+        custom_erts: runtime_archive,
+        musl_archive: musl_archive,
+        musl_sha256: "71c35316aff45bbfd243d8eb9bfc4a58b6eb97cee09514cd2030e145b68107fb"
       ]
     ]
   end

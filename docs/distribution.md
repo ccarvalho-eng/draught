@@ -6,6 +6,8 @@ Draught's native executable includes its Erlang runtime. Users do not need Elixi
 
 Native builds use the Elixir and OTP versions in `.tool-versions`, Burrito 1.6.0 from `mix.lock`, Zig 0.16.0, and XZ. Burrito's published 1.6.0 changelog specifies Zig 0.16.0; its README may describe an older Zig version.
 
+The native workflow pins the SHA-256 digest of every ERTS archive and Linux musl loader. It downloads these inputs over HTTPS into an isolated temporary directory and rejects changed bytes before Burrito receives them. The archives' embedded manifests identify OTP 28.4.1 and OpenSSL 3.5.5; each Linux manifest also identifies the matching content-addressed musl loader. A small Burrito build adapter rechecks that loader before embedding it because a local Linux ERTS archive bypasses Burrito's default loader step.
+
 ```sh
 MIX_TARGET=cli MIX_ENV=prod mix deps.get --check-locked
 MIX_TARGET=cli MIX_ENV=prod BURRITO_TARGET=macos_arm64 mix release draught
@@ -26,7 +28,7 @@ Before creating a GitHub release:
 
 1. Set the intended version in `mix.exs` and update `CHANGELOG.md`.
 2. Confirm the release commit is on `main` and all required quality and native jobs pass for that exact commit.
-3. Resolve every limitation identified under [Verification boundaries](#verification-boundaries), including the upstream runtime provenance gate.
+3. Confirm that the pinned runtime digests and embedded runtime manifests still match the intended OTP, OpenSSL, and musl versions.
 4. Download all four target archives and checksum files from the successful native run and verify each checksum.
 5. Verify the version and credential-free smoke contract for the extracted artifact on each matching operating system and architecture.
 6. Create the version tag from the verified commit, create the GitHub release from that tag, and attach only the verified archives and checksum files.
@@ -93,4 +95,4 @@ mix escript.uninstall draught
 
 The shared credential-free smoke checks cover version and help output, repeated startup, invalid-argument status, and structured diagnostics for an unavailable provider. Native smoke runs without a system BEAM on the executable search path. The same checks run against an escript with its required system runtime available.
 
-These packaging checks do not replace tool execution, interactive terminal, or real-model acceptance tests. Application dependencies, BEAM versions, and Zig are selected explicitly. Runner packages and upstream ERTS payloads are not currently digest-pinned, so builds are not bit-for-bit reproducible and development artifacts are not release-ready without an additional provenance gate.
+These packaging checks do not replace tool execution, interactive terminal, or real-model acceptance tests. Application dependencies, BEAM versions, Zig, ERTS archives, and Linux musl loaders are selected explicitly. Runner operating-system packages are not content-pinned, archive compression is not deterministic, and native builds are therefore not bit-for-bit reproducible.

@@ -24,16 +24,36 @@ jobs:
         include:
           - runner: ubuntu-24.04
             target: linux_x86_64
+            erts_url: "https://beam-machine-universal.b-cdn.net/OTP-28.4.1/linux/x86_64/any/otp_28.4.1_linux_any_x86_64.tar.gz?please-respect-my-bandwidth-costs=thank-you&openssl=3.5.5&musl=1.2.5"
+            erts_sha256: f2da7e74505a94848dee445f3db2b9411385b7d0b4eb25db50f82e1fcdcdea62
+            musl_url: "https://beam-machine-universal.b-cdn.net/musl/libc-musl-71c35316aff45bbfd243d8eb9bfc4a58b6eb97cee09514cd2030e145b68107fb.so?please-respect-my-bandwidth-costs=thank-you"
+            musl_sha256: 71c35316aff45bbfd243d8eb9bfc4a58b6eb97cee09514cd2030e145b68107fb
           - runner: ubuntu-24.04-arm
             target: linux_arm64
+            erts_url: "https://beam-machine-universal.b-cdn.net/OTP-28.4.1/linux/aarch64/any/otp_28.4.1_linux_any_aarch64.tar.gz?please-respect-my-bandwidth-costs=thank-you&openssl=3.5.5&musl=1.2.5"
+            erts_sha256: 7faccffeffadfc27a8e3cf0ac68d728bfd14cd321bea511aaf9f3934a647329d
+            musl_url: "https://beam-machine-universal.b-cdn.net/musl/libc-musl-6b558025200a5ed1308e2ce2675217afec71b6c5a9d561e52262ca948d59905e.so?please-respect-my-bandwidth-costs=thank-you"
+            musl_sha256: 6b558025200a5ed1308e2ce2675217afec71b6c5a9d561e52262ca948d59905e
           - runner: macos-15-intel
             target: macos_x86_64
+            erts_url: "https://beam-machine-universal.b-cdn.net/OTP-28.4.1/macos/universal/otp_28.4.1_macos_universal.tar.gz?please-respect-my-bandwidth-costs=thank-you&openssl=3.5.5&musl=1.2.5"
+            erts_sha256: 3fa9f8aad669e7fdfcceb5ce5de4235e96c3b55fb997b9ecd620529c3e3e086f
+            musl_url: ""
+            musl_sha256: ""
           - runner: macos-15
             target: macos_arm64
+            erts_url: "https://beam-machine-universal.b-cdn.net/OTP-28.4.1/macos/universal/otp_28.4.1_macos_universal.tar.gz?please-respect-my-bandwidth-costs=thank-you&openssl=3.5.5&musl=1.2.5"
+            erts_sha256: 3fa9f8aad669e7fdfcceb5ce5de4235e96c3b55fb997b9ecd620529c3e3e086f
+            musl_url: ""
+            musl_sha256: ""
     env:
       MIX_ENV: prod
       MIX_TARGET: cli
       BURRITO_TARGET: ${{ matrix.target }}
+      DRAUGHT_ERTS_URL: ${{ matrix.erts_url }}
+      DRAUGHT_ERTS_SHA256: ${{ matrix.erts_sha256 }}
+      DRAUGHT_MUSL_URL: ${{ matrix.musl_url }}
+      DRAUGHT_MUSL_SHA256: ${{ matrix.musl_sha256 }}
 
     steps:
       - name: Checkout
@@ -60,6 +80,45 @@ jobs:
       - name: Install macOS build dependency
         if: runner.os == 'macOS'
         run: brew list xz || brew install xz
+
+      - name: Fetch verified runtime inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          verify_sha256() {
+            local file="$1"
+            local expected="$2"
+            local actual
+
+            if command -v sha256sum >/dev/null 2>&1; then
+              actual=$(sha256sum "$file")
+            else
+              actual=$(shasum -a 256 "$file")
+            fi
+
+            actual=${actual%% *}
+
+            if [[ "$actual" != "$expected" ]]; then
+              echo "::error::SHA-256 verification failed for $(basename "$file")"
+              exit 1
+            fi
+          }
+
+          runtime_root=$(mktemp -d)
+          erts_archive="$runtime_root/erts.tar.gz"
+          curl --fail --location --proto '=https' --tlsv1.2 --retry 3 \
+            "$DRAUGHT_ERTS_URL" --output "$erts_archive"
+          verify_sha256 "$erts_archive" "$DRAUGHT_ERTS_SHA256"
+          echo "DRAUGHT_ERTS_ARCHIVE=$erts_archive" >> "$GITHUB_ENV"
+
+          if [[ -n "$DRAUGHT_MUSL_URL" ]]; then
+            musl_archive="$runtime_root/musl-runtime.so"
+            curl --fail --location --proto '=https' --tlsv1.2 --retry 3 \
+              "$DRAUGHT_MUSL_URL" --output "$musl_archive"
+            verify_sha256 "$musl_archive" "$DRAUGHT_MUSL_SHA256"
+            echo "DRAUGHT_MUSL_ARCHIVE=$musl_archive" >> "$GITHUB_ENV"
+          fi
 
       - name: Fetch locked dependencies
         run: mix deps.get --check-locked

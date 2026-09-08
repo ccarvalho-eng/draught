@@ -13,7 +13,7 @@ Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. R
 
 ### Access without a paid model subscription
 
-Subscription fees and metered APIs can put coding assistance out of reach. Draught aims to make agentic work accessible to developers who cannot afford premium tools, using freely available models on their own machines through Ollama. Local inference avoids per-request API charges, but still requires suitable hardware, electricity, and a model whose license permits the intended use. Provider-agnostic interfaces leave that choice with the user.
+Subscription fees and metered APIs can put coding assistance out of reach. Draught aims to make agentic work accessible to developers who cannot afford premium tools, using freely available models on their own machines through Ollama. Local inference avoids per-request API charges, but requires suitable hardware and a model whose license permits the intended use. Provider-agnostic interfaces leave that choice with the user.
 
 ### An OTP foundation for agents
 

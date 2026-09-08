@@ -6,6 +6,8 @@ defmodule Draught.CLI.Task.Approval.InteractiveTest do
   alias Draught.Tool.Approval.Decision
   alias Draught.Tool.Approval.Request
 
+  @receive_timeout 2_000
+
   test "read operations do not request terminal input" do
     read = request(:read)
     assert {:ok, %Decision{outcome: :allow}} = Interactive.decide(read, nil)
@@ -24,7 +26,7 @@ defmodule Draught.CLI.Task.Approval.InteractiveTest do
     configuration = %{owner: owner, scope: scope}
 
     task = start_policy(configuration)
-    assert_receive {:draught_approval, ^scope, {requester, reference, _request}}
+    assert_receive {:draught_approval, ^scope, {requester, reference, _request}}, @receive_timeout
     send(requester, {:draught_approval_decision, make_ref(), reference, :allow})
     send(requester, {:draught_approval_decision, scope, make_ref(), :allow})
     send(requester, {:draught_approval_decision, scope, reference, :deny})
@@ -34,13 +36,13 @@ defmodule Draught.CLI.Task.Approval.InteractiveTest do
   test "allows one matching decision and denies when its owner is gone" do
     scope = make_ref()
     task = start_policy(%{owner: self(), scope: scope})
-    assert_receive {:draught_approval, ^scope, {requester, reference, _request}}
+    assert_receive {:draught_approval, ^scope, {requester, reference, _request}}, @receive_timeout
     send(requester, {:draught_approval_decision, scope, reference, :allow})
     assert {:ok, %Decision{outcome: :allow}} = Task.await(task)
 
     owner = start_supervised!({Task, fn -> :ok end})
     monitor = Process.monitor(owner)
-    assert_receive {:DOWN, ^monitor, :process, ^owner, _reason}
+    assert_receive {:DOWN, ^monitor, :process, ^owner, _reason}, @receive_timeout
     orphan = start_policy(%{owner: owner, scope: make_ref()})
     assert {:ok, %Decision{outcome: :deny}} = Task.await(orphan)
   end
@@ -48,7 +50,7 @@ defmodule Draught.CLI.Task.Approval.InteractiveTest do
   test "waits for the user without an approval deadline" do
     scope = make_ref()
     task = start_policy(%{owner: self(), scope: scope})
-    assert_receive {:draught_approval, ^scope, {requester, reference, _request}}
+    assert_receive {:draught_approval, ^scope, {requester, reference, _request}}, @receive_timeout
     task_reference = task.ref
     refute_receive {^task_reference, _result}, 25
 

@@ -9,19 +9,39 @@ Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. R
 
 ## Installation
 
-Build and install the command from a source checkout:
+Download the archive for the current operating system and architecture from the `v0.1.0-beta.1` release. The available targets are:
+
+| System | Architecture | Target |
+| --- | --- | --- |
+| macOS | Apple silicon | `macos_arm64` |
+| macOS | Intel | `macos_x86_64` |
+| Linux | ARM64 | `linux_arm64` |
+| Linux | x86_64 | `linux_x86_64` |
+
+Set `TARGET` to the matching value, then verify and install the archive:
 
 ```shell
-git clone https://github.com/ccarvalho-eng/draught.git
-cd draught
-mix setup
-mix escript.build
+VERSION=0.1.0-beta.1
+TARGET=macos_arm64
+BASE_URL="https://github.com/ccarvalho-eng/draught/releases/download/v${VERSION}"
+ARCHIVE="draught-${TARGET}.tar.gz"
+
+curl --fail --location --remote-name "${BASE_URL}/${ARCHIVE}"
+curl --fail --location --remote-name "${BASE_URL}/${ARCHIVE}.sha256"
+
+if command -v sha256sum >/dev/null 2>&1; then
+  sha256sum --check "${ARCHIVE}.sha256"
+else
+  shasum -a 256 --check "${ARCHIVE}.sha256"
+fi
+
+tar -xzf "${ARCHIVE}"
 mkdir -p "$HOME/.local/bin"
-install -m 755 draught "$HOME/.local/bin/draught"
+install -m 755 "draught_${TARGET}" "$HOME/.local/bin/draught"
 "$HOME/.local/bin/draught" --version
 ```
 
-This method requires Elixir and Erlang/OTP. Add `$HOME/.local/bin` to `PATH` to invoke the command as `draught`. See [Getting started](docs/getting-started.md) for Ollama and model setup, and [Distribution](docs/distribution.md) for native builds, upgrades, and uninstalling.
+The native executable includes its Erlang runtime; Elixir and Erlang/OTP are not required. Add `$HOME/.local/bin` to `PATH` to invoke the command as `draught`. See [Getting started](docs/getting-started.md) for Ollama and model setup, and [Distribution](docs/distribution.md) for source builds, upgrades, and uninstalling.
 
 ## Motivation
 

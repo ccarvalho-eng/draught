@@ -50,6 +50,8 @@ The command boundary enforces process timeout, output limits, explicit cancellat
 
 The default registry contains no web tools. Passing an explicit web capability to `Draught.Tool.Builtin.registry/1` adds only its enabled operations. The default execution policy admits read risk only. Read tools do not request a second approval. A caller must first admit write, execute, or network risk in the execution policy; when admitted, the default approval policy returns `approval_required` for that effectful operation. Injected approval policies can allow or deny those requests.
 
+Web tools are opt-in runtime capabilities; CLI web execution is unavailable.
+
 Approval requests contain the call identifier, tool name, declared target, risk, and a bounded argument summary. They exclude raw argument maps and file replacement content. A denial is returned as a normal tool result before workspace resolution, mutation queueing, or process startup.
 
 ```mermaid

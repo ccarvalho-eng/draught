@@ -67,6 +67,7 @@ defmodule Draught.MixProject do
       source_url: @source_url,
       extras: [
         "README.md",
+        {"docs/index.md", [filename: "guides", title: "Documentation"]},
         "docs/getting-started.md",
         "docs/cli.md",
         "docs/configuration.md",

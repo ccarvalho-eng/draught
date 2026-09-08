@@ -1,25 +1,36 @@
 defmodule Draught.CLI.Task.Dependencies do
   @moduledoc """
-  Holds effect boundaries used by one-shot task execution.
+  Holds effect boundaries used by anonymous and named task execution.
+
+  An optional approval adapter replaces the risk-derived default without
+  expanding the execution policy's allowed risks. Adapter configuration is
+  invocation-local and is never retained in session bindings or journals.
   """
 
   alias Draught.CLI.Session.Identifier
   alias Draught.CLI.Task.Provider.Local
   alias Draught.Provider.OpenAI.Transport
+  alias Draught.Tool.Approval.Policy.Adapter
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
 
   @enforce_keys [:identifier, :provider]
-  defstruct [:identifier, :provider]
+  defstruct [:approval, :identifier, :provider]
 
   @type identifier_generator :: (-> {:ok, String.t()} | {:error, term()})
   @type provider :: {module(), term()}
-  @type t :: %__MODULE__{identifier: identifier_generator(), provider: provider()}
+  @type t :: %__MODULE__{
+          approval: Draught.Tool.Approval.policy() | nil,
+          identifier: identifier_generator(),
+          provider: provider()
+        }
 
   @doc "Builds task dependencies from explicit overrides and shared discovery HTTP."
   @spec new(map() | keyword(), module()) :: Error.result(t())
   def new(attributes, discovery_http) do
-    with {:ok, normalized} <- Attributes.normalize(attributes, [:identifier, :provider]),
+    with {:ok, normalized} <-
+           Attributes.normalize(attributes, [:approval, :identifier, :provider]),
+         {:ok, approval} <- approval(Map.get(normalized, :approval)),
          {:ok, identifier} <-
            identifier(Map.get(normalized, :identifier, &Identifier.generate/0)),
          {:ok, provider} <-
@@ -32,7 +43,21 @@ defmodule Draught.CLI.Task.Dependencies do
                ]
              })
            ) do
-      {:ok, %__MODULE__{identifier: identifier, provider: provider}}
+      {:ok, %__MODULE__{approval: approval, identifier: identifier, provider: provider}}
+    end
+  end
+
+  defp approval(nil) do
+    {:ok, nil}
+  end
+
+  defp approval(policy) do
+    case Adapter.validate(policy) do
+      {:ok, module, configuration} ->
+        {:ok, {module, configuration}}
+
+      {:error, _error} ->
+        Error.single([:approval], :invalid_value, "must implement the approval policy boundary")
     end
   end
 

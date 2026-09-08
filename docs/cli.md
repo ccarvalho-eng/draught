@@ -64,6 +64,21 @@ JSONL emits one record per visible event followed by exactly one terminal record
 
 When the final provider iteration emitted no visible text delta, the terminal record carries the final assistant `content` and sets `content_streamed` to `false`. If the terminal response extends already streamed text, `content` contains only the missing suffix. A terminal response that disagrees with visible streamed text fails closed. When usage is available and representable, `usage` contains canonical token counts. A normalized task failure is written to standard error in text mode or as the terminal standard-output record in JSONL mode. Setup failures use the same terminal envelope without reflecting rejected configuration values.
 
+## Application-supplied approval policies
+
+Applications embedding the CLI task APIs can pass an approval adapter through `Draught.CLI.Task.Dependencies.new/2` or the `task` overrides of `Draught.CLI.Dependencies.new/1`:
+
+```elixir
+{:ok, dependencies} =
+  Draught.CLI.Dependencies.new(
+    task: [approval: {MyApp.ApprovalPolicy, policy_configuration}]
+  )
+```
+
+The adapter implements `Draught.Tool.Approval.Policy` and receives only canonical, bounded approval metadata. An explicit dependency replaces the risk-derived default and any low-level preparation approval option. Omitting it or passing `nil` preserves existing defaults and explicit preparation options. The configured risk allowlist is checked first: an adapter cannot admit writes under `deny`, enable web access, change the workspace, or increase execution budgets. An injected policy can still deny a call under `allow`.
+
+Anonymous, named-create, and resumed tasks use the same preparation boundary. A resumed invocation supplies its own policy; adapter configuration and earlier grants are not restored from the journal or session binding. Approval waiting remains inside the tool timeout. This injection boundary does not add terminal prompts or a configuration-file setting.
+
 ## Named task execution
 
 Create a named session by supplying a task and a portable session identifier:

@@ -1,6 +1,10 @@
 defmodule Draught.CLI.Task.Setup do
   @moduledoc """
   Prepares provider, request, tools, and limits while retaining CLI failure categories.
+
+  An injected task approval policy takes precedence over a preparation option.
+  Without that dependency, explicit options and risk-derived defaults retain
+  their existing behavior. Risk and web authority always come from configuration.
   """
 
   alias Draught.CLI.Configuration
@@ -13,6 +17,8 @@ defmodule Draught.CLI.Task.Setup do
   @spec prepare(String.t(), Configuration.t(), String.t(), Dependencies.t(), keyword()) ::
           {:ok, Preparation.t()} | {:error, atom(), Draught.CLI.Task.error()}
   def prepare(prompt, configuration, workspace, dependencies, options \\ []) do
+    options = approval_options(options, dependencies.approval)
+
     with :ok <- web(configuration),
          {:ok, selection} <- provider(configuration, dependencies) do
       build_preparation(prompt, selection, workspace, configuration, options)
@@ -23,6 +29,14 @@ defmodule Draught.CLI.Task.Setup do
   @spec system_prompt() :: String.t()
   def system_prompt do
     Preparation.system_prompt()
+  end
+
+  defp approval_options(options, nil) do
+    options
+  end
+
+  defp approval_options(options, policy) do
+    Keyword.put(options, :approval, policy)
   end
 
   defp web(%Configuration{web: false}) do

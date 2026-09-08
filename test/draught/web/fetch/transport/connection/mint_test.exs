@@ -92,10 +92,13 @@ defmodule Draught.Web.Fetch.Transport.Connection.MintTest do
 
     target = target(context.port)
 
-    assert {:error, :timeout} =
-             Mint.request(target, {127, 0, 0, 1}, limits(1_024, 250), nil)
+    client =
+      Task.async(fn ->
+        Mint.request(target, {127, 0, 0, 1}, limits(1_024, 1_000), nil)
+      end)
 
-    assert_receive {:request, _request}
+    assert_receive {:request, _request}, 2_000
+    assert Task.await(client, 2_000) == {:error, :timeout}
     assert_receive {:closed_result, {:error, :closed}}, 1_000
     assert Task.await(server) == :ok
   end

@@ -7,7 +7,7 @@ defmodule Draught.CLI.UITest do
 
   test "separates the input area without speaker names or cursor controls" do
     assert render_input(:open, 12) == "\n╭───────────\n│ › "
-    assert render_input(:close, 12) == "╰───────────\n\n"
+    assert render_input(:close, 12) == "╰───────────\n"
 
     tool =
       false
@@ -54,6 +54,39 @@ defmodule Draught.CLI.UITest do
     assert output =~ "\e["
     assert String.ends_with?(output, "\e[0m ")
     assert Regex.replace(~r/\e\[[0-9;]*m/, output, "") == render_input(:open, 40)
+  end
+
+  test "renders the active model and workspace beneath submitted input" do
+    output =
+      state()
+      |> UI.prompt_context(40, false)
+      |> IO.iodata_to_binary()
+
+    assert output == "qwen3  ·  /workspace\n"
+    refute output =~ <<27>>
+  end
+
+  test "styles prompt context only when explicitly enabled" do
+    styled =
+      state()
+      |> UI.prompt_context(40, true)
+      |> IO.iodata_to_binary()
+
+    assert styled =~ "\e["
+    assert Regex.replace(~r/\e\[[0-9;]*m/, styled, "") == "qwen3  ·  /workspace\n"
+  end
+
+  test "bounds prompt context and sanitizes terminal-derived values" do
+    state = %{state() | model: "safe\e[31mhidden", workspace: "/workspace\nforged"}
+
+    output =
+      state
+      |> UI.prompt_context(20, false)
+      |> IO.iodata_to_binary()
+
+    assert output == "safehidden  ·  /wor…\n"
+    refute output =~ <<27>>
+    refute output =~ "\nforged"
   end
 
   test "renders a bounded unstyled session card" do

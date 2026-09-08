@@ -16,6 +16,24 @@ Supported build targets are `macos_arm64`, `macos_x86_64`, `linux_arm64`, and `l
 
 The `cli` Mix target selects the executable application callback. The default target retains library and escript startup. The executable starts the runtime supervisors and dispatches one invocation synchronously from its callback. The entry point halts with the command's status; it does not return to Burrito's Elixir argument parser or retry the invocation automatically.
 
+## Maintainer checklist
+
+The repository does not store generated executables. For each pull request and push to `main`, the `Native builds` workflow assembles a new executable from that revision for every supported target. No separate distribution update is needed after an ordinary merge.
+
+Use the workflow's manual dispatch when a branch needs to be rebuilt without a new commit. Select the branch, run the workflow, and confirm that every native matrix job and the shared quality workflow pass. Each native job uploads a target archive together with its SHA-256 checksum. Downloaded artifacts are temporary validation outputs and expire after 14 days.
+
+Before creating a GitHub release:
+
+1. Set the intended version in `mix.exs` and update `CHANGELOG.md`.
+2. Confirm the release commit is on `main` and all required quality and native jobs pass for that exact commit.
+3. Resolve every limitation identified under [Verification boundaries](#verification-boundaries), including the upstream runtime provenance gate.
+4. Download all four target archives and checksum files from the successful native run and verify each checksum.
+5. Verify the version and credential-free smoke contract for the extracted artifact on each matching operating system and architecture.
+6. Create the version tag from the verified commit, create the GitHub release from that tag, and attach only the verified archives and checksum files.
+7. Install through the documented user path in a clean environment and complete the initial Ollama and model-selection steps.
+
+Publishing is a manual maintainer action. A successful workflow does not create a tag, GitHub release, or permanent download automatically.
+
 ## Runtime files and configuration
 
 Burrito extracts its bundled runtime on first execution and reuses it on subsequent runs. The runtime cache is distinct from Draught configuration and sessions. `draught maintenance directory` reports the extracted runtime location; `draught maintenance uninstall` removes that runtime payload after confirmation.

@@ -26,6 +26,14 @@ Keep pull requests narrowly scoped. Separate refactoring from behavioral changes
 
 Quality checks are enforced. Fix findings at their source; add a narrowly scoped suppression only when the rule is demonstrably incorrect for the code and explain the exception beside it.
 
+## Native distribution
+
+Native executables are generated artifacts and are not committed. The `Native builds` workflow rebuilds and smokes all supported targets for every pull request and every push to `main`, so an ordinary source change does not require a separate Burrito update.
+
+Pay particular attention to the native results when changing application startup, CLI argument handling, dependencies, release configuration, runtime file locations, or `scripts/smoke-cli.sh`. To validate a branch again without changing it, open `Native builds` under GitHub Actions, choose **Run workflow**, select the branch, and start the run. Each successful matrix job provides one target archive and its SHA-256 checksum for 14 days.
+
+Do not treat workflow artifacts as a public release. Follow the maintainer checklist in [Native executable builds](docs/distribution.md#maintainer-checklist) before publishing them.
+
 ## Architecture expectations
 
 - Keep directory paths and module namespaces aligned.

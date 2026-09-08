@@ -81,11 +81,14 @@ defmodule Draught.CLI.Task.NamedTest do
                configuration,
                workspace,
                environment,
-               dependencies
+               dependencies,
+               "original instructions"
              )
 
     assert_receive {:provider_request, first_request}
-    assert [%System{}, %User{}] = first_request.messages
+
+    assert [%System{content: %Text{text: "original instructions"}}, %User{}] =
+             first_request.messages
 
     assert {:ok, %Response{}} =
              Named.run(
@@ -99,7 +102,13 @@ defmodule Draught.CLI.Task.NamedTest do
              )
 
     assert_receive {:provider_request, resumed_request}
-    assert [%System{}, %User{}, %Assistant{}, %User{}] = resumed_request.messages
+
+    assert [
+             %System{content: %Text{text: "original instructions"}},
+             %User{},
+             %Assistant{},
+             %User{}
+           ] = resumed_request.messages
 
     assert [%User{content: %Text{text: "Continue"}} | _messages] =
              Enum.reverse(resumed_request.messages)

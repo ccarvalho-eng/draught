@@ -19,6 +19,12 @@ defmodule Draught.CLI.Task.Setup do
     end
   end
 
+  @doc "Returns the built-in system instruction used when no fresh-task override is supplied."
+  @spec system_prompt() :: String.t()
+  def system_prompt do
+    Preparation.system_prompt()
+  end
+
   defp web(%Configuration{web: false}) do
     :ok
   end

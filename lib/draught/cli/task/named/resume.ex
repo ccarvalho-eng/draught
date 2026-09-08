@@ -3,40 +3,22 @@ defmodule Draught.CLI.Task.Named.Resume do
   Reconstructs a safely resumable named session and executes its next durable task turn.
   """
 
-  alias Draught.CLI.Session.Binding
-  alias Draught.CLI.Session.Binding.Local
   alias Draught.CLI.Task.Named.History
+  alias Draught.CLI.Task.Named.Input
   alias Draught.CLI.Task.Named.Lease
+  alias Draught.CLI.Task.Named.Resume.BindingState
   alias Draught.CLI.Task.Named.Resume.Validation
   alias Draught.CLI.Task.OneShot
-  alias Draught.CLI.Task.Preparation
   alias Draught.CLI.Task.Setup
+
   @doc "Resumes and executes one named turn through an explicit provider and stream mode."
-  @spec run_mode(term(), term(), term(), term(), term(), term(), term(), :complete | :stream) ::
+  @spec run_mode(Input.t(), Draught.CLI.Task.Stream.t(), :complete | :stream) ::
           {Draught.CLI.Task.result(), Draught.CLI.Task.Stream.t()}
-  def run_mode(
-        identifier,
-        prompt,
-        configuration,
-        workspace,
-        environment,
-        dependencies,
-        stream,
-        provider_mode
-      ) do
-    case Lease.open(:resume, workspace, identifier, environment) do
+  def run_mode(%Input{} = input, stream, provider_mode) do
+    case Lease.open(:resume, input.workspace, input.identifier, input.environment) do
       {:ok, store} ->
         Lease.run_observed(store, stream, fn ->
-          execute(
-            identifier,
-            prompt,
-            configuration,
-            workspace,
-            dependencies,
-            store,
-            stream,
-            provider_mode
-          )
+          execute(input, store, stream, provider_mode)
         end)
 
       {:error, _category, _error} = result ->
@@ -44,38 +26,30 @@ defmodule Draught.CLI.Task.Named.Resume do
     end
   end
 
-  defp execute(
-         identifier,
-         prompt,
-         configuration,
-         workspace,
-         dependencies,
-         store,
-         stream,
-         provider_mode
-       ) do
-    with {:ok, binding, journal, replay} <- load(identifier, configuration, store),
+  defp execute(input, store, stream, provider_mode) do
+    with {:ok, binding, journal, replay} <-
+           load(input.identifier, input.configuration, store),
          {:ok, preparation} <-
            prepare(
-             prompt,
+             input.prompt,
              binding.configuration,
-             workspace,
-             dependencies,
+             input.workspace,
+             input.dependencies,
              replay,
              journal,
              provider_mode
            ),
          :ok <- Validation.verify(binding.value, replay, preparation),
-         :ok <- upgrade(binding, preparation, store) do
-      OneShot.run_observed(identifier, preparation, stream)
+         :ok <- BindingState.upgrade(binding, preparation, store) do
+      OneShot.run_observed(input.identifier, preparation, stream)
     else
       {:error, _category, _error} = result -> {result, stream}
     end
   end
 
   defp load(identifier, configuration, store) do
-    with {:ok, binding} <- read_binding(store),
-         {:ok, bound} <- bind_configuration(binding, configuration),
+    with {:ok, binding} <- BindingState.read(store),
+         {:ok, bound} <- BindingState.bind_configuration(binding, configuration),
          {:ok, journal} <- History.journal(identifier, store),
          {:ok, replay} <- History.replay(journal),
          :ok <- Validation.resumable(replay) do
@@ -97,36 +71,5 @@ defmodule Draught.CLI.Task.Named.Resume do
       journal: journal,
       provider_mode: provider_mode
     )
-  end
-
-  defp read_binding(store) do
-    case Local.read(store.paths) do
-      {:ok, binding} -> {:ok, binding}
-      {:error, error} -> {:error, :session, error}
-    end
-  end
-
-  defp bind_configuration(binding, configuration) do
-    case Binding.bind_configuration(binding, configuration) do
-      {:ok, bound} -> {:ok, bound}
-      {:error, error} -> {:error, :session, error}
-    end
-  end
-
-  defp upgrade(%{value: %Binding{version: 2}}, %Preparation{}, _store) do
-    :ok
-  end
-
-  defp upgrade(
-         %{value: %Binding{version: 1}, configuration: configuration},
-         %Preparation{} = preparation,
-         store
-       ) do
-    upgraded = Binding.new(configuration, preparation)
-
-    case Local.replace(store.paths, upgraded) do
-      :ok -> :ok
-      {:error, error} -> {:error, :session, error}
-    end
   end
 end

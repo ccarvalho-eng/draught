@@ -41,7 +41,7 @@ Help and version invocations cannot be combined with operational options. `docto
 
 ## Anonymous task execution
 
-`draught "TASK"` resolves configuration, constructs the selected provider, and prepares the standard coding-tool registry for the current working directory. It then starts a temporary Draught session with journaling disabled, runs one turn through the bounded agent runner, waits for the terminal result, and stops the session.
+`draught "TASK"` resolves configuration, loads the optional bounded `AGENTS.md` guidance, constructs the selected provider, and prepares the standard coding-tool registry for the current working directory. It then starts a temporary Draught session with journaling disabled, runs one turn through the bounded agent runner, waits for the terminal result, and stops the session.
 
 The command is anonymous in the sense that it has no user-selected session identifier and retains no CLI conversation history. A subsequent command starts a separate task. If a tool effect completes before a later failure, timeout, cancellation, or process interruption, that effect remains committed. The one-shot command does not attempt rollback and does not retain a task journal.
 
@@ -78,9 +78,9 @@ Continue it with another task:
 draught --resume review "address the remaining test failure"
 ```
 
-Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the retained canonical conversation required by the provider. Streaming deltas are transient and are not journaled; the validated provider result remains authoritative for replay. A session is bound to its profile, provider connection, provider adapter, exact negotiated capability set, and exact model when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model. Bindings created before capability identity was introduced are upgraded atomically after their first verified resume.
+Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the retained canonical conversation required by the provider, including the effective system instruction loaded for the first turn. Streaming deltas are transient and are not journaled; the validated provider result remains authoritative for replay. Resume reuses the recorded system instruction without re-reading `AGENTS.md`. A session is bound to its profile, provider connection, provider adapter, exact negotiated capability set, and exact model when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model. Bindings created before capability identity was introduced are upgraded atomically after their first verified resume.
 
-Only a session whose durable history ends at a successful assistant response can resume automatically. Interrupted, failed, malformed, oversized, unsafe, or concurrently leased session state fails closed. A second create with the same identifier is rejected. Bare `draught --resume ID` enters the prompt loop on a terminal and requires a task argument when standard output is redirected or JSONL is selected.
+Only a session whose durable history ends at a successful assistant response can resume automatically. Empty, interrupted, failed, malformed, oversized, unsafe, or concurrently leased session state fails closed. A second create with the same identifier is rejected. Bare `draught --resume ID` enters the prompt loop on a terminal and requires a task argument when standard output is redirected or JSONL is selected.
 
 ## Interactive sessions
 

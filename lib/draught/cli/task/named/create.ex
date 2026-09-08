@@ -6,40 +6,39 @@ defmodule Draught.CLI.Task.Named.Create do
   alias Draught.CLI.Session.Binding
   alias Draught.CLI.Session.Binding.Local
   alias Draught.CLI.Task.Named.History
+  alias Draught.CLI.Task.Named.Input
   alias Draught.CLI.Task.Named.Lease
   alias Draught.CLI.Task.OneShot
   alias Draught.CLI.Task.Setup
+
   @doc "Creates and executes one named turn through an explicit provider and stream mode."
-  @spec run_mode(term(), term(), term(), term(), term(), term(), term(), :complete | :stream) ::
+  @spec run_mode(Input.t(), Draught.CLI.Task.Stream.t(), :complete | :stream) ::
           {Draught.CLI.Task.result(), Draught.CLI.Task.Stream.t()}
-  def run_mode(
-        identifier,
-        prompt,
-        configuration,
-        workspace,
-        environment,
-        dependencies,
-        stream,
-        provider_mode
-      ) do
+  def run_mode(%Input{} = input, stream, provider_mode) do
     with {:ok, preparation} <-
-           Setup.prepare(prompt, configuration, workspace, dependencies,
-             provider_mode: provider_mode
+           Setup.prepare(
+             input.prompt,
+             input.configuration,
+             input.workspace,
+             input.dependencies,
+             provider_mode: provider_mode,
+             system_prompt: input.system_prompt
            ),
-         {:ok, store} <- Lease.open(:create, workspace, identifier, environment) do
+         {:ok, store} <-
+           Lease.open(:create, input.workspace, input.identifier, input.environment) do
       Lease.run_observed(store, stream, fn ->
-        initialize(identifier, configuration, preparation, store, stream)
+        initialize(input, preparation, store, stream)
       end)
     else
       {:error, _category, _error} = result -> {result, stream}
     end
   end
 
-  defp initialize(identifier, configuration, preparation, store, stream) do
-    binding = Binding.new(configuration, preparation)
+  defp initialize(input, preparation, store, stream) do
+    binding = Binding.new(input.configuration, preparation)
 
     case Local.create(store.paths, binding) do
-      :ok -> execute(identifier, preparation, store, stream)
+      :ok -> execute(input.identifier, preparation, store, stream)
       {:error, error} -> {Lease.abort(store, error), stream}
     end
   end

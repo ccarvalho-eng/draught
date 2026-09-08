@@ -4,9 +4,9 @@ defmodule Draught.CLI.Task.Command do
   """
 
   alias Draught.CLI.Command
-  alias Draught.CLI.Configuration.Error
   alias Draught.CLI.Configuration.Loader
   alias Draught.CLI.Dependencies
+  alias Draught.CLI.Instructions
   alias Draught.CLI.Output
   alias Draught.CLI.Task
   alias Draught.CLI.Task.Command.Result
@@ -34,7 +34,7 @@ defmodule Draught.CLI.Task.Command do
         {result, observed} = task(invocation, configuration, workspace, dependencies, stream)
         Result.emit(result, observed)
 
-      {:error, %Error{} = error} ->
+      {:error, error} ->
         error
         |> Output.configuration_error(invocation.output)
         |> Writer.emit(:stderr, :usage, dependencies)
@@ -48,13 +48,20 @@ defmodule Draught.CLI.Task.Command do
          dependencies,
          stream
        ) do
-    Task.run_observed(
-      invocation.prompt,
-      configuration,
-      workspace,
-      dependencies.task,
-      stream
-    )
+    case fresh_instruction(workspace, dependencies.system) do
+      {:ok, system_prompt} ->
+        Task.run_observed(
+          invocation.prompt,
+          configuration,
+          workspace,
+          dependencies.task,
+          stream,
+          system_prompt
+        )
+
+      {:error, error} ->
+        {{:error, :execution, error}, stream}
+    end
   end
 
   defp task(
@@ -65,16 +72,22 @@ defmodule Draught.CLI.Task.Command do
          stream
        )
        when is_binary(identifier) do
-    Named.run_observed(
-      :create,
-      identifier,
-      invocation.prompt,
-      configuration,
-      workspace,
-      environment(dependencies.system),
-      dependencies.task,
-      stream
-    )
+    case fresh_instruction(workspace, dependencies.system) do
+      {:ok, system_prompt} ->
+        Named.create_observed(
+          identifier,
+          invocation.prompt,
+          configuration,
+          workspace,
+          environment(dependencies.system),
+          dependencies.task,
+          stream,
+          system_prompt
+        )
+
+      {:error, error} ->
+        {{:error, :execution, error}, stream}
+    end
   end
 
   defp task(
@@ -99,5 +112,9 @@ defmodule Draught.CLI.Task.Command do
 
   defp environment({system, configuration}) do
     system.environment(configuration)
+  end
+
+  defp fresh_instruction(workspace, system) do
+    Instructions.load(workspace, system)
   end
 end

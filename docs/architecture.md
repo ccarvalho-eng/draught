@@ -184,6 +184,35 @@ The CLI streaming boundary preserves these invariants:
 - An output failure cancels the active turn; execution does not continue after the interface loses its result channel.
 - Visible streamed text must be an exact prefix of the retained final response; contradictory output fails closed.
 
+### Task instruction boundary
+
+`AGENTS.md` guidance affects only the canonical system message for a fresh task. It is loaded through the same bounded filesystem adapter used by CLI configuration, then validated and framed as JSON data. Configuration and executable authority follow independent paths into task preparation.
+
+```mermaid
+flowchart LR
+  UserFile[User AGENTS.md] --> Loader[Bounded instruction loader]
+  WorkspaceFile[Workspace-root AGENTS.md] --> Loader
+  Loader --> Bundle[Ordered validated bundle]
+  Bundle --> Message[Canonical system message]
+  Message --> Fresh[Fresh task preparation]
+  Fresh --> Journal[Journal turn_started]
+  Journal --> Replay[Named-session replay]
+
+  Configuration[Validated configuration] --> Authority[Tools, approvals, web, limits]
+  Authority --> Fresh
+  Bundle -. cannot modify .-> Authority
+  Replay -. does not re-read .-> Loader
+```
+
+The instruction boundary preserves these invariants:
+
+- Only the user configuration location and selected workspace root are read; ancestor search and includes are not supported.
+- User guidance precedes workspace guidance, with a 32 KiB combined raw-content limit.
+- Guidance must be valid UTF-8 without null bytes and must come from regular non-symbolic-link files.
+- The bundle is encoded as data and never parsed into configuration or runtime capabilities.
+- Named sessions retain the first durably journaled system message and do not load changed guidance during resume.
+- An empty named-session journal has no authoritative instruction snapshot and is not automatically resumable.
+
 ## Agent execution
 
 The runtime is the only layer that coordinates a model with tools. Model output is treated as a proposal: it cannot directly invoke an effect, grant itself capabilities, or bypass approval policy.

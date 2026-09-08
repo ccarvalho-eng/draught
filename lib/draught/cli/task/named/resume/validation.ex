@@ -12,7 +12,7 @@ defmodule Draught.CLI.Task.Named.Resume.Validation do
   @doc "Checks that replay ended at a safe automatic continuation boundary."
   @spec resumable(Replay.t()) :: :ok | {:error, :session, Draught.CLI.Task.error()}
   def resumable(%Replay{terminal: :empty}) do
-    :ok
+    {:error, :session, Failure.not_resumable()}
   end
 
   def resumable(%Replay{
@@ -43,10 +43,6 @@ defmodule Draught.CLI.Task.Named.Resume.Validation do
 
   defp closed_history(_messages) do
     {:error, :session, Failure.not_resumable()}
-  end
-
-  defp verify_replay(%Replay{terminal: :empty}, %Preparation{}) do
-    :ok
   end
 
   defp verify_replay(%Replay{} = replay, %Preparation{} = preparation) do

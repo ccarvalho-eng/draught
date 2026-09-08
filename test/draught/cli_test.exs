@@ -654,6 +654,9 @@ defmodule Draught.CLITest do
     request_edit()
     assert_receive {:cli_output, :stderr, preview}, @receive_timeout
     assert preview =~ "Approval required"
+    assert preview =~ "Target: sample.txt"
+    assert preview =~ "Reason: path; expected: 6 bytes; replacement: 5 bytes"
+    assert preview =~ "Risk: write"
     assert preview =~ "Operation (JSON):"
     assert preview =~ ~s("expected": "before")
     assert preview =~ ~s("replacement": "after")

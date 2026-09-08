@@ -10,27 +10,43 @@ defmodule Draught.Execution.BoundedTask.StreamTest do
 
     effect = fn relay ->
       send(owner, {:provider, self()})
+
+      receive do
+        :deliver -> :ok
+      end
+
       :ok = relay.(:event)
       {:ok, :late}
     end
 
     sink = fn :event ->
-      Process.sleep(100)
-      :ok
+      send(owner, {:sink_blocked, self()})
+
+      receive do
+        :release -> :ok
+      end
     end
 
-    assert Stream.run(
-             effect,
-             sink,
-             20,
-             1_024,
-             timeout,
-             Runtime.provider_crashed(),
-             Runtime.provider_output_too_large()
-           ) == {:error, timeout}
+    stream =
+      Task.async(fn ->
+        Stream.run(
+          effect,
+          sink,
+          2_000,
+          1_024,
+          timeout,
+          Runtime.provider_crashed(),
+          Runtime.provider_output_too_large()
+        )
+      end)
 
-    assert_receive {:provider, provider}
+    assert_receive {:provider, provider}, 500
+    Process.sleep(750)
+    send(provider, :deliver)
+    assert_receive {:sink_blocked, sink}, 500
+    assert Task.await(stream, 1_600) == {:error, timeout}
     refute Process.alive?(provider)
+    refute Process.alive?(sink)
   end
 
   test "does not let the provider advance before sink acknowledgement" do

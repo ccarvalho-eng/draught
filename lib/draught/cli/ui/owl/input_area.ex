@@ -22,7 +22,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
       "\n",
       decorate("│ ", :light_black, styled?),
       decorate("›", [:cyan, :bright], styled?),
-      "  "
+      " "
     ]
   end
 

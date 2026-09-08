@@ -43,7 +43,7 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
     def write(stream, content, configuration) do
       text = IO.iodata_to_binary(content)
       send(configuration.owner, {:output, stream, text})
-      opening? = String.ends_with?(text, "›  ")
+      opening? = String.ends_with?(text, "› ")
 
       write_result(configuration.failure == opening?)
     end
@@ -88,7 +88,7 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
   test "frames a line before returning its parsed command" do
     dependencies = dependencies({:ok, "/exit\n"})
     assert {:ok, {:ok, {:command, :exit, nil}}} = Terminal.read(state(), dependencies)
-    assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ ›  "}
+    assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ › "}
     assert_receive :input_read
     assert_receive {:output, :stdout, "╰──────────╯\n\n"}
   end
@@ -96,7 +96,7 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
   test "does not read any input when the opening output fails" do
     dependencies = dependencies({:ok, "unread"}, true)
     assert {:error, :write, 70} = Terminal.read(state(), dependencies)
-    assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ ›  "}
+    assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ › "}
     refute_receive :input_read
     refute_receive {:output, _, _}
   end
@@ -119,7 +119,7 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
     for result <- [:eof, :interrupted, {:error, :io}] do
       dependencies = dependencies(result)
       assert ^result = Terminal.read(state(), dependencies)
-      assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ ›  "}
+      assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ › "}
       assert_receive :input_read
       assert_receive {:output, :stdout, "\n╰──────────╯\n\n"}
     end

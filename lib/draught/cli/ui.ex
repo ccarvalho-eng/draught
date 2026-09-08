@@ -33,9 +33,9 @@ defmodule Draught.CLI.UI do
       "  /rename NAME   Change the session display name\n",
       "  /archive [ID]  Archive a session\n",
       "  /restore [ID]  Restore an archived session\n",
+      "  /model [REF]   List or select a model by number or exact name\n",
       "  /exit          Close the interactive session\n",
       "\nReserved commands:\n",
-      "  /model         Inspect or select a model\n",
       "  /provider      Inspect or select a provider\n",
       "  /permissions   Inspect the approval policy\n",
       "  /web           Inspect web capability state\n",
@@ -63,7 +63,7 @@ defmodule Draught.CLI.UI do
       "\n  Provider: ",
       safe(state.provider),
       "\n  Model: ",
-      safe(state.model),
+      model(state.model),
       "\n  Workspace: ",
       safe(state.workspace),
       "\n  Web: ",
@@ -102,6 +102,48 @@ defmodule Draught.CLI.UI do
   @spec unavailable_command(atom()) :: iodata()
   def unavailable_command(command) when is_atom(command) do
     ["/", Atom.to_string(command), " is not available yet.\n"]
+  end
+
+  @doc "Renders a bounded compatible-model list with its current selection."
+  @spec models([String.t()], String.t() | nil) :: iodata()
+  def models(models, current_model) do
+    ["Compatible models:\n", model_lines(models, current_model)]
+  end
+
+  @doc "Renders a completed interactive model selection."
+  @spec model_selected(String.t()) :: iodata()
+  def model_selected(selected_model) do
+    ["Selected model ", safe(selected_model), ".\n"]
+  end
+
+  @doc "Renders a bounded model command failure and safe next action."
+  @spec model_error(term()) :: iodata()
+  def model_error(%Normalized{} = error) do
+    ["Model command failed (", safe(error.code), "): ", safe(error.message), hint(error.hint)]
+  end
+
+  def model_error(:model_required) do
+    "Select a model with /model before starting a task.\n"
+  end
+
+  def model_error(:persisted_model) do
+    "The model is fixed for this persisted session. Run /new before selecting another model.\n"
+  end
+
+  def model_error(:not_found) do
+    "Model was not found. Run /model to inspect compatible models.\n"
+  end
+
+  def model_error(:model_catalog_unavailable) do
+    "This provider does not expose a compatible-model catalog. Select an exact model name.\n"
+  end
+
+  def model_error(:model_list_required) do
+    "Run /model before selecting a model by number.\n"
+  end
+
+  def model_error(_reason) do
+    "Model command could not be completed.\n"
   end
 
   @doc "Renders bounded catalog entries with explicit current and availability state."
@@ -231,6 +273,30 @@ defmodule Draught.CLI.UI do
 
   defp current(false) do
     "  "
+  end
+
+  defp model_lines(models, current_model) do
+    models
+    |> Enum.with_index(1)
+    |> Enum.map(fn {entry, position} -> model_line(entry, current_model, position) end)
+  end
+
+  defp model_line(entry, current_model, position) do
+    [
+      Integer.to_string(position),
+      ". ",
+      current(entry == current_model),
+      safe(entry),
+      "\n"
+    ]
+  end
+
+  defp model(nil) do
+    "selection required"
+  end
+
+  defp model(value) do
+    safe(value)
   end
 
   defp session_details(%Entry{availability: :unavailable}) do

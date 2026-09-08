@@ -80,6 +80,42 @@ defmodule Draught.CLI.Interactive.StateTest do
     assert {:error, :busy} = State.select(running, selected)
   end
 
+  test "selects a model only for an idle unpersisted session" do
+    current = state()
+
+    assert {:ok, selected} = State.select_model(current, "deepseek-r1")
+    assert selected.model == "deepseek-r1"
+
+    assert {:ok, running} = State.start_turn(current, "work")
+    assert {:error, :busy} = State.select_model(running, "deepseek-r1")
+
+    assert {:error, :persisted_model} =
+             current
+             |> State.persisted()
+             |> State.select_model("deepseek-r1")
+
+    assert {:error, :invalid_model} = State.select_model(current, "")
+  end
+
+  test "permits an unresolved model while interactive selection is required" do
+    assert {:ok, state} =
+             State.new(
+               session_id: "session-01",
+               provider: "ollama",
+               model: nil,
+               workspace: "/workspace",
+               web: false
+             )
+
+    assert state.model == nil
+    assert State.start_turn(state, "work") == {:error, :model_required}
+    assert State.displayed_models(state) == {:error, :model_list_required}
+
+    assert {:ok, displayed} = State.display_models(state, ["qwen3", "deepseek-r1"])
+    assert State.displayed_models(displayed) == {:ok, ["qwen3", "deepseek-r1"]}
+    assert State.display_models(state, [""]) == {:error, :invalid_model_catalog}
+  end
+
   defp state do
     {:ok, state} =
       State.new(

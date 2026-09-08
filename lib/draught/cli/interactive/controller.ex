@@ -10,7 +10,8 @@ defmodule Draught.CLI.Interactive.Controller do
   alias Draught.CLI.Command.Invocation
   alias Draught.CLI.Configuration
   alias Draught.CLI.Dependencies
-  alias Draught.CLI.Interactive.Session.Command
+  alias Draught.CLI.Interactive.Model
+  alias Draught.CLI.Interactive.Session
   alias Draught.CLI.Interactive.Session.Doctor
   alias Draught.CLI.Interactive.Session.Terminal
   alias Draught.CLI.Interactive.State
@@ -63,13 +64,33 @@ defmodule Draught.CLI.Interactive.Controller do
   end
 
   defp handle({:ok, {:command, :doctor, nil}}, state, configuration, invocation, dependencies) do
-    doctor_invocation = %{invocation | command: :doctor, prompt: nil, resume: nil, session: nil}
+    doctor_invocation = %{
+      invocation
+      | command: :doctor,
+        model: state.model,
+        prompt: nil,
+        resume: nil,
+        session: nil
+    }
+
     status = Doctor.run(doctor_invocation, dependencies)
     continue_after(status, state, configuration, invocation, dependencies)
   end
 
   defp handle({:ok, {:prompt, prompt}}, state, configuration, invocation, dependencies) do
     run_turn(prompt, state, configuration, invocation, dependencies)
+  end
+
+  defp handle(
+         {:ok, {:command, :model, argument}},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    argument
+    |> Model.Command.run(state, configuration, dependencies)
+    |> handle_model_result(state, configuration, invocation, dependencies)
   end
 
   defp handle(
@@ -81,7 +102,7 @@ defmodule Draught.CLI.Interactive.Controller do
        )
        when command in @session_commands do
     command
-    |> Command.run(argument, state, configuration, invocation, dependencies)
+    |> Session.Command.run(argument, state, configuration, invocation, dependencies)
     |> handle_session_result(state, configuration, invocation, dependencies)
   end
 
@@ -125,6 +146,16 @@ defmodule Draught.CLI.Interactive.Controller do
       {:ok, status, next_state} ->
         close_after_failure(status, next_state, dependencies)
 
+      {:error, :model_required} ->
+        continue(
+          {:model_error, :model_required},
+          state,
+          configuration,
+          invocation,
+          dependencies,
+          :stderr
+        )
+
       {:error, _reason} ->
         continue(
           :terminal_error,
@@ -135,6 +166,39 @@ defmodule Draught.CLI.Interactive.Controller do
           :stderr
         )
     end
+  end
+
+  defp handle_model_result(
+         {:ok, next_state, view},
+         _state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    continue(
+      {:model_view, view},
+      next_state,
+      configuration,
+      invocation,
+      dependencies
+    )
+  end
+
+  defp handle_model_result(
+         {:error, reason},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    continue(
+      {:model_error, reason},
+      state,
+      configuration,
+      invocation,
+      dependencies,
+      :stderr
+    )
   end
 
   defp close_after_failure(status, state, dependencies) do

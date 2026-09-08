@@ -10,9 +10,9 @@ defmodule Draught.CLI.Interactive.Startup do
   alias Draught.CLI.Configuration
   alias Draught.CLI.Configuration.Loader
   alias Draught.CLI.Dependencies
+  alias Draught.CLI.Interactive.Startup.Model
   alias Draught.CLI.Interactive.Startup.Resume
   alias Draught.CLI.Interactive.State
-  alias Draught.CLI.Task.Provider
   alias Draught.Session.Identifier
 
   @type category :: :configuration | :internal | :provider | :session
@@ -85,9 +85,16 @@ defmodule Draught.CLI.Interactive.Startup do
           Dependencies.t()
         ) :: result()
   def fresh(identifier, label, configuration, workspace, dependencies) do
-    with {:ok, selection} <- select_provider(configuration, dependencies),
+    with {:ok, model, model_catalog} <- resolve_model(configuration, dependencies),
          {:ok, state} <-
-           build_state(identifier, label, selection.model, configuration, workspace) do
+           build_state(
+             identifier,
+             label,
+             model,
+             model_catalog,
+             configuration,
+             workspace
+           ) do
       {:ok, state, configuration}
     end
   end
@@ -99,9 +106,9 @@ defmodule Draught.CLI.Interactive.Startup do
     end
   end
 
-  defp select_provider(configuration, dependencies) do
-    case Provider.build(configuration, dependencies.task.provider) do
-      {:ok, selection} -> {:ok, selection}
+  defp resolve_model(configuration, dependencies) do
+    case Model.resolve(configuration, dependencies) do
+      {:ok, model, model_catalog} -> {:ok, model, model_catalog}
       {:error, error} -> {:error, :provider, error}
     end
   end
@@ -115,9 +122,16 @@ defmodule Draught.CLI.Interactive.Startup do
          label,
          dependencies
        ) do
-    with {:ok, selection} <- select_provider(bound_configuration, dependencies),
+    with {:ok, model, model_catalog} <- resolve_model(bound_configuration, dependencies),
          {:ok, state} <-
-           build_state(identifier, label, selection.model, bound_configuration, workspace) do
+           build_state(
+             identifier,
+             label,
+             model,
+             model_catalog,
+             bound_configuration,
+             workspace
+           ) do
       {:ok, loaded_state(state, invocation), base_configuration}
     end
   end
@@ -147,12 +161,13 @@ defmodule Draught.CLI.Interactive.Startup do
     {:error, :session, error}
   end
 
-  defp build_state(identifier, label, model, configuration, workspace) do
+  defp build_state(identifier, label, model, model_catalog, configuration, workspace) do
     attributes = [
       session_id: identifier,
       session_label: label || identifier,
       provider: Atom.to_string(configuration.provider),
       model: model,
+      model_catalog: model_catalog,
       workspace: workspace,
       web: configuration.web
     ]

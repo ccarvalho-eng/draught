@@ -10,6 +10,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
   alias Draught.Error.Normalized
   alias Draught.Event.Provider.Delta
   alias Draught.Provider.Capabilities
+  alias Draught.Provider.Ollama.Discovery.HTTP
   alias Draught.Provider.Response
 
   defmodule SystemAdapter do
@@ -17,6 +18,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
 
     @impl Draught.CLI.System.Adapter
     def cwd(configuration) do
+      send(configuration.owner, :interactive_cwd_read)
       {:ok, configuration.cwd}
     end
 
@@ -71,6 +73,17 @@ defmodule Draught.CLI.Interactive.CommandTest do
     def restore(owner) do
       send(owner.owner, :interactive_terminal_restored)
       :ok
+    end
+  end
+
+  defmodule DiscoveryHTTP do
+    @behaviour Draught.Provider.Ollama.Discovery.HTTP
+
+    @impl Draught.Provider.Ollama.Discovery.HTTP
+    def request(_method, _url, _body, _configuration) do
+      receive do
+        {:discovery_response, response} -> response
+      end
     end
   end
 
@@ -160,6 +173,87 @@ defmodule Draught.CLI.Interactive.CommandTest do
   end
 
   @tag :tmp_dir
+  test "selects one of several compatible Ollama models inside the shell", %{
+    tmp_dir: temporary_directory
+  } do
+    queue_inventory(["deepseek-r1", "qwen3"])
+    queue_inventory(["deepseek-r1", "qwen3"])
+    queue_inventory(["qwen3", "deepseek-r1"])
+    queue_inventory(["deepseek-r1", "qwen3"])
+    input({:ok, "start a task\n"})
+    input({:ok, "/model 2\n"})
+    input({:ok, "/model\n"})
+    input({:ok, "/model 2\n"})
+    input({:ok, "/status\n"})
+    input({:ok, "/new fresh\n"})
+    input({:ok, "/status\n"})
+    input({:ok, "/exit\n"})
+
+    dependencies =
+      dependencies(
+        cwd: temporary_directory,
+        provider_factory: :local,
+        state: temporary_directory
+      )
+
+    assert CLI.run([], dependencies) == 0
+    output = plain(receive_output())
+
+    assert output =~ "model:     selection required"
+    assert output =~ "Select a model with /model"
+    assert output =~ "Run /model before selecting a model by number."
+    assert output =~ "Compatible models:"
+    assert output =~ "1.   qwen3"
+    assert output =~ "2.   deepseek-r1"
+    assert output =~ "Selected model deepseek-r1."
+    assert output =~ "Model: deepseek-r1"
+    assert output =~ "Selected session fresh."
+    assert output =~ "Model: selection required"
+    assert_receive :interactive_terminal_restored
+  end
+
+  test "automatically selects one compatible Ollama model before opening the shell" do
+    queue_inventory(["qwen3"])
+    input({:ok, "/status\n"})
+    input({:ok, "/exit\n"})
+
+    assert CLI.run([], dependencies(provider_factory: :local)) == 0
+    output = plain(receive_output())
+
+    assert output =~ "model:     qwen3"
+    assert output =~ "Model: qwen3"
+    refute output =~ "selection required"
+    assert_receive :interactive_terminal_restored
+  end
+
+  @tag :tmp_dir
+  test "persists the interactively selected model on the first turn", %{
+    tmp_dir: temporary_directory
+  } do
+    queue_inventory(["qwen3", "deepseek-r1"])
+    input({:ok, "/model\n"})
+    input({:ok, "/model 2\n"})
+    input({:ok, "persist this selection\n"})
+    input({:ok, "/sessions\n"})
+    input({:ok, "/exit\n"})
+
+    dependencies =
+      dependencies(
+        cwd: temporary_directory,
+        provider_factory: BoundProviderFactory,
+        state: temporary_directory
+      )
+
+    assert CLI.run(["--model", "qwen3"], dependencies) == 0
+    output = plain(receive_output())
+
+    assert output =~ "Selected model deepseek-r1."
+    assert output =~ "completed"
+    assert output =~ "ollama/deepseek-r1"
+    assert_receive :interactive_terminal_restored
+  end
+
+  @tag :tmp_dir
   test "runs prompts through one persistent named session", %{tmp_dir: temporary_directory} do
     input({:ok, "inspect the workspace\n"})
     input({:ok, "/exit\n"})
@@ -178,6 +272,8 @@ defmodule Draught.CLI.Interactive.CommandTest do
       ])
 
     assert File.dir?(session)
+    assert_receive :interactive_cwd_read
+    refute_receive :interactive_cwd_read
     assert_receive :interactive_terminal_restored
   end
 
@@ -332,10 +428,12 @@ defmodule Draught.CLI.Interactive.CommandTest do
            ) == 0
 
     assert receive_output() =~ "completed"
+    input({:ok, "/model other\n"})
     input({:ok, "/exit\n"})
     assert CLI.run(["--resume", identifier], dependencies) == 0
     output = plain(receive_output())
     assert output =~ "model:     qwen3"
+    assert output =~ "fixed for this persisted session"
     assert output =~ "Session ID: #{identifier}"
     assert_receive :interactive_terminal_restored
 
@@ -452,25 +550,39 @@ defmodule Draught.CLI.Interactive.CommandTest do
          tty: Keyword.get(options, :tty, true)
        }}
 
+    task_dependencies = task_dependencies(provider_factory, provider_response, options)
+
     {:ok, dependencies} =
       Dependencies.new(
+        discovery_http: DiscoveryHTTP,
         system: system,
         terminal: {
           TerminalAdapter,
           %{interactive?: Keyword.get(options, :input_terminal, true), owner: owner}
         },
-        task: [
-          identifier:
-            Keyword.get(
-              options,
-              :identifier,
-              fn -> {:ok, "00000000-0000-4000-8000-000000000001"} end
-            ),
-          provider: {provider_factory, provider_response}
-        ]
+        task: task_dependencies
       )
 
     dependencies
+  end
+
+  defp task_dependencies(:local, _provider_response, options) do
+    [identifier: identifier(options)]
+  end
+
+  defp task_dependencies(provider_factory, provider_response, options) do
+    [
+      identifier: identifier(options),
+      provider: {provider_factory, provider_response}
+    ]
+  end
+
+  defp identifier(options) do
+    Keyword.get(
+      options,
+      :identifier,
+      fn -> {:ok, "00000000-0000-4000-8000-000000000001"} end
+    )
   end
 
   defp environment(options) do
@@ -508,5 +620,20 @@ defmodule Draught.CLI.Interactive.CommandTest do
     {:ok, assistant} = Conversation.assistant(content: "completed")
     {:ok, response} = Response.new(message: assistant, finish_reason: :stop)
     response
+  end
+
+  defp queue_inventory(models) do
+    queue_list(models)
+    Enum.each(models, fn _model -> queue_model() end)
+  end
+
+  defp queue_list(models) do
+    body = Jason.encode!(%{"models" => Enum.map(models, &%{"name" => &1})})
+    send(self(), {:discovery_response, {:ok, %HTTP.Response{status: 200, body: body}}})
+  end
+
+  defp queue_model do
+    body = Jason.encode!(%{"capabilities" => ["completion", "tools"], "model_info" => %{}})
+    send(self(), {:discovery_response, {:ok, %HTTP.Response{status: 200, body: body}}})
   end
 end

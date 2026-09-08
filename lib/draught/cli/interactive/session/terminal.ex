@@ -9,6 +9,7 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
   alias Draught.CLI.Command.Invocation
   alias Draught.CLI.Dependencies
   alias Draught.CLI.Interactive.Input
+  alias Draught.CLI.Interactive.Model
   alias Draught.CLI.Interactive.Session.Command
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.UI
@@ -20,6 +21,8 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
           | :prompt
           | :terminal_error
           | {:input_error, atom()}
+          | {:model_error, term()}
+          | {:model_view, Model.Command.view()}
           | {:session_closed, String.t()}
           | {:session_error, term()}
           | {:session_view, Command.view(), State.t()}
@@ -88,6 +91,18 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
 
   defp render({:input_error, reason}) do
     UI.input_error(reason)
+  end
+
+  defp render({:model_error, reason}) do
+    UI.model_error(reason)
+  end
+
+  defp render({:model_view, {:models, models, current_model}}) do
+    UI.models(models, current_model)
+  end
+
+  defp render({:model_view, {:selected, model}}) do
+    UI.model_selected(model)
   end
 
   defp render({:session_closed, identifier}) do

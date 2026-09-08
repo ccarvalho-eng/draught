@@ -104,11 +104,18 @@ flowchart LR
   Anonymous --> Session[Supervised session]
   Named --> Session
   Router --> Interactive[Interactive controller]
+  Resolver --> Interactive
   Interactive --> Input[Bounded interactive parser]
   Interactive --> Selection
-  Interactive --> Named
-  Interactive --> Catalog[Session catalog context]
+  Interactive --> Snapshot[Resolved execution snapshot]
+  Snapshot --> Named
+  Interactive --> SessionCatalog[Session catalog context]
+  Interactive --> ModelCommand[Model selection context]
+  ModelCommand --> ModelCatalog[Compatible-model inventory]
+  ModelCatalog --> Provider
+  ModelCommand --> State
   Interactive --> State[Pure shell lifecycle state]
+  State --> Snapshot
   Session --> Runner[Bounded agent runner]
   Runner --> Selection
   Runner --> Tools[Confined tool boundary]
@@ -125,7 +132,7 @@ flowchart LR
   Task -. rejected .-> Web[Enabled web execution]
 ```
 
-The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. Anonymous and named lifecycles both supervise one runner turn; only the named lifecycle attaches durable storage. The interactive controller retains one pure shell state, classifies each input before dispatch, sends task prompts through the named lifecycle, and delegates discovery or metadata transitions to the catalog context. The projector reduces content-bearing runtime events to a closed public vocabulary before pure renderers encode them. Owl is confined to the interactive presentation adapter. The system adapter owns terminal output, the terminal adapter owns line input and cleanup, and the executable entry point owns process termination.
+The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. Anonymous and named lifecycles both supervise one runner turn; only the named lifecycle attaches durable storage. The interactive controller retains one pure shell state, classifies each input before dispatch, sends task prompts through the named lifecycle, and delegates model inventory and session metadata to separate contexts. Model selection operates on a bounded compatible inventory and changes only fresh idle state; task execution consumes the state model directly while session creation and resume continue from the unchanged base configuration. Persisted state rejects model changes before discovery or provider effects. The projector reduces content-bearing runtime events to a closed public vocabulary before pure renderers encode them. Owl is confined to the interactive presentation adapter. The system adapter owns terminal output, the terminal adapter owns line input and cleanup, and the executable entry point owns process termination.
 
 ### CLI session catalog boundary
 
@@ -397,6 +404,6 @@ The runtime will preserve these invariants:
 
 ## Delivery status
 
-Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. The CLI implements bounded parsing, configuration resolution, help, version, doctor, incremental text and JSONL task projection, anonymous tasks, durable named-session resume, and an interactive prompt loop with workspace-scoped session management. Interactive approvals, active-turn cancellation, searchable model and provider menus, and enabled web execution remain planned. The diagrams distinguish connected boundaries from explicitly planned ones.
+Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. The CLI implements bounded parsing, configuration resolution, help, version, doctor, incremental text and JSONL task projection, anonymous tasks, durable named-session resume, and an interactive prompt loop with workspace-scoped session and model selection. Interactive approvals, active-turn cancellation, fuzzy command and model completion, provider selection, and enabled web execution remain planned. The diagrams distinguish connected boundaries from explicitly planned ones.
 
 Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

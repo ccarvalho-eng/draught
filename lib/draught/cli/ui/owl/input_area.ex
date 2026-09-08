@@ -2,7 +2,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
   @moduledoc """
   Renders a bounded, open-sided input frame for ordinary terminal line editing.
 
-  The top rail keeps active model and workspace context beside command hints.
+  The top rail keeps active model and workspace context beside help discovery.
   No right-hand border or cursor repositioning interferes with wrapped input,
   and styling is reset before the terminal echoes any user text.
   """
@@ -10,7 +10,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
   alias Elixir.Owl.Data
 
   @maximum_width 96
-  @hint "  /help · /model "
+  @hint "  /help "
 
   @doc "Renders one input boundary with explicit terminal width and styling."
   @spec render(:open | :close, String.t(), String.t(), pos_integer(), boolean()) :: iodata()

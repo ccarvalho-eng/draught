@@ -24,7 +24,8 @@ defmodule Draught.CLI.UITest do
 
     opening = render_input(:open, 500)
     assert opening =~ "qwen3 · /workspace"
-    assert opening =~ "/help · /model"
+    assert opening =~ "/help"
+    refute opening =~ "/model"
 
     assert opening
            |> String.split("\n", trim: true)
@@ -43,7 +44,8 @@ defmodule Draught.CLI.UITest do
     end
 
     refute render_input(:open, 16) =~ "/help"
-    assert render_input(:open, 40) =~ "/help · /model"
+    assert render_input(:open, 40) =~ "/help"
+    refute render_input(:open, 40) =~ "/model"
   end
 
   test "input styling is explicit and resets before terminal echo" do

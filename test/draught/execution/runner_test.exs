@@ -12,6 +12,8 @@ defmodule Draught.Execution.RunnerTest do
   alias Draught.Provider.Fake
   alias Draught.Provider.Request
   alias Draught.Provider.Response
+  alias Draught.Tool.Approval.Decision
+  alias Draught.Tool.Builtin.ReadFile
   alias Draught.Tool.Builtin.ReplaceInFile
   alias Draught.Tool.Call
   alias Draught.Tool.Definition
@@ -28,6 +30,15 @@ defmodule Draught.Execution.RunnerTest do
     @impl Draught.Tool.Executor
     def execute(call, _context, _configuration) do
       {:ok, "echo:#{call.arguments["value"]}"}
+    end
+  end
+
+  defmodule AllowPolicy do
+    @behaviour Draught.Tool.Approval.Policy
+
+    @impl Draught.Tool.Approval.Policy
+    def decide(_request, _configuration) do
+      Decision.new(outcome: :allow)
     end
   end
 
@@ -301,6 +312,64 @@ defmodule Draught.Execution.RunnerTest do
     assert {:error, error} = run(provider, registry, workspace, first_request)
 
     assert error.code == "duplicate_tool_batch"
+  end
+
+  test "reads the same file again to verify a successful approved edit", %{tmp_dir: workspace} do
+    path = Path.join(workspace, "sample.txt")
+    File.write!(path, "before")
+    {:ok, read_definition} = ReadFile.definition()
+    {:ok, write_definition} = ReplaceInFile.definition()
+    registry = registry([read_definition, write_definition])
+    user = user("edit and verify")
+    initial = request([user], registry)
+    first = call("read-1", "read_file", %{"path" => "sample.txt"})
+    repeated = call("read-2", "read_file", %{"path" => "sample.txt"})
+
+    edit =
+      call("edit", "replace_in_file", %{
+        "expected" => "before",
+        "path" => "sample.txt",
+        "replacement" => "after"
+      })
+
+    steps = [{first, "before"}, {edit, "Replaced one occurrence"}, {repeated, "after"}]
+
+    {routes, messages} =
+      Enum.map_reduce(steps, [user], fn {call, content}, messages ->
+        tools = tool_response([call])
+        request = request(messages, registry)
+        result = result(call, content)
+        next_messages = messages ++ [tools.message, tool_message(result)]
+        {route(request, {:ok, tools}), next_messages}
+      end)
+
+    final = response("verified")
+    final_request = request(messages, registry)
+    final_route = route(final_request, {:ok, final})
+
+    provider =
+      routes
+      |> Enum.concat([final_route])
+      |> fake()
+
+    approved_context = %{context(workspace, [:read, :write]) | approval: {AllowPolicy, nil}}
+
+    assert run(provider, registry, workspace, initial, context: approved_context) == {:ok, final}
+    assert File.read!(path) == "after"
+    events = receive_events(8)
+    verified = result(repeated, "after")
+    assert {:tool_result, 3, verified} in events
+
+    File.write!(path, "before")
+    bounded = limits(max_iterations: 3)
+
+    assert {:error, error} =
+             run(provider, registry, workspace, initial,
+               context: approved_context,
+               limits: bounded
+             )
+
+    assert error.code == "iteration_limit"
   end
 
   test "stops when another provider iteration would exceed the limit", %{tmp_dir: workspace} do

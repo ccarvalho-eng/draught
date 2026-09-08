@@ -78,15 +78,25 @@ defmodule Draught.CLI.Task.PreparationTest do
     assert {Default, nil} = preparation.runner.tool_context.approval
   end
 
-  test "rejects enabled web execution until a complete capability is injected" do
+  test "registers guarded page fetching only when web access is enabled" do
     assert {:ok, provider} = Fake.new()
     assert {:ok, selection} = Selection.new({Fake, provider}, "free-model")
 
-    assert {:error, error} =
+    assert {:ok, preparation} =
              Preparation.new("Search", selection, "/workspace", web: true)
 
-    violation = hd(error.violations)
-    assert violation.path == [:web]
+    assert Registry.names(preparation.runner.registry) == [
+             "read_file",
+             "list_directory",
+             "search_workspace",
+             "replace_in_file",
+             "run_command",
+             "web_fetch"
+           ]
+
+    capability = preparation.runner.tool_context.web
+    assert capability.policy.fetch
+    refute capability.policy.search
   end
 
   test "appends a prompt to explicit replay history and retains a journal adapter" do

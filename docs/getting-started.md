@@ -147,14 +147,14 @@ Start the shell with an explicit identifier or resume target when needed:
 
 Prompt-free interactive use requires a terminal and text output. A headless `--session` or `--resume` invocation still requires a task argument. Use one-shot mode and `--output jsonl` for automation.
 
-## 8. Current execution limits
+## 8. Optional page fetching
 
-The following forms remain explicit unavailable results:
+Web access is disabled by default. Enable guarded page fetching for one invocation with:
 
 ```shell
-./draught "search the web" --web
+./draught "read the Elixir documentation at https://elixir-lang.org" --web
 ```
 
-Fuzzy command and model completion, provider selection, direct commands, file selection, active-turn keyboard cancellation, and enabled web execution depend on later capability work. Each anonymous task starts without prior conversation state.
+The model receives `web_fetch` only for enabled tasks. Each request retains the network risk and approval checks, and the fetch transport applies the redirect, address, content, size, and timeout controls documented in [Web access](web-access.md). Web search is not registered by the CLI. Each anonymous task starts without prior conversation state.
 
 See [CLI](cli.md) for command and exit behavior and [Ollama provider](providers/ollama.md) for discovery details.

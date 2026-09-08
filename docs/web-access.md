@@ -18,9 +18,11 @@ Draught.Web.Policy.status(policy)
 # => %{fetch: :disabled, search: :enabled}
 ```
 
-The resolver is pure and does not read application environment, files, or process state. Interfaces are responsible for reading configuration sources and passing their values in the documented order. The CLI will map its configuration files, environment, and flags to this contract when its configuration layer is implemented.
+The resolver is pure and does not read application environment, files, or process state. Interfaces are responsible for reading configuration sources and passing their values in the documented order. The CLI maps its combined `web` setting to the guarded fetch capability; library consumers may resolve search and fetch independently.
 
 An enabled operation also requires an explicit adapter. The included fetch adapter uses guarded HTTP(S) retrieval. Search remains an injected adapter because search services have different result schemas, authentication requirements, and usage policies.
+
+For CLI tasks, `--web` enables the included `web_fetch` tool and `--no-web` disables it. User configuration and `DRAUGHT_WEB` provide the same combined setting under the documented precedence rules. The default is disabled. Project configuration may disable web access but cannot enable it. Enabling web does not bypass the network risk class or approval policy.
 
 ```elixir
 {:ok, web} =

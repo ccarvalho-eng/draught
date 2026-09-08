@@ -13,18 +13,16 @@ defmodule Draught.CLI.Task.Preparation.Builder do
   @doc "Coordinates pure construction of one execution preparation."
   @spec build(term(), Selection.t(), String.t(), map()) :: Error.result(Preparation.t())
   def build(prompt, %Selection{} = selection, workspace, attributes) do
-    with :ok <- web_disabled(attributes),
+    with {:ok, _web} <- web(attributes),
          {:ok, provider_mode} <- provider_mode(selection, attributes) do
       Assembly.build(prompt, selection, workspace, attributes, provider_mode)
     end
   end
 
-  defp web_disabled(attributes) do
-    case Map.get(attributes, :web, false) do
-      false -> :ok
-      true -> Error.single([:web], :invalid_value, "Web execution is not available yet")
-      _value -> Error.single([:web], :invalid_type, "must be a boolean")
-    end
+  defp web(attributes) do
+    attributes
+    |> Map.get(:web, false)
+    |> Value.boolean([:web])
   end
 
   defp provider_mode(selection, attributes) do

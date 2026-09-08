@@ -1,6 +1,6 @@
 # Command-line interface
 
-The CLI runs anonymous or persistent agent tasks and provides an interactive prompt with session and model selection. Text terminals support per-operation approval prompts; automation uses versioned JSONL and stable exit categories. Interactive provider selection and enabled web execution are not available.
+The CLI runs anonymous or persistent agent tasks and provides an interactive prompt with session and model selection. Text terminals support per-operation approval prompts; automation uses versioned JSONL and stable exit categories. Interactive provider selection is not available.
 
 ## Available commands
 
@@ -30,7 +30,7 @@ draught -- "--explain this argument"
 | `--base-url URL` | Overrides the selected profile endpoint when the profile is not credential-bound. |
 | `--session ID` | Creates a persistent named session for the supplied task. |
 | `--resume ID` | Continues a persistent named session with the supplied task. |
-| `--web` / `--no-web` | Resolves the web setting. An enabled value makes task execution fail explicitly until a search adapter is connected. |
+| `--web` / `--no-web` | Enables or disables guarded page fetching. Search remains a separate library adapter boundary. |
 | `--output text\|jsonl` | Selects human-readable or machine-readable output where supported. |
 | `--color auto\|always\|never` | Controls terminal label styling and activity rendering; model content remains unstyled. |
 | `--diagnostics` / `--no-diagnostics` | Records the diagnostics preference; it does not expand doctor output in this slice. |
@@ -184,7 +184,7 @@ Exit categories are stable at the CLI boundary:
 | Success | 0 | Help, version, a completed anonymous or named task, and a healthy doctor result. |
 | Usage | 2 | Invalid syntax, option combinations, or configuration. |
 | Provider | 3 | Provider construction failures or provider and workspace checks reported by doctor. |
-| Execution | 4 | Task execution failures or enabled web execution. |
+| Execution | 4 | Task or web-tool execution failures. |
 | Session | 5 | Named-session lifecycle, binding, persistence, or resume failures. |
 | Internal | 70 | Unexpected internal failure. |
 | Interrupted | 130 | A normalized task cancellation. |

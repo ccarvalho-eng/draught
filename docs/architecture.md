@@ -198,9 +198,38 @@ The CLI streaming boundary preserves these invariants:
 - Provider deltas are transient; the validated provider result is the durable replay authority.
 - Reasoning, tool arguments, tool output, call identifiers, provenance, and provider payloads never enter the CLI projection.
 - JSONL has one ordered standard-output stream, monotonic sequence numbers, and exactly one terminal record.
-- Terminal controls are emitted only by the separately bounded TTY activity indicator after color, capability, and width checks.
+- Terminal controls are limited to fixed presentation labels and the separately bounded TTY activity indicator after terminal and color checks; model content is never interpreted as styling.
 - An output failure cancels the active turn; execution does not continue after the interface loses its result channel.
 - Visible streamed text must be an exact prefix of the retained final response; contradictory output fails closed.
+
+### Terminal approval ownership
+
+Approval is an out-of-band interface interaction, not a provider event or durable conversation message. The tool's bounded worker owns the proposed operation; the CLI observer owns the decision prompt while continuing to receive session events and deadlines. The input coordinator owns the outstanding terminal read independently of either worker.
+
+```mermaid
+sequenceDiagram
+  participant Tool as Bounded tool worker
+  participant CLI as Session observer
+  participant Input as Input coordinator
+  participant User as Terminal
+  Tool->>CLI: Scoped request, operation reference, deadline, preview
+  CLI->>User: Pause indicator and display escaped operation
+  CLI->>Input: Request one line asynchronously
+  Input->>User: Read one line
+  alt Timely answer and live requester
+    User-->>Input: Answer
+    Input-->>CLI: Matching input reference
+    CLI-->>Tool: Allow once or deny
+    Tool->>Tool: Recheck deadline before accepting decision
+  else Expiry, cancellation, or owner death
+    CLI->>Input: Invalidate pending read
+    CLI-->>Tool: Deny
+    Input->>Input: Refuse device reuse and discard late replies
+    CLI->>CLI: Stop turn and return failure
+  end
+```
+
+Risk admission precedes this interaction. Fresh invocation and input references prevent stale messages from resolving another operation. The coordinator monitors read owners and devices; losing a read owner invalidates the device, while device termination releases retained state. Because the Erlang I/O protocol has no read cancellation, coordinator restart disables local interactive input for the rest of the VM. Neither approval answers nor sensitive previews are persisted, and explicit application-supplied policies retain precedence.
 
 ### Task instruction boundary
 
@@ -434,6 +463,6 @@ The runtime will preserve these invariants:
 
 ## Delivery status
 
-Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. The CLI implements bounded parsing, configuration resolution, help, version, doctor, incremental text and JSONL task projection, anonymous tasks, durable named-session resume, and an interactive prompt loop with workspace-scoped session and model selection. Interactive approvals, active-turn cancellation, fuzzy command and model completion, provider selection, and enabled web execution remain planned. The diagrams distinguish connected boundaries from explicitly planned ones.
+Canonical validation, conversation, tool, provider, event, normalized-error, and deterministic-fake contracts are implemented. OpenAI-compatible and Ollama provider integrations, the standard coding tools, approval policy, serialized mutation boundary, bounded subprocess lifecycle, workspace path confinement, application supervision tree, bounded provider-tool runner, supervised session lifecycle, versioned local journals, deterministic text and bundle interchange, guarded web core, and sanitized telemetry spans are also present. The CLI implements bounded parsing, configuration resolution, help, version, doctor, incremental text and JSONL task projection, anonymous tasks, durable named-session resume, terminal approvals, and an interactive prompt loop with workspace-scoped session and model selection. Active-turn keyboard cancellation, fuzzy command and model completion, provider selection, and enabled web execution remain planned. The diagrams distinguish connected boundaries from explicitly planned ones.
 
 Tests mirror architectural ownership: pure contracts receive deterministic unit tests, adapters receive shared contract tests, and supervised runtime components receive lifecycle, ordering, cancellation, retry, and recovery tests.

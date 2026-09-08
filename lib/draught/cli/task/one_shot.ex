@@ -4,16 +4,15 @@ defmodule Draught.CLI.Task.OneShot do
   """
 
   alias Draught.CLI.Task.Failure
+  alias Draught.CLI.Task.OneShot.Approval
   alias Draught.CLI.Task.OneShot.Lifecycle
+  alias Draught.CLI.Task.OneShot.Mailbox
   alias Draught.CLI.Task.Preparation
   alias Draught.CLI.Task.Stream
   alias Draught.Session
 
   @doc "Executes one prepared turn through a temporary supervised session."
-  @type result ::
-          {:ok, Draught.Provider.Response.t()}
-          | {:error, :execution | :session,
-             Draught.Error.Normalized.t() | Draught.Validation.Error.t()}
+  @type result :: Draught.CLI.Task.result()
 
   @spec run(String.t(), Preparation.t()) :: result()
   def run(identifier, %Preparation{} = preparation) do
@@ -55,46 +54,104 @@ defmodule Draught.CLI.Task.OneShot do
 
   defp await(identifier, session, turn_id, stream, monitor, deadline) do
     remaining_ms = remaining(deadline)
-    wait_timeout_ms = Stream.wait_timeout(stream, remaining_ms)
+    indicator_wait = Stream.wait_timeout(stream, remaining_ms)
 
-    receive do
-      {:draught_session, ^identifier, {:turn_terminal, ^turn_id, outcome}} ->
-        {execution_result(outcome), stream}
+    identifier
+    |> Mailbox.next(turn_id, stream, monitor, indicator_wait)
+    |> handle_event(identifier, session, turn_id, stream, monitor, deadline)
+  end
 
-      {:draught_session, ^identifier, {:turn_started, ^turn_id}} ->
-        stream
-        |> Stream.start()
-        |> then(&await(identifier, session, turn_id, &1, monitor, deadline))
+  defp handle_event(
+         {:terminal, outcome},
+         _identifier,
+         _session,
+         _turn,
+         stream,
+         _monitor,
+         _deadline
+       ) do
+    {execution_result(outcome), Approval.close(stream)}
+  end
 
-      {:draught_session, ^identifier, {:runner, ^turn_id, event, acknowledgement}} ->
-        observe(
-          identifier,
-          session,
-          turn_id,
-          stream,
-          monitor,
-          deadline,
-          event,
-          acknowledgement
-        )
+  defp handle_event(:started, identifier, session, turn_id, stream, monitor, deadline) do
+    started = Stream.start(stream)
+    await(identifier, session, turn_id, started, monitor, deadline)
+  end
 
-      {:DOWN, ^monitor, :process, _session, _reason} ->
-        {{:error, :session, Failure.session_stopped()}, stream}
-    after
-      wait_timeout_ms ->
-        wait_elapsed(identifier, session, turn_id, stream, monitor, deadline)
-    end
+  defp handle_event(
+         {:runner, event, acknowledgement},
+         identifier,
+         session,
+         turn_id,
+         stream,
+         monitor,
+         deadline
+       ) do
+    observe(identifier, session, turn_id, stream, monitor, deadline, event, acknowledgement)
+  end
+
+  defp handle_event(:session_stopped, _identifier, _session, _turn, stream, _monitor, _deadline) do
+    {{:error, :session, Failure.session_stopped()}, Approval.close(stream)}
+  end
+
+  defp handle_event(
+         {:approval, operation},
+         identifier,
+         session,
+         turn_id,
+         stream,
+         monitor,
+         deadline
+       ) do
+    stream
+    |> Approval.request(operation)
+    |> approval_result(identifier, session, turn_id, monitor, deadline)
+  end
+
+  defp handle_event({:input, input}, identifier, session, turn_id, stream, monitor, deadline) do
+    stream
+    |> Approval.reply(input)
+    |> approval_result(identifier, session, turn_id, monitor, deadline)
+  end
+
+  defp handle_event(:approval_stopped, identifier, _session, _turn, stream, _monitor, _deadline) do
+    approval_error(identifier, stream)
+  end
+
+  defp handle_event(:elapsed, identifier, session, turn_id, stream, monitor, deadline) do
+    wait_elapsed(identifier, session, turn_id, stream, monitor, deadline)
+  end
+
+  defp handle_event(:invalid_event, identifier, _session, _turn, stream, _monitor, _deadline) do
+    stream_error(identifier, :invalid_event, stream)
   end
 
   defp wait_elapsed(identifier, session, turn_id, stream, monitor, deadline) do
-    case remaining(deadline) do
-      0 ->
+    case {remaining(deadline), Approval.expired?(stream)} do
+      {0, _approval_wait} ->
         cancel(identifier)
-        {{:error, :session, Failure.wait_timeout()}, stream}
+        {{:error, :session, Failure.wait_timeout()}, Approval.close(stream)}
+
+      {_remaining, true} ->
+        approval_error(identifier, stream)
 
       _remaining ->
         tick(identifier, session, turn_id, stream, monitor, deadline)
     end
+  end
+
+  defp approval_result({:ok, stream}, identifier, session, turn_id, monitor, deadline) do
+    await(identifier, session, turn_id, stream, monitor, deadline)
+  end
+
+  defp approval_result({:error, stream}, identifier, _session, _turn_id, _monitor, _deadline) do
+    approval_error(identifier, stream)
+  end
+
+  defp approval_error(identifier, stream) do
+    closed = Approval.close(stream)
+    cancel(identifier)
+    {{:error, :execution, Failure.approval_unavailable()}, closed}
   end
 
   defp tick(identifier, session, turn_id, stream, monitor, deadline) do
@@ -127,7 +184,7 @@ defmodule Draught.CLI.Task.OneShot do
 
   defp stream_error(identifier, reason, stream) do
     cancel(identifier)
-    {{:error, :execution, stream_failure(reason)}, stream}
+    {{:error, :execution, stream_failure(reason)}, Approval.close(stream)}
   end
 
   defp remaining(deadline) do

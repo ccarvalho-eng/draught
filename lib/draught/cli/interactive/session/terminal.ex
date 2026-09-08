@@ -18,7 +18,6 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
   @type parsed_input :: {:ok, Input.action()} | {:error, Input.error()}
   @type view ::
           :help
-          | :prompt
           | :terminal_error
           | {:input_error, atom()}
           | {:model_error, term()}
@@ -41,17 +40,27 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
     |> write(:stdout, :success, dependencies)
   end
 
-  @doc "Writes the prompt, reads one terminal line, and parses it as interactive input."
-  @spec read(Dependencies.t()) ::
+  @doc "Frames one terminal read and returns input only after both boundaries are written."
+  @spec read(Dependencies.t(), :auto | :always | :never) ::
           {:ok, parsed_input()}
           | :eof
           | :interrupted
           | {:error, :io}
           | {:error, :write, non_neg_integer()}
-  def read(dependencies) do
-    case emit(:prompt, :stdout, :success, dependencies) do
-      0 -> parse_read(read_line(dependencies.terminal))
-      status -> {:error, :write, status}
+  def read(dependencies, color \\ :never) do
+    {system, configuration} = dependencies.system
+    width = terminal_width(system.columns(configuration))
+    styled? = styled?(color, system.tty?(:stdout, configuration))
+    opening = UI.input_area(:open, width, styled?)
+
+    case write(opening, :stdout, :success, dependencies) do
+      0 ->
+        dependencies.terminal
+        |> read_line()
+        |> finish_read({width, styled?}, dependencies)
+
+      status ->
+        {:error, :write, status}
     end
   end
 
@@ -77,12 +86,35 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
     result
   end
 
-  defp render(:help) do
-    UI.help()
+  defp finish_read(result, {width, styled?}, dependencies) do
+    closing = [read_separator(result), UI.input_area(:close, width, styled?)]
+
+    case write(closing, :stdout, :success, dependencies) do
+      0 -> parse_read(result)
+      status -> {:error, :write, status}
+    end
   end
 
-  defp render(:prompt) do
-    UI.prompt()
+  defp read_separator({:ok, input}) do
+    input
+    |> String.ends_with?("\n")
+    |> line_separator()
+  end
+
+  defp read_separator(_result) do
+    "\n"
+  end
+
+  defp line_separator(true) do
+    ""
+  end
+
+  defp line_separator(false) do
+    "\n"
+  end
+
+  defp render(:help) do
+    UI.help()
   end
 
   defp render(:terminal_error) do

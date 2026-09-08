@@ -75,7 +75,14 @@ defmodule Draught.CLI.Task.Stream.Projector.ProviderEvent do
   end
 
   defp text_delta(content, state, iteration) do
-    event = Event.new(:text_delta, state.sequence, content: content, iteration: iteration)
+    event =
+      Event.new(:text_delta, state.sequence,
+        content: content,
+        heading: not state.assistant_open or state.current_iteration != iteration,
+        iteration: iteration,
+        prefix_newline: state.line_open
+      )
+
     {:emit, State.record_text(state, iteration, content), event}
   end
 

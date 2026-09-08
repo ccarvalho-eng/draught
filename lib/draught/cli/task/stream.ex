@@ -4,11 +4,14 @@ defmodule Draught.CLI.Task.Stream do
 
   The silent variant preserves the application-facing task APIs. A visible
   stream is owned by one CLI invocation and is threaded through execution.
+  Optional approval state belongs to that invocation, not the event projector
+  or durable session. Terminal input remains owned by its separate coordinator.
   """
 
+  alias Draught.CLI.Task.Approval.Prompt
   alias Draught.CLI.Task.Stream.Emitter
   alias Draught.CLI.Task.Stream.Indicator
-  alias Draught.CLI.Task.Stream.Indicator.State
+  alias Draught.CLI.Task.Stream.Indicator.Builder
   alias Draught.CLI.Task.Stream.Output
   alias Draught.CLI.Task.Stream.Projector
 
@@ -16,13 +19,14 @@ defmodule Draught.CLI.Task.Stream do
   @minimum_indicator_columns 40
 
   @enforce_keys [:clock, :mode]
-  defstruct [:clock, :indicator, :projector, :system, mode: :silent, writable: true]
+  defstruct [:approval, :clock, :indicator, :projector, :system, mode: :silent, writable: true]
 
   @type t :: %__MODULE__{
           mode: :silent | :visible,
+          approval: Prompt.t() | nil,
           clock: (-> integer()),
-          indicator: State.t() | nil,
-          projector: Draught.CLI.Task.Stream.Projector.State.t() | nil,
+          indicator: Builder.state() | nil,
+          projector: Projector.state() | nil,
           system: {module(), term()} | nil,
           writable: boolean()
         }
@@ -31,13 +35,16 @@ defmodule Draught.CLI.Task.Stream do
   @spec new(:jsonl | :text, {module(), term()}, keyword()) :: t()
   def new(format, system, options \\ []) do
     maximum_bytes = Keyword.get(options, :maximum_bytes, @default_maximum_bytes)
-    indicator_enabled = indicator_enabled?(format, system, Keyword.get(options, :color, :auto))
+    color = Keyword.get(options, :color, :auto)
+    indicator_enabled = indicator_enabled?(format, system, color)
+    presentation = presentation(format, system, color)
 
     %__MODULE__{
+      approval: Keyword.get(options, :approval),
       clock: clock(options),
-      indicator: State.new(indicator_enabled, options),
+      indicator: Builder.new(indicator_enabled, options),
       mode: :visible,
-      projector: Draught.CLI.Task.Stream.Projector.State.new(format, maximum_bytes),
+      projector: Projector.new(format, maximum_bytes, presentation),
       system: system
     }
   end
@@ -56,6 +63,16 @@ defmodule Draught.CLI.Task.Stream do
 
   def start(%__MODULE__{} = stream) do
     stream
+  end
+
+  @doc "Clears and pauses the activity indicator while the terminal awaits a decision."
+  @spec pause(t()) :: {:ok, t()} | {:error, :write, t()}
+  def pause(%__MODULE__{mode: :visible} = stream) do
+    clear_indicator(stream)
+  end
+
+  def pause(%__MODULE__{} = stream) do
+    {:ok, stream}
   end
 
   @doc "Returns the next bounded wait interval for execution or indicator progress."
@@ -161,6 +178,23 @@ defmodule Draught.CLI.Task.Stream do
 
   defp indicator_enabled?(_format, _system, _color) do
     false
+  end
+
+  defp presentation(:text, {system, configuration}, color) do
+    terminal? = system.tty?(:stdout, configuration)
+    terminal_presentation(terminal?, color)
+  end
+
+  defp presentation(_format, _system, _color) do
+    []
+  end
+
+  defp terminal_presentation(true, color) do
+    [presentation: :interactive, styled: color != :never]
+  end
+
+  defp terminal_presentation(false, _color) do
+    []
   end
 
   defp usable_width?({:ok, columns}) do

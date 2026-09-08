@@ -5,6 +5,7 @@ defmodule Draught.CLI.Task.Stream.Output do
 
   alias Draught.CLI.Task.Stream.Emitter
   alias Draught.CLI.Task.Stream.Projector.State
+  alias Draught.CLI.Task.Stream.Renderer.Interactive
   alias Draught.CLI.Task.Stream.Renderer.JSONL
   alias Draught.CLI.Task.Stream.Renderer.Text
 
@@ -17,7 +18,7 @@ defmodule Draught.CLI.Task.Stream.Output do
   @doc "Renders one projected event and writes it to its deterministic stream."
   @spec emit({module(), term()}, State.t(), Draught.CLI.Task.Stream.Event.t(), mode()) :: result()
   def emit(system, projector, event, mode) do
-    with {:ok, rendered} <- render(projector.format, event),
+    with {:ok, rendered} <- render(projector, event),
          bytes = IO.iodata_length(rendered),
          :ok <- within_limit(projector, bytes, mode),
          :ok <- Emitter.write(system, output_stream(projector.format, event), rendered) do
@@ -29,11 +30,15 @@ defmodule Draught.CLI.Task.Stream.Output do
     end
   end
 
-  defp render(:text, event) do
+  defp render(%State{format: :text, presentation: :interactive, styled: styled?}, event) do
+    Interactive.render(event, styled?)
+  end
+
+  defp render(%State{format: :text}, event) do
     Text.render(event)
   end
 
-  defp render(:jsonl, event) do
+  defp render(%State{format: :jsonl}, event) do
     JSONL.render(event)
   end
 

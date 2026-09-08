@@ -34,7 +34,7 @@ defmodule Draught.CLI.Interactive.Controller do
   end
 
   defp loop(state, configuration, invocation, dependencies) do
-    case Terminal.read(dependencies) do
+    case Terminal.read(dependencies, invocation.color) do
       {:ok, parsed} -> handle(parsed, state, configuration, invocation, dependencies)
       :eof -> close(state, :success, dependencies)
       :interrupted -> close(state, :interrupted, dependencies)

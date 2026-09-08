@@ -2,6 +2,7 @@ defmodule Draught.CLI.Task.StreamTest do
   use ExUnit.Case, async: true
 
   alias Draught.CLI.Task.Stream
+  alias Draught.CLI.Task.Stream.Indicator.Captions
   alias Draught.Conversation
   alias Draught.Error.Normalized
   alias Draught.Event.Provider.Delta
@@ -60,17 +61,34 @@ defmodule Draught.CLI.Task.StreamTest do
     started = Stream.start(stream)
 
     assert {:ok, visible} = Stream.tick(started)
-    assert_receive {:write, :stdout, "\r\e[2K| Working"}
+    assert_receive {:write, :stdout, "\r\e[2K⠋ Lollygagging…"}
 
     assert {:ok, observed} = Stream.observe(visible, {:provider_event, 1, delta("done")})
     assert_receive {:write, :stdout, "\r\e[2K"}
-    assert_receive {:write, :stdout, "done"}
+    assert_receive {:write, :stdout, "\ndone"}
 
     response = response("done")
     assert {:ok, retained} = Stream.observe(observed, {:provider_result, 1, {:ok, response}})
     assert {:ok, _finished} = Stream.finish(retained, {:ok, response})
     assert_receive {:write, :stdout, "\n"}
     refute_receive {:write, _stream, _content}
+  end
+
+  test "shuffles the entire caption deck afresh for each turn" do
+    :rand.seed(:exsss, {17, 29, 43})
+    system = {SystemAdapter, %{columns: 80, owner: self(), tty: true, write: :ok}}
+    first = Stream.new(:text, system)
+    second = Stream.new(:text, system)
+    expected = Enum.to_list(0..(Captions.count() - 1))
+
+    for stream <- [first, second] do
+      assert stream.indicator.caption_order
+             |> Tuple.to_list()
+             |> Enum.sort() == expected
+    end
+
+    refute first.indicator.caption_order == second.indicator.caption_order
+    refute first.indicator.caption_order == Captions.order()
   end
 
   test "does not emit indicator controls to JSONL, redirected, or narrow output" do
@@ -110,6 +128,8 @@ defmodule Draught.CLI.Task.StreamTest do
   end
 
   test "bounds and then disables indicator output while preserving its final clear" do
+    frame_budget = byte_size("\r\e[2K⠋ Lollygagging…\r\e[2K")
+
     clock = fn ->
       receive do
         {:indicator_time, time} -> time
@@ -123,14 +143,14 @@ defmodule Draught.CLI.Task.StreamTest do
         clock: clock,
         indicator_delay_ms: 0,
         indicator_interval_ms: 1,
-        indicator_maximum_bytes: 19
+        indicator_maximum_bytes: frame_budget
       )
 
     send(self(), {:indicator_time, 0})
     started = Stream.start(stream)
     send(self(), {:indicator_time, 0})
     assert {:ok, visible} = Stream.tick(started)
-    assert_receive {:write, :stdout, "\r\e[2K| Working"}
+    assert_receive {:write, :stdout, "\r\e[2K⠋ Lollygagging…"}
 
     send(self(), {:indicator_time, 2})
     assert {:ok, exhausted} = Stream.tick(visible)
@@ -199,6 +219,8 @@ defmodule Draught.CLI.Task.StreamTest do
   end
 
   defp stream(format, options) do
+    options = Keyword.put_new(options, :indicator_caption_order, Captions.order())
+
     configuration = %{
       columns: Keyword.fetch!(options, :columns),
       owner: self(),

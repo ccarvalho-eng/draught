@@ -1,13 +1,17 @@
 # Draught
 
-[![CI](https://github.com/ccarvalho-eng/draught/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ccarvalho-eng/draught/actions/workflows/ci.yml)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/ccarvalho-eng/draught/blob/main/LICENSE)
-[![Elixir: 1.18+](https://img.shields.io/badge/Elixir-1.18%2B-4B275F.svg)](mix.exs)
-[![Project status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange.svg)](https://github.com/ccarvalho-eng/draught/milestones)
+[![CI](https://img.shields.io/github/actions/workflow/status/ccarvalho-eng/draught/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/ccarvalho-eng/draught/actions/workflows/ci.yml)
+[![Elixir](https://img.shields.io/badge/Elixir-1.18%2B-4B275F?style=flat-square&logo=elixir&logoColor=white)](mix.exs)
+[![Erlang/OTP](https://img.shields.io/badge/Erlang%2FOTP-27%20%7C%2029-A90533?style=flat-square&logo=erlang&logoColor=white)](.github/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/Coverage-90%25%2B-2E7D32?style=flat-square)](mix.exs)
+[![Doc coverage](https://img.shields.io/badge/Doc%20coverage-100%25-1565C0?style=flat-square)](mix.exs)
+[![License](https://img.shields.io/badge/License-Apache--2.0-D22128?style=flat-square&logo=apache&logoColor=white)](https://github.com/ccarvalho-eng/draught/blob/main/LICENSE)
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 
-The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, local journals, conversation interchange, the guarded web core, sanitized telemetry, bounded `AGENTS.md` guidance, streaming tasks, and an interactive prompt loop with local session and model selection are implemented. Interactive approvals, enabled web execution, plugins, MCP, scheduled loops, and distribution remain planned.
+## Documentation
+
+See the [documentation index](docs/index.md) for setup, CLI, architecture, providers, runtime, sessions, tools, web access, and security.
 
 ## Design constraints
 
@@ -19,27 +23,6 @@ The project is in pre-alpha development. Provider integrations, tool contracts, 
 | Runtime design | Domain values and transitions are pure. Processes are limited to state, concurrency, isolation, cancellation, or resource ownership. |
 | Authorization | Tool access, web access, budgets, timeouts, and mutations are explicit capabilities enforced independently of model output. |
 | Observability | Telemetry excludes credentials, message content, and raw provider values. Content-bearing events are handled by explicit CLI and journal policies. |
-
-## Project status
-
-| Area | Status |
-| --- | --- |
-| Project foundation and quality gates | Complete |
-| Canonical provider-neutral contracts | Complete |
-| OpenAI-compatible and Ollama providers | Complete |
-| Tool registry, execution contract, and standard coding tools | Complete |
-| Approval policy and workspace confinement | Complete |
-| Bounded agent runner | Complete |
-| Supervised session lifecycle | Complete |
-| Versioned local journals and replay | Complete |
-| Portable conversation interchange | Complete |
-| Privacy-safe telemetry | Complete |
-| Guarded web core and provenance | Complete |
-| CLI parsing, configuration, doctor, streaming tasks, and named-session resume | Complete |
-| Interactive prompt loop, status, help, doctor, model selection, session catalog, archive, and exit | Complete |
-| Interactive approvals, fuzzy command and model completion, provider selection, enabled web execution, plugins, MCP, scheduled loops, and distribution | Planned |
-
-The [GitHub milestones](https://github.com/ccarvalho-eng/draught/milestones) are the authoritative implementation roadmap. APIs may change before the first tagged alpha.
 
 ## Provider contracts
 
@@ -62,21 +45,19 @@ Draught.Provider.complete({Draught.Provider.Fake, fake}, request)
 
 The included fake is pure and route-based. It provides deterministic offline tests without processes, global configuration, or network access.
 
-## Documentation
+## Built-in agent tools
 
-- [Getting started](docs/getting-started.md)
-- [CLI](docs/cli.md)
-- [Configuration](docs/configuration.md)
-- [Architecture](docs/architecture.md)
-- [Ollama provider](docs/providers/ollama.md)
-- [Tool execution](docs/tools.md)
-- [Agent runner](docs/runner.md)
-- [Session lifecycle](docs/sessions.md)
-- [Session journals](docs/session-journals.md)
-- [Conversation interchange](docs/conversation-interchange.md)
-- [Telemetry](docs/telemetry.md)
-- [Web access](docs/web-access.md)
-- [Workspace confinement](docs/workspace-confinement.md)
+| Tool | Risk | Purpose |
+| --- | --- | --- |
+| `read_file` | Read | Read a confined UTF-8 workspace file. |
+| `list_directory` | Read | List bounded entries in a confined workspace directory. |
+| `search_workspace` | Read | Search workspace text under file, match, depth, and byte limits. |
+| `replace_in_file` | Write | Replace one exact occurrence through serialized atomic mutation. |
+| `run_command` | Execute | Run an executable with an argument vector, scrubbed environment, timeout, cancellation, and bounded output. |
+| `web_search` | Network | Search through an explicitly enabled adapter and retain untrusted provenance. |
+| `web_fetch` | Network | Fetch bounded HTTP(S) text under redirect, address, and egress controls. |
+
+Web tools are absent from the default registry. Write, execute, and network operations remain subject to the configured risk and approval policies. See the [tool execution guide](docs/tools.md) for schemas, limits, and execution boundaries.
 
 ## Security
 

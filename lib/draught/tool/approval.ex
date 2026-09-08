@@ -4,6 +4,7 @@ defmodule Draught.Tool.Approval do
   """
 
   alias Draught.Error.Normalized
+  alias Draught.Execution.BoundedTask
   alias Draught.Tool.Approval.Decision
   alias Draught.Tool.Approval.Policy.Adapter
   alias Draught.Tool.Approval.Request
@@ -16,7 +17,10 @@ defmodule Draught.Tool.Approval do
   def decide(policy, request) do
     with {:ok, module, configuration} <- Adapter.validate(policy),
          {:ok, canonical_request} <- normalize_request(request),
-         result <- module.decide(canonical_request, configuration) do
+         result <-
+           BoundedTask.without_timeout(fn ->
+             module.decide(canonical_request, configuration)
+           end) do
       normalize_decision(result)
     end
   end

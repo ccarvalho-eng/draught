@@ -40,6 +40,18 @@ defmodule Draught.CLI.Interactive.Session.Lookup do
     end
   end
 
+  @doc "Fetches one immutable session identifier through the configured catalog."
+  @spec fetch(String.t(), State.t(), Dependencies.t()) ::
+          {:ok, Catalog.Entry.t()} | {:error, term()}
+  def fetch(identifier, state, dependencies) do
+    Catalog.fetch(
+      dependencies.catalog,
+      state.workspace,
+      identifier,
+      environment(dependencies)
+    )
+  end
+
   defp resolve_identifier(identifier, archive, state, dependencies) do
     case fetch(identifier, state, dependencies) do
       {:ok, entry} -> Catalog.resolve([entry], identifier, archive)
@@ -59,15 +71,6 @@ defmodule Draught.CLI.Interactive.Session.Lookup do
       {:error, :not_found} -> Catalog.resolve_position(entries, reference, archive)
       result -> result
     end
-  end
-
-  defp fetch(identifier, state, dependencies) do
-    Catalog.fetch(
-      dependencies.catalog,
-      state.workspace,
-      identifier,
-      environment(dependencies)
-    )
   end
 
   defp environment(%Dependencies{system: {system, configuration}}) do

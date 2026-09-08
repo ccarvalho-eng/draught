@@ -22,11 +22,18 @@ defmodule Draught.Session.Journal.Replay.Reducer do
   @doc "Marks an unterminated final turn as interrupted after all records are applied."
   @spec finalize(Replay.t()) :: Replay.t()
   def finalize(%Replay{terminal: {:running, turn_id}} = replay) do
-    %{replay | messages: Enum.reverse(replay.messages), terminal: {:interrupted, turn_id}}
+    messages = fallback_messages(replay.turn_base_messages, replay)
+
+    %{
+      replay
+      | messages: Enum.reverse(messages),
+        terminal: {:interrupted, turn_id},
+        turn_base_messages: nil
+    }
   end
 
   def finalize(%Replay{} = replay) do
-    %{replay | messages: Enum.reverse(replay.messages)}
+    %{replay | messages: Enum.reverse(replay.messages), turn_base_messages: nil}
   end
 
   defp transition(replay, {:turn_started, turn_id, provider, request}) do
@@ -63,9 +70,26 @@ defmodule Draught.Session.Journal.Replay.Reducer do
     end
   end
 
-  defp transition(replay, {:turn_terminal, turn_id, outcome}) do
+  defp transition(replay, {:turn_terminal, turn_id, {:ok, _response} = outcome}) do
     with :ok <- active_turn(replay, turn_id) do
-      {:ok, %{replay | terminal: {:completed, turn_id, outcome}}}
+      {:ok,
+       %{
+         replay
+         | terminal: {:completed, turn_id, outcome},
+           turn_base_messages: nil
+       }}
+    end
+  end
+
+  defp transition(replay, {:turn_terminal, turn_id, {:error, _error} = outcome}) do
+    with :ok <- active_turn(replay, turn_id) do
+      {:ok,
+       %{
+         replay
+         | messages: fallback_messages(replay.turn_base_messages, replay),
+           terminal: {:completed, turn_id, outcome},
+           turn_base_messages: nil
+       }}
     end
   end
 
@@ -116,7 +140,8 @@ defmodule Draught.Session.Journal.Replay.Reducer do
          messages: Enum.reverse(request.messages),
          model: request.model,
          provider: provider,
-         terminal: {:running, turn_id}
+         terminal: {:running, turn_id},
+         turn_base_messages: replay.messages
      }}
   end
 
@@ -142,6 +167,14 @@ defmodule Draught.Session.Journal.Replay.Reducer do
       )
 
     usage
+  end
+
+  defp fallback_messages(nil, replay) do
+    replay.messages
+  end
+
+  defp fallback_messages(messages, _replay) do
+    messages
   end
 
   defp corrupt do

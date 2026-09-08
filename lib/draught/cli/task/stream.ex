@@ -76,7 +76,7 @@ defmodule Draught.CLI.Task.Stream do
   end
 
   @doc "Returns the next bounded wait interval for execution or indicator progress."
-  @spec wait_timeout(t(), non_neg_integer()) :: non_neg_integer()
+  @spec wait_timeout(t(), timeout()) :: timeout()
   def wait_timeout(%__MODULE__{mode: :visible, indicator: indicator} = stream, maximum) do
     Indicator.wait_timeout(indicator, maximum, now(stream))
   end

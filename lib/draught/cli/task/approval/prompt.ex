@@ -3,8 +3,9 @@ defmodule Draught.CLI.Task.Approval.Prompt do
   Owns one outstanding terminal approval and its revocable reply correlation.
 
   Sensitive previews are written only to the interactive terminal, never to the
-  task event stream. Pending input is invalidated when its requester disappears
-  or its deadline expires. Terminal adapters must refuse reuse of abandoned input.
+  task event stream. Requests remain live while their execution process and CLI
+  owner remain alive. Terminal adapters must refuse reuse of reads abandoned by
+  cancellation or I/O failure.
   """
 
   alias Draught.CLI.Task.Approval.Presentation
@@ -42,40 +43,41 @@ defmodule Draught.CLI.Task.Approval.Prompt do
     {nil, nil, nil}
   end
 
-  @doc "Bounds the next receive by the current approval's remaining lifetime."
-  @spec wait_timeout(t() | nil, non_neg_integer()) :: non_neg_integer()
-  def wait_timeout(%__MODULE__{pending: %Pending{deadline: deadline}}, maximum) do
-    min(max(deadline - System.monotonic_time(:millisecond), 0), maximum)
-  end
-
+  @doc "Returns the caller's receive bound; approvals do not impose a deadline."
+  @spec wait_timeout(t() | nil, timeout()) :: timeout()
   def wait_timeout(_prompt, maximum) do
     maximum
   end
 
-  @doc "Displays a validated operation and starts an asynchronous terminal read."
-  @spec request(t(), {pid(), reference(), integer(), Request.t()}, {module(), term()}) ::
-          {:ok, t()} | {:error, t()}
-  def request(%__MODULE__{pending: nil} = prompt, operation, system) do
-    {requester, reference, deadline, request} = operation
-
-    prompt
-    |> prepare_operation(requester, deadline, request)
-    |> begin_request(prompt, requester, reference, deadline, system)
+  @doc "Retains pending input after observing that its operation requester stopped."
+  @spec requester_stopped(t()) :: t()
+  def requester_stopped(%__MODULE__{pending: %Pending{} = pending} = prompt) do
+    %{prompt | pending: Pending.requester_stopped(pending)}
   end
 
-  def request(%__MODULE__{} = prompt, {requester, reference, _deadline, _request}, _system) do
+  @doc "Displays a validated operation and starts an asynchronous terminal read."
+  @spec request(t(), {pid(), reference(), Request.t()}, {module(), term()}) ::
+          {:ok, t()} | {:error, t()}
+  def request(%__MODULE__{pending: nil} = prompt, operation, system) do
+    {requester, reference, request} = operation
+
+    prompt
+    |> prepare_operation(requester, request)
+    |> begin_request(prompt, requester, reference, system)
+  end
+
+  def request(%__MODULE__{} = prompt, {requester, reference, _request}, _system) do
     reject(prompt, requester, reference)
   end
 
-  @doc "Consumes one matching input record, granting only an explicit timely yes."
+  @doc "Consumes one matching input record, granting only an explicit yes to a live requester."
   @spec reply(t(), Draught.CLI.Interactive.Terminal.Adapter.input_result()) ::
           {:ok, t()} | {:error, t()}
   def reply(%__MODULE__{pending: %Pending{} = pending} = prompt, {:ok, input}) do
     valid = Pending.live?(pending)
     outcome = outcome(input, valid)
     send_decision(prompt.scope, pending.requester, pending.reference, outcome)
-    cleared = clear(prompt)
-    reply_result(valid, cleared)
+    {:ok, clear(prompt)}
   end
 
   def reply(%__MODULE__{} = prompt, _input) do
@@ -100,12 +102,11 @@ defmodule Draught.CLI.Task.Approval.Prompt do
          prompt,
          requester,
          reference,
-         deadline,
          system
        ) do
     with :ok <- Emitter.write(system, :stderr, render(validated, presentation)),
          {:ok, input} <- request_line(prompt.terminal) do
-      pending = Pending.new(requester, reference, deadline, input)
+      pending = Pending.new(requester, reference, input)
       {:ok, %{prompt | pending: pending}}
     else
       _failure -> reject(prompt, requester, reference)
@@ -117,7 +118,6 @@ defmodule Draught.CLI.Task.Approval.Prompt do
          prompt,
          requester,
          reference,
-         _deadline,
          _system
        ) do
     reject(prompt, requester, reference)
@@ -125,7 +125,7 @@ defmodule Draught.CLI.Task.Approval.Prompt do
 
   defp render(request, presentation) do
     [
-      "\nApproval required (25 seconds)\nTool: ",
+      "\nApproval required\nTool: ",
       request.tool,
       "\nTarget: ",
       request.target,
@@ -139,8 +139,8 @@ defmodule Draught.CLI.Task.Approval.Prompt do
     ]
   end
 
-  defp prepare_operation(prompt, requester, deadline, request) do
-    with {:ok, validated} <- validate_operation(requester, deadline, request),
+  defp prepare_operation(prompt, requester, request) do
+    with {:ok, validated} <- validate_operation(requester, request),
          {:ok, presentation} <- Presentation.render(validated, prompt.styled?) do
       {:ok, validated, presentation}
     end
@@ -151,11 +151,10 @@ defmodule Draught.CLI.Task.Approval.Prompt do
     {:error, prompt}
   end
 
-  defp validate_operation(requester, deadline, request) do
+  defp validate_operation(requester, request) do
     attributes = Map.from_struct(request)
 
     with true <- Process.alive?(requester),
-         true <- deadline > System.monotonic_time(:millisecond),
          {:ok, validated} <- Request.new(attributes),
          true <- is_binary(validated.preview) do
       {:ok, validated}
@@ -182,16 +181,12 @@ defmodule Draught.CLI.Task.Approval.Prompt do
     :ok
   end
 
-  defp clear(%__MODULE__{pending: %Pending{monitor: monitor}} = prompt) do
-    Process.demonitor(monitor, [:flush])
+  defp clear(%__MODULE__{pending: %Pending{monitor: nil}} = prompt) do
     %{prompt | pending: nil}
   end
 
-  defp reply_result(true, prompt) do
-    {:ok, prompt}
-  end
-
-  defp reply_result(false, prompt) do
-    {:error, prompt}
+  defp clear(%__MODULE__{pending: %Pending{monitor: monitor}} = prompt) do
+    Process.demonitor(monitor, [:flush])
+    %{prompt | pending: nil}
   end
 end

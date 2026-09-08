@@ -41,13 +41,13 @@ defmodule Draught.CLI.Task.Failure do
     error(:protocol, "invalid_cli_stream_event", "CLI received an invalid stream event")
   end
 
-  @doc "Builds the fail-closed result for interrupted, expired, or unavailable approval input."
+  @doc "Builds the fail-closed result for interrupted or unavailable approval input."
   @spec approval_unavailable() :: Normalized.t()
   def approval_unavailable do
     error(
       :policy,
       "approval_input_unavailable",
-      "Approval expired or input became unavailable. Restart Draught before continuing"
+      "Approval input became unavailable; the operation was not executed"
     )
   end
 

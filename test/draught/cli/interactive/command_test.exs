@@ -70,6 +70,26 @@ defmodule Draught.CLI.Interactive.CommandTest do
     end
 
     @impl Draught.CLI.Interactive.Terminal.Adapter
+    def request_line(configuration) do
+      reference = make_ref()
+
+      case Map.fetch(configuration, :approval_input) do
+        {:ok, input} ->
+          send(self(), {:draught_terminal_input, reference, input})
+          {:ok, reference}
+
+        :error ->
+          {:error, :io}
+      end
+    end
+
+    @impl Draught.CLI.Interactive.Terminal.Adapter
+    def cancel_read(reference, configuration) do
+      send(configuration.owner, {:approval_input_cancelled, reference})
+      :ok
+    end
+
+    @impl Draught.CLI.Interactive.Terminal.Adapter
     def restore(owner) do
       send(owner.owner, :interactive_terminal_restored)
       :ok
@@ -90,12 +110,60 @@ defmodule Draught.CLI.Interactive.CommandTest do
   defmodule Provider do
     @behaviour Draught.Provider
 
+    alias Draught.Conversation.Content.Text
+    alias Draught.Conversation.Message.Tool
+    alias Draught.Conversation.Message.User
+    alias Draught.Tool.Call
+
     @impl Draught.Provider
     def capabilities(_configuration) do
       Capabilities.new(chat: true, streaming: true, tool_calls: true)
     end
 
     @impl Draught.Provider
+    def complete(request, {:approval_denial, owner, response}) do
+      case Enum.reverse(request.messages) do
+        [%Tool{result: result} | _history] ->
+          send(owner, {:approval_tool_result, result})
+          {:ok, response}
+
+        _messages ->
+          {:ok, call} =
+            Call.new(
+              id: "edit-1",
+              name: "replace_in_file",
+              arguments: %{
+                "path" => "sample.txt",
+                "expected" => "before",
+                "replacement" => "after"
+              }
+            )
+
+          {:ok, assistant} = Conversation.assistant(tool_calls: [call])
+          Response.new(message: assistant, finish_reason: :tool_calls)
+      end
+    end
+
+    def complete(request, {:iteration_limit, owner, response}) do
+      case current_prompt(request.messages) do
+        "exhaust the turn" ->
+          iteration_response(request.messages, owner)
+
+        _prompt ->
+          send(owner, {:recovery_request, request.messages})
+          {:ok, response}
+      end
+    end
+
+    def complete(request, {:recover, owner, error, response}) do
+      send(owner, {:recovery_request, request.messages})
+
+      case current_prompt(request.messages) do
+        "fail this turn" -> {:error, error}
+        _prompt -> {:ok, response}
+      end
+    end
+
     def complete(_request, {:error, error}) do
       {:error, error}
     end
@@ -105,6 +173,27 @@ defmodule Draught.CLI.Interactive.CommandTest do
     end
 
     @impl Draught.Provider
+    def stream(request, {:approval_denial, owner, response}, sink) do
+      case complete(request, {:approval_denial, owner, response}) do
+        {:ok, recovered} -> stream(request, recovered, sink)
+        {:error, _error} = result -> result
+      end
+    end
+
+    def stream(request, {:iteration_limit, owner, response}, sink) do
+      case complete(request, {:iteration_limit, owner, response}) do
+        {:ok, recovered} -> stream(request, recovered, sink)
+        {:error, _error} = result -> result
+      end
+    end
+
+    def stream(request, {:recover, owner, error, response}, sink) do
+      case complete(request, {:recover, owner, error, response}) do
+        {:ok, recovered} -> stream(request, recovered, sink)
+        {:error, _error} = result -> result
+      end
+    end
+
     def stream(_request, {:error, error}, _sink) do
       {:error, error}
     end
@@ -120,6 +209,30 @@ defmodule Draught.CLI.Interactive.CommandTest do
       end)
 
       {:ok, response}
+    end
+
+    defp current_prompt(messages) do
+      messages
+      |> Enum.reverse()
+      |> Enum.find_value(fn
+        %User{content: %Text{text: text}} -> text
+        _message -> nil
+      end)
+    end
+
+    defp iteration_response(messages, owner) do
+      iteration = Enum.count(messages, &match?(%Tool{}, &1)) + 1
+      send(owner, {:iteration_request, iteration})
+
+      {:ok, call} =
+        Call.new(
+          id: "read-#{iteration}",
+          name: "read_file",
+          arguments: %{"path" => "missing-#{iteration}.txt"}
+        )
+
+      {:ok, assistant} = Conversation.assistant(tool_calls: [call])
+      Response.new(message: assistant, finish_reason: :tool_calls)
     end
   end
 
@@ -387,25 +500,92 @@ defmodule Draught.CLI.Interactive.CommandTest do
   end
 
   @tag :tmp_dir
-  test "closes a failed turn without guessing whether it can be resumed", %{
+  test "keeps the shell usable after a failed turn and resumes clean history", %{
     tmp_dir: temporary_directory
   } do
     {:ok, failure} =
       Normalized.new(:protocol, "provider_failed", "Provider failed", retryable: false)
 
-    input({:ok, "run the task\n"})
+    input({:ok, "fail this turn\n"})
+    input({:ok, "retry cleanly\n"})
+    input({:ok, "/exit\n"})
 
     dependencies =
       dependencies(
         cwd: temporary_directory,
-        provider_response: {:error, failure},
+        provider_response: {:recover, self(), failure, response()},
         state: temporary_directory
       )
 
-    assert CLI.run([], dependencies) == 4
+    assert CLI.run([], dependencies) == 0
     output = receive_output()
     assert output =~ "Task failed (provider_failed)"
+    assert output =~ "completed"
     assert output =~ "Session ID: 00000000-0000-4000-8000-000000000001"
+
+    assert_receive {:recovery_request, first_messages}
+    assert_receive {:recovery_request, second_messages}
+    assert prompt_contents(first_messages) == ["fail this turn"]
+    assert prompt_contents(second_messages) == ["retry cleanly"]
+    assert_receive :interactive_terminal_restored
+  end
+
+  @tag :tmp_dir
+  test "stops only the turn at the iteration limit and accepts the next prompt", %{
+    tmp_dir: temporary_directory
+  } do
+    input({:ok, "exhaust the turn\n"})
+    input({:ok, "continue after limit\n"})
+    input({:ok, "/exit\n"})
+
+    dependencies =
+      dependencies(
+        cwd: temporary_directory,
+        provider_response: {:iteration_limit, self(), response()},
+        state: temporary_directory
+      )
+
+    assert CLI.run([], dependencies) == 0
+    output = receive_output()
+    assert output =~ "Task failed (iteration_limit)"
+    assert output =~ "completed"
+    assert output =~ "Session ID: 00000000-0000-4000-8000-000000000001"
+
+    for iteration <- 1..12 do
+      assert_receive {:iteration_request, ^iteration}
+    end
+
+    assert_receive {:recovery_request, resumed_messages}
+    assert prompt_contents(resumed_messages) == ["continue after limit"]
+    assert_receive :interactive_terminal_restored
+  end
+
+  @tag :tmp_dir
+  test "denies an unapproved edit and keeps the interactive session open", %{
+    tmp_dir: temporary_directory
+  } do
+    path = Path.join(temporary_directory, "sample.txt")
+    File.write!(path, "before")
+    input({:ok, "edit the file\n"})
+    input({:ok, "/status\n"})
+    input({:ok, "/exit\n"})
+
+    dependencies =
+      dependencies(
+        approval_input: {:ok, "\n"},
+        cwd: temporary_directory,
+        provider_response: {:approval_denial, self(), response()},
+        state: temporary_directory
+      )
+
+    assert CLI.run([], dependencies) == 0
+    output = plain(receive_output())
+    assert output =~ "Approval required"
+    assert output =~ "Session status"
+    assert output =~ "Session ID: 00000000-0000-4000-8000-000000000001"
+    assert File.read!(path) == "before"
+    assert_receive {:approval_tool_result, %{error: %{code: "approval_denied"}}}
+    refute_receive {:approval_input_cancelled, _reference}
     assert_receive :interactive_terminal_restored
   end
 
@@ -558,7 +738,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
         system: system,
         terminal: {
           TerminalAdapter,
-          %{interactive?: Keyword.get(options, :input_terminal, true), owner: owner}
+          terminal_configuration(options, owner)
         },
         task: task_dependencies
       )
@@ -575,6 +755,15 @@ defmodule Draught.CLI.Interactive.CommandTest do
       identifier: identifier(options),
       provider: {provider_factory, provider_response}
     ]
+  end
+
+  defp terminal_configuration(options, owner) do
+    configuration = %{interactive?: Keyword.get(options, :input_terminal, true), owner: owner}
+
+    case Keyword.fetch(options, :approval_input) do
+      {:ok, input} -> Map.put(configuration, :approval_input, input)
+      :error -> configuration
+    end
   end
 
   defp identifier(options) do
@@ -614,6 +803,13 @@ defmodule Draught.CLI.Interactive.CommandTest do
 
   defp plain(output) do
     Regex.replace(~r/\e\[[0-9;]*m/, output, "")
+  end
+
+  defp prompt_contents(messages) do
+    Enum.flat_map(messages, fn
+      %Conversation.Message.User{content: %Conversation.Content.Text{text: text}} -> [text]
+      _message -> []
+    end)
   end
 
   defp response do

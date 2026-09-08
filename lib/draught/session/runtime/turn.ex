@@ -68,8 +68,20 @@ defmodule Draught.Session.Runtime.Turn do
     sink = fn event -> Sink.emit(session, token, event) end
     run = fn -> Execution.run(session, settings, request, sink) end
     task = Task.Supervisor.async_nolink(@task_supervisor, run)
-    timer = Process.send_after(session, {:turn_timeout, token}, settings.turn_timeout_ms)
+    timer = start_timer(session, token, settings.turn_timeout_ms)
     ActiveTurn.new(turn_id, subscriber, task, telemetry_span, timer, token, delivery)
+  end
+
+  defp start_timer(_session, _token, :infinity) do
+    nil
+  end
+
+  defp start_timer(session, token, timeout_ms) do
+    Process.send_after(session, {:turn_timeout, token}, timeout_ms)
+  end
+
+  defp cancel_timer(nil) do
+    :ok
   end
 
   defp cancel_timer(timer) do

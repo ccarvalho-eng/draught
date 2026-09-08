@@ -14,14 +14,14 @@ defmodule Draught.CLI.Task.OneShot.Mailbox do
           | :started
           | {:runner, term(), reference()}
           | :session_stopped
-          | {:approval, {pid(), reference(), integer(), Draught.Tool.Approval.Request.t()}}
+          | {:approval, {pid(), reference(), Draught.Tool.Approval.Request.t()}}
           | {:input, Draught.CLI.Interactive.Terminal.Adapter.input_result()}
           | :approval_stopped
           | :invalid_event
           | :elapsed
 
   @doc "Receives one correlated event without consuming unrelated caller messages."
-  @spec next(String.t(), pos_integer(), Stream.t(), reference(), non_neg_integer()) :: event()
+  @spec next(String.t(), pos_integer(), Stream.t(), reference(), timeout()) :: event()
   def next(identifier, turn_id, stream, monitor, maximum) do
     timeout = Prompt.wait_timeout(stream.approval, maximum)
     references = Prompt.references(stream.approval)

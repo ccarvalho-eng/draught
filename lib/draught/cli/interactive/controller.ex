@@ -144,7 +144,7 @@ defmodule Draught.CLI.Interactive.Controller do
         continue_after(@success_status, next_state, configuration, invocation, dependencies)
 
       {:ok, status, next_state} ->
-        close_after_failure(status, next_state, dependencies)
+        continue_after(status, next_state, configuration, invocation, dependencies)
 
       {:error, :model_required} ->
         continue(
@@ -199,18 +199,6 @@ defmodule Draught.CLI.Interactive.Controller do
       dependencies,
       :stderr
     )
-  end
-
-  defp close_after_failure(status, state, dependencies) do
-    case Terminal.emit(
-           {:session_closed, state.session_id},
-           :stdout,
-           :success,
-           dependencies
-         ) do
-      @success_status -> status
-      @internal_status -> @internal_status
-    end
   end
 
   defp handle_session_result(

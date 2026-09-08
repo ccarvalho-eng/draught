@@ -2,8 +2,8 @@ defmodule Draught.CLI.Interactive.Turn do
   @moduledoc """
   Executes one interactive prompt through the existing named-session command path.
 
-  A successful response establishes durable session state. The controller stops
-  after a failed turn because failed journals are not automatically resumable.
+  A completed command may establish durable session state even when its runner
+  outcome failed. Durable state is detected before returning the shell to idle.
   """
 
   alias Draught.CLI.Command.ExitStatus
@@ -11,6 +11,7 @@ defmodule Draught.CLI.Interactive.Turn do
   alias Draught.CLI.Configuration
   alias Draught.CLI.Dependencies
   alias Draught.CLI.Interactive.State
+  alias Draught.CLI.Interactive.Turn.Persistence
   alias Draught.CLI.Task
 
   @doc "Runs one prompt and returns its emitted status with the next idle state."
@@ -28,7 +29,7 @@ defmodule Draught.CLI.Interactive.Turn do
     task_invocation = task_invocation(invocation, state, prompt)
     resolved = %{configuration | model: state.model}
     status = Task.Command.run_resolved(task_invocation, resolved, state.workspace, dependencies)
-    persisted? = persisted_status?(status)
+    persisted? = persisted?(status, state, dependencies)
     {:idle, next_state} = State.finish_turn(state, persisted?)
     {:ok, status, next_state}
   end
@@ -54,7 +55,7 @@ defmodule Draught.CLI.Interactive.Turn do
     %{invocation | session: state.session_id}
   end
 
-  defp persisted_status?(status) do
-    status == ExitStatus.value(:success)
+  defp persisted?(status, state, dependencies) do
+    status == ExitStatus.value(:success) or Persistence.established?(state, dependencies)
   end
 end

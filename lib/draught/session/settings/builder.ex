@@ -95,6 +95,14 @@ defmodule Draught.Session.Settings.Builder do
 
   defp timeout(attributes) do
     value = Map.get(attributes, :turn_timeout_ms, Settings.default_turn_timeout_ms())
+    timeout_value(value)
+  end
+
+  defp timeout_value(:infinity) do
+    {:ok, :infinity}
+  end
+
+  defp timeout_value(value) do
     Value.positive_integer_at_most(value, @maximum_turn_timeout_ms, [:turn_timeout_ms])
   end
 

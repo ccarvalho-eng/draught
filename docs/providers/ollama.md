@@ -65,6 +65,8 @@ Discovery is bounded to 16 installed models and is sequential. A larger automati
 - More than one compatible entry requires an explicit model and returns `ollama_model_required` otherwise.
 - An explicitly selected missing or incompatible model returns its normalized provider error.
 
+The interactive CLI handles the multiple-compatible-model case inside its shell: `/model` lists the compatible inventory and `/model REF` selects an exact name or one-based position before the first durable turn. A persisted session cannot change its recorded model binding. One-shot commands continue to require an explicit model when automatic selection is ambiguous.
+
 The read-only `draught doctor` command uses this inventory when model selection is automatic. When a model is explicit, doctor requests and checks only that model. See [Getting started](../getting-started.md) for local setup and model selection.
 
 ## Failures

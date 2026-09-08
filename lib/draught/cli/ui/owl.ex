@@ -48,7 +48,7 @@ defmodule Draught.CLI.UI.Owl do
   defp narrow(state, width) do
     [
       [">_ Draught ", version()],
-      ["model: ", safe(state.model)],
+      ["model: ", model(state.model)],
       ["provider: ", safe(state.provider)],
       ["session: ", safe(state.session_label)]
     ]
@@ -63,7 +63,7 @@ defmodule Draught.CLI.UI.Owl do
       "\n\n",
       label("model:", styled?),
       "     ",
-      safe(state.model),
+      model(state.model),
       "   /model to change\n",
       label("provider:", styled?),
       "  ",
@@ -109,6 +109,14 @@ defmodule Draught.CLI.UI.Owl do
 
   defp safe(value) do
     SafeLine.text(value, 2_048)
+  end
+
+  defp model(nil) do
+    "selection required"
+  end
+
+  defp model(value) do
+    safe(value)
   end
 
   defp bounded_line(line, width) do

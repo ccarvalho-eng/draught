@@ -23,6 +23,8 @@ defmodule Draught.CLI.Interactive.State do
     :session_label,
     :web,
     :workspace,
+    model_catalog: [],
+    model_catalog_displayed?: false,
     persisted?: false,
     phase: :idle
   ]
@@ -31,7 +33,9 @@ defmodule Draught.CLI.Interactive.State do
   @type t :: %__MODULE__{
           active_prompt: String.t() | nil,
           approval_id: String.t() | nil,
-          model: String.t(),
+          model: String.t() | nil,
+          model_catalog: [String.t()],
+          model_catalog_displayed?: boolean(),
           persisted?: boolean(),
           phase: phase(),
           provider: String.t(),
@@ -45,7 +49,7 @@ defmodule Draught.CLI.Interactive.State do
   @doc "Builds an idle session state from trusted, display-safe context."
   @spec new(map() | keyword()) :: Error.result(t())
   def new(attributes) do
-    keys = [:model, :provider, :session_id, :session_label, :web, :workspace]
+    keys = [:model, :model_catalog, :provider, :session_id, :session_label, :web, :workspace]
 
     with {:ok, normalized} <- Attributes.normalize(attributes, keys) do
       build(normalized)
@@ -53,7 +57,12 @@ defmodule Draught.CLI.Interactive.State do
   end
 
   @doc "Begins a turn only while the shell is idle."
-  @spec start_turn(t(), String.t()) :: {:ok, t()} | {:error, :busy | :invalid_prompt}
+  @spec start_turn(t(), String.t()) ::
+          {:ok, t()} | {:error, :busy | :invalid_prompt | :model_required}
+  def start_turn(%__MODULE__{model: nil}, _prompt) do
+    {:error, :model_required}
+  end
+
   def start_turn(%__MODULE__{phase: :idle} = state, prompt) do
     case prompt(prompt) do
       {:ok, validated} ->
@@ -175,6 +184,52 @@ defmodule Draught.CLI.Interactive.State do
     %{state | persisted?: true}
   end
 
+  @doc "Checks whether the active session may change its model binding."
+  @spec model_selectable(t()) :: :ok | {:error, :busy | :persisted_model}
+  def model_selectable(%__MODULE__{persisted?: true}) do
+    {:error, :persisted_model}
+  end
+
+  def model_selectable(%__MODULE__{phase: :idle}) do
+    :ok
+  end
+
+  def model_selectable(%__MODULE__{}) do
+    {:error, :busy}
+  end
+
+  @doc "Selects a model only before an idle session establishes durable state."
+  @spec select_model(t(), term()) ::
+          {:ok, t()} | {:error, :busy | :invalid_model | :persisted_model}
+  def select_model(%__MODULE__{} = state, model) do
+    with :ok <- model_selectable(state),
+         {:ok, validated} <- required_model(model) do
+      {:ok, %{state | model: validated}}
+    end
+  end
+
+  @doc "Retains the bounded model inventory most recently shown to the user."
+  @spec display_models(t(), term()) :: {:ok, t()} | {:error, :invalid_model_catalog}
+  def display_models(%__MODULE__{} = state, models) do
+    case validate_model_catalog(models) do
+      {:ok, validated} ->
+        {:ok, %{state | model_catalog: validated, model_catalog_displayed?: true}}
+
+      {:error, _error} ->
+        {:error, :invalid_model_catalog}
+    end
+  end
+
+  @doc "Returns the last model inventory shown by the shell."
+  @spec displayed_models(t()) :: {:ok, [String.t()]} | {:error, :model_list_required}
+  def displayed_models(%__MODULE__{model_catalog_displayed?: true, model_catalog: models}) do
+    {:ok, models}
+  end
+
+  def displayed_models(%__MODULE__{}) do
+    {:error, :model_list_required}
+  end
+
   @doc "Selects a prepared idle session without carrying transient turn state."
   @spec select(t(), t()) :: {:ok, t()} | {:error, :busy}
   def select(%__MODULE__{phase: :idle}, %__MODULE__{phase: :idle} = selected) do
@@ -199,20 +254,78 @@ defmodule Draught.CLI.Interactive.State do
   end
 
   defp build(attributes) do
-    with {:ok, model} <- Value.required_string(attributes, :model),
+    with {:ok, model} <- optional_model(attributes),
+         {:ok, model_catalog} <- model_catalog(attributes),
          {:ok, provider} <- Value.required_string(attributes, :provider),
          {:ok, session_id} <- Value.required_string(attributes, :session_id) do
-      build_session(attributes, model, provider, session_id)
+      build_session(attributes, model, model_catalog, provider, session_id)
     end
   end
 
-  defp build_session(attributes, model, provider, session_id) do
+  defp model_catalog(attributes) do
+    attributes
+    |> Map.get(:model_catalog, [])
+    |> validate_model_catalog()
+  end
+
+  defp validate_model_catalog(models) when is_list(models) do
+    bounded = Enum.count_until(models, 17) <= 16
+
+    valid =
+      Enum.all?(models, fn model ->
+        is_binary(model) and byte_size(model) > 0 and byte_size(model) <= 256 and
+          String.valid?(model) and not String.contains?(model, <<0>>)
+      end)
+
+    unique = Enum.uniq(models) == models
+    model_catalog_result(bounded and valid and unique, models)
+  end
+
+  defp validate_model_catalog(_models) do
+    model_catalog_result(false, [])
+  end
+
+  defp model_catalog_result(true, models) do
+    {:ok, models}
+  end
+
+  defp model_catalog_result(false, _models) do
+    Error.single(
+      [:model_catalog],
+      :invalid_value,
+      "must contain at most 16 unique bounded UTF-8 model names"
+    )
+  end
+
+  defp optional_model(attributes) do
+    with {:ok, value} <- Attributes.fetch_required(attributes, :model) do
+      optional_model_value(value)
+    end
+  end
+
+  defp optional_model_value(nil) do
+    {:ok, nil}
+  end
+
+  defp optional_model_value(value) do
+    Value.required_string(%{model: value}, :model)
+  end
+
+  defp required_model(value) do
+    case Value.required_string(%{model: value}, :model) do
+      {:ok, model} -> {:ok, model}
+      {:error, _error} -> {:error, :invalid_model}
+    end
+  end
+
+  defp build_session(attributes, model, model_catalog, provider, session_id) do
     with {:ok, session_label} <- session_label(attributes, session_id),
          {:ok, web} <- required_boolean(attributes, :web),
          {:ok, workspace} <- Value.required_string(attributes, :workspace) do
       {:ok,
        %__MODULE__{
          model: model,
+         model_catalog: model_catalog,
          provider: provider,
          session_id: session_id,
          session_label: session_label,

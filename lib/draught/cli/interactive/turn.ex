@@ -15,7 +15,8 @@ defmodule Draught.CLI.Interactive.Turn do
 
   @doc "Runs one prompt and returns its emitted status with the next idle state."
   @spec run(String.t(), State.t(), Configuration.t(), Invocation.t(), Dependencies.t()) ::
-          {:ok, non_neg_integer(), State.t()} | {:error, :busy | :invalid_prompt}
+          {:ok, non_neg_integer(), State.t()}
+          | {:error, :busy | :invalid_prompt | :model_required}
   def run(prompt, state, configuration, invocation, dependencies) do
     case State.start_turn(state, prompt) do
       {:ok, running} -> execute(prompt, running, configuration, invocation, dependencies)
@@ -24,18 +25,19 @@ defmodule Draught.CLI.Interactive.Turn do
   end
 
   defp execute(prompt, state, configuration, invocation, dependencies) do
-    task_invocation = task_invocation(invocation, state, prompt, configuration)
-    status = Task.Command.run(task_invocation, dependencies)
+    task_invocation = task_invocation(invocation, state, prompt)
+    resolved = %{configuration | model: state.model}
+    status = Task.Command.run_resolved(task_invocation, resolved, state.workspace, dependencies)
     persisted? = persisted_status?(status)
     {:idle, next_state} = State.finish_turn(state, persisted?)
     {:ok, status, next_state}
   end
 
-  defp task_invocation(invocation, state, prompt, configuration) do
+  defp task_invocation(invocation, state, prompt) do
     selected = %{
       invocation
       | command: :task,
-        model: configuration.model || state.model,
+        model: state.model,
         prompt: prompt,
         resume: nil,
         session: nil

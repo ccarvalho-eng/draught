@@ -116,7 +116,14 @@ Run Draught without a task argument from an interactive terminal:
 ./draught
 ```
 
-Startup resolves the same configuration as a one-shot task, discovers the effective model, generates one session identifier, and displays the provider, model, workspace, session, and web state before accepting input. Ordinary text starts the first durable named turn and subsequent successful turns resume that session. Entering `/` displays the command index. End of input and `/exit` restore the terminal and print `Session ID: ID`.
+Startup resolves the same configuration as a one-shot task, inspects the compatible model inventory, generates one session identifier, and displays the provider, model, workspace, session, and web state before accepting input. One compatible Ollama model is selected automatically. If several are available, select one inside the shell before entering a task:
+
+```text
+/model
+/model 2
+```
+
+`/model` lists compatible models in provider order. Its optional reference is an exact name or one-based list position. The selection is fixed after the first successful turn; start `/new` before changing models. Ordinary text starts the first durable named turn and subsequent successful turns resume that session. Entering `/` displays the command index. End of input and `/exit` restore the terminal and print `Session ID: ID`.
 
 Manage persistent sessions without leaving the shell:
 
@@ -148,6 +155,6 @@ The following forms remain explicit unavailable results:
 ./draught "search the web" --web
 ```
 
-Interactive approval prompts, searchable model and provider menus, direct commands, file selection, active-turn cancellation, and enabled web execution depend on later capability work. Effectful tool requests continue to use the configured non-interactive approval policy until the interactive approval broker is connected. Each anonymous task starts without prior conversation state.
+Interactive approval prompts, fuzzy command and model completion, provider selection, direct commands, file selection, active-turn cancellation, and enabled web execution depend on later capability work. Effectful tool requests continue to use the configured non-interactive approval policy until the interactive approval broker is connected. Each anonymous task starts without prior conversation state.
 
 See [CLI](cli.md) for command and exit behavior and [Ollama provider](providers/ollama.md) for discovery details.

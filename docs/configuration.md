@@ -22,6 +22,30 @@ The project configuration path is `.draught/config.json` in the current working 
 
 Configuration files must be regular files no larger than 65,536 bytes. Symbolic links and other non-regular file types are rejected.
 
+## AGENTS.md guidance
+
+Fresh tasks may include coding guidance from two optional files, in this order:
+
+1. `$XDG_CONFIG_HOME/draught/AGENTS.md`, or `$HOME/.config/draught/AGENTS.md` when `XDG_CONFIG_HOME` is unavailable.
+2. `AGENTS.md` in the current workspace root.
+
+Draught reads exactly these locations. It does not search workspace ancestors, process includes, or interpolate environment variables in their contents. Later workspace guidance takes precedence over earlier user guidance when the two conflict.
+
+For example, a workspace may define:
+
+```markdown
+# Project guidance
+
+- Keep domain decisions in pure modules.
+- Run focused tests for every changed boundary.
+```
+
+The combined raw contents are limited to 32,768 bytes. Each source must be a regular non-symbolic-link file containing valid UTF-8 without null bytes. Missing and blank files are omitted. Invalid, unsafe, unreadable, or oversized guidance fails before provider execution without echoing its contents.
+
+Guidance is encoded as a bounded data envelope inside the canonical system message. It cannot change configuration, provider or model selection, endpoints, tool registration, risk or approval policy, web capability, workspace confinement, secret handling, or runtime limits. Those controls remain enforced by separate runtime boundaries. The effective guidance is sent to the selected model provider and retained in named-session journals, so `AGENTS.md` must not contain credentials or other secrets.
+
+Anonymous tasks load current guidance for each invocation. A named session loads guidance for its first turn and persists the resulting canonical system message in its journal. Resume uses that recorded message without reading the files again. A named session whose first turn was not durably recorded is not resumed automatically, because it has no authoritative instruction snapshot.
+
 ## Built-in configuration
 
 The built-in profile is equivalent to:

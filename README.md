@@ -7,7 +7,7 @@
 
 Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
 
-The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, local journals, conversation interchange, the guarded web core, sanitized telemetry, streaming tasks, and an interactive prompt loop with local session management are implemented. Interactive approvals, enabled web execution, plugins, MCP, scheduled loops, and distribution remain planned.
+The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, local journals, conversation interchange, the guarded web core, sanitized telemetry, bounded `AGENTS.md` guidance, streaming tasks, and an interactive prompt loop with local session management are implemented. Interactive approvals, enabled web execution, plugins, MCP, scheduled loops, and distribution remain planned.
 
 ## Design constraints
 

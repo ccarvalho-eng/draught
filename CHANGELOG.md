@@ -17,4 +17,5 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - A bounded CLI with deterministic configuration, diagnostics, and text or JSONL output.
 - Anonymous one-shot CLI tasks executed through temporary supervised sessions with journaling disabled.
 - Durable named CLI sessions with replay-safe provider, model, and capability bindings.
+- Bounded user and workspace `AGENTS.md` guidance with stable named-session replay.
 - Ordered provider streaming with bounded transient delivery, incremental text and JSONL projection, and a terminal-aware activity indicator.

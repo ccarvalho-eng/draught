@@ -15,8 +15,35 @@ defmodule Draught.CLI.Task do
   @doc "Runs one anonymous task through the provider and supervised session boundaries."
   @spec run(String.t(), Draught.CLI.Configuration.t(), String.t(), Dependencies.t()) :: result()
   def run(prompt, configuration, workspace, %Dependencies{} = dependencies) do
+    run(
+      prompt,
+      configuration,
+      workspace,
+      dependencies,
+      Setup.system_prompt()
+    )
+  end
+
+  @doc "Runs one anonymous task with an explicit canonical system instruction."
+  @spec run(
+          String.t(),
+          Draught.CLI.Configuration.t(),
+          String.t(),
+          Dependencies.t(),
+          String.t()
+        ) :: result()
+  def run(prompt, configuration, workspace, %Dependencies{} = dependencies, system_prompt)
+      when is_binary(system_prompt) do
     {result, _stream} =
-      execute(prompt, configuration, workspace, dependencies, Stream.silent(), :complete)
+      execute(
+        prompt,
+        configuration,
+        workspace,
+        dependencies,
+        Stream.silent(),
+        :complete,
+        system_prompt
+      )
 
     result
   end
@@ -30,13 +57,62 @@ defmodule Draught.CLI.Task do
           Stream.t()
         ) :: {result(), Stream.t()}
   def run_observed(prompt, configuration, workspace, %Dependencies{} = dependencies, stream) do
-    execute(prompt, configuration, workspace, dependencies, stream, :stream)
+    run_observed(
+      prompt,
+      configuration,
+      workspace,
+      dependencies,
+      stream,
+      Setup.system_prompt()
+    )
   end
 
-  defp execute(prompt, configuration, workspace, dependencies, stream, provider_mode) do
+  @doc "Runs one observed anonymous task with an explicit canonical system instruction."
+  @spec run_observed(
+          String.t(),
+          Draught.CLI.Configuration.t(),
+          String.t(),
+          Dependencies.t(),
+          Stream.t(),
+          String.t()
+        ) :: {result(), Stream.t()}
+  def run_observed(
+        prompt,
+        configuration,
+        workspace,
+        %Dependencies{} = dependencies,
+        stream,
+        system_prompt
+      )
+      when is_binary(system_prompt) do
+    execute(
+      prompt,
+      configuration,
+      workspace,
+      dependencies,
+      stream,
+      :stream,
+      system_prompt
+    )
+  end
+
+  defp execute(
+         prompt,
+         configuration,
+         workspace,
+         dependencies,
+         stream,
+         provider_mode,
+         system_prompt
+       ) do
     with {:ok, preparation} <-
-           Setup.prepare(prompt, configuration, workspace, dependencies,
-             provider_mode: provider_mode
+           Setup.prepare(
+             prompt,
+             configuration,
+             workspace,
+             dependencies,
+             provider_mode: provider_mode,
+             system_prompt: system_prompt
            ),
          {:ok, identifier} <- identifier(dependencies) do
       OneShot.run_observed(identifier, preparation, stream)

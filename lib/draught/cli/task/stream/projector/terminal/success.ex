@@ -20,6 +20,7 @@ defmodule Draught.CLI.Task.Stream.Projector.Terminal.Success do
         Event.new(:success, state.sequence,
           content: content,
           finish_reason: response.finish_reason,
+          heading: not streamed and content != "",
           prefix_newline: trailing_newline,
           streamed: streamed,
           usage: usage(response)

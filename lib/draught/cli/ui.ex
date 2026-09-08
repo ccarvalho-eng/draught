@@ -74,10 +74,17 @@ defmodule Draught.CLI.UI do
     ]
   end
 
-  @doc "Renders the fixed interactive input prompt."
-  @spec prompt() :: iodata()
-  def prompt do
-    "> "
+  @doc "Renders a bounded line-mode input boundary without cursor movement or speaker names."
+  @spec input_area(:open | :close, pos_integer(), boolean()) :: iodata()
+  def input_area(phase, width, styled? \\ false)
+      when phase in [:open, :close] and is_integer(width) and width > 0 and is_boolean(styled?) do
+    Owl.input_area(phase, width, styled?)
+  end
+
+  @doc "Renders the fixed tool-activity label with an explicit terminal styling decision."
+  @spec tool_label(boolean()) :: iodata()
+  def tool_label(styled?) when is_boolean(styled?) do
+    Owl.tool_label(styled?)
   end
 
   @doc "Renders a bounded input failure without reflecting rejected input."

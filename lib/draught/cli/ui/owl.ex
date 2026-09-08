@@ -7,6 +7,7 @@ defmodule Draught.CLI.UI.Owl do
   """
 
   alias Draught.CLI.Interactive.State
+  alias Draught.CLI.UI.Owl.InputArea
   alias Draught.CLI.UI.SafeLine
   alias Elixir.Owl.Box
   alias Elixir.Owl.Data
@@ -19,6 +20,21 @@ defmodule Draught.CLI.UI.Owl do
   def banner(%State{} = state, width, styled?) do
     safe_width = min(width, @maximum_width)
     render_banner(state, safe_width, styled?)
+  end
+
+  @doc "Renders rounded input boundaries that permit ordinary terminal line wrapping."
+  @spec input_area(:open | :close, pos_integer(), boolean()) :: iodata()
+  def input_area(phase, width, styled?) do
+    InputArea.render(phase, width, styled?)
+  end
+
+  @doc "Renders a fixed tool label without styling untrusted conversation text."
+  @spec tool_label(boolean()) :: iodata()
+  def tool_label(styled?) do
+    "Tool"
+    |> Data.tag(style(:bright, styled?))
+    |> styling(styled?)
+    |> Data.to_chardata()
   end
 
   defp render_banner(state, width, styled?) when width >= @minimum_box_width do

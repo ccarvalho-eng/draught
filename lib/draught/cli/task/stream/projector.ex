@@ -10,6 +10,14 @@ defmodule Draught.CLI.Task.Stream.Projector do
   alias Draught.CLI.Task.Stream.Projector.State
   alias Draught.CLI.Task.Stream.Projector.Terminal
 
+  @type state :: State.t()
+
+  @doc "Initializes projection and text presentation for one bounded output stream."
+  @spec new(:text | :jsonl, pos_integer(), keyword()) :: state()
+  def new(format, maximum_bytes, options \\ []) do
+    State.new(format, maximum_bytes, options)
+  end
+
   @type projection ::
           ProviderEvent.projection() | Terminal.projection()
 

@@ -90,7 +90,7 @@ If more than one compatible Ollama model is installed, select one explicitly:
 
 The command creates a temporary supervised session, executes one turn, streams visible assistant text, waits for its terminal result, and stops the session. It does not create a session journal. On an interactive terminal, a compact bounded activity indicator is displayed while the provider has not produced visible output. `--color never`, redirected or narrow output, and `--output jsonl` disable the indicator. JSONL emits ordered event records followed by exactly one terminal record.
 
-The default `ask` risk mode permits read operations. Effectful operations require approval, but this anonymous command has no interactive approval prompt, so those operations are returned to the model as approval-required results. See [Configuration](configuration.md#task-risk-modes) before enabling effectful tools.
+The default `ask` risk mode permits read operations. On a text terminal, review the operation preview and type `y` to approve an edit or command once; Enter denies it. Redirected or JSONL tasks return approval-required results instead of reading input. See [Terminal approvals](cli.md#terminal-approvals) for deadlines and failure behavior.
 
 ## 6. Continue work in a named session
 
@@ -155,6 +155,6 @@ The following forms remain explicit unavailable results:
 ./draught "search the web" --web
 ```
 
-Interactive approval prompts, fuzzy command and model completion, provider selection, direct commands, file selection, active-turn cancellation, and enabled web execution depend on later capability work. Effectful tool requests continue to use the configured non-interactive approval policy until the interactive approval broker is connected. Each anonymous task starts without prior conversation state.
+Fuzzy command and model completion, provider selection, direct commands, file selection, active-turn keyboard cancellation, and enabled web execution depend on later capability work. Each anonymous task starts without prior conversation state.
 
 See [CLI](cli.md) for command and exit behavior and [Ollama provider](providers/ollama.md) for discovery details.

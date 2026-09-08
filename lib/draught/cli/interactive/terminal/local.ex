@@ -5,9 +5,15 @@ defmodule Draught.CLI.Interactive.Terminal.Local do
   Draught currently remains in the terminal's normal line mode, so restoration
   is intentionally idempotent. The callback remains explicit for future raw
   keyboard input without weakening shutdown guarantees.
+
+  Synchronous prompts and asynchronous approvals share one input coordinator.
+  Abandoning a pending read disables that device for the remaining VM lifetime;
+  restoring terminal mode does not pretend to cancel an Erlang I/O request.
   """
 
   @behaviour Draught.CLI.Interactive.Terminal.Adapter
+
+  alias Draught.CLI.Interactive.Terminal.Input
 
   @impl Draught.CLI.Interactive.Terminal.Adapter
   def interactive?(_configuration) do
@@ -20,13 +26,17 @@ defmodule Draught.CLI.Interactive.Terminal.Local do
 
   @impl Draught.CLI.Interactive.Terminal.Adapter
   def read_line(_configuration) do
-    case IO.gets(:stdio, "") do
-      data when is_binary(data) -> {:ok, data}
-      :eof -> :eof
-      {:error, _reason} -> {:error, :io}
-    end
-  rescue
-    ErlangError -> {:error, :io}
+    Input.read_line(Process.group_leader())
+  end
+
+  @impl Draught.CLI.Interactive.Terminal.Adapter
+  def request_line(_configuration) do
+    Input.request_line(Process.group_leader())
+  end
+
+  @impl Draught.CLI.Interactive.Terminal.Adapter
+  def cancel_read(reference, _configuration) do
+    Input.cancel_read(reference)
   end
 
   @impl Draught.CLI.Interactive.Terminal.Adapter

@@ -10,6 +10,7 @@ defmodule Draught.Application do
   def start(_type, _args) do
     children = [
       {Task.Supervisor, name: Draught.Execution.TaskSupervisor},
+      Draught.CLI.Interactive.Terminal.Input,
       Draught.Tool.Mutation.Queue,
       Draught.Session.Supervisor
     ]

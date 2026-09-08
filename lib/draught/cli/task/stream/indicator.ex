@@ -6,9 +6,11 @@ defmodule Draught.CLI.Task.Stream.Indicator do
   when the state was explicitly enabled after terminal capability checks.
   """
 
+  alias Draught.CLI.Task.Stream.Indicator.Captions
   alias Draught.CLI.Task.Stream.Indicator.State
 
-  @frames ["|", "/", "-", "\\"]
+  @frames ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+  @caption_frames 50
   @clear "\r\e[2K"
 
   @type action :: {:emit, State.t(), iodata()} | {:skip, State.t()}
@@ -39,7 +41,7 @@ defmodule Draught.CLI.Task.Stream.Indicator do
   def tick(%State{enabled: true, next_at: next_at} = state, now)
       when is_integer(next_at) and is_integer(now) and now >= next_at do
     frame = Enum.at(@frames, rem(state.frame, length(@frames)))
-    content = [@clear, frame, " Working"]
+    content = [@clear, frame, " ", caption(state)]
 
     emit_frame(state, content, now)
   end
@@ -63,6 +65,12 @@ defmodule Draught.CLI.Task.Stream.Indicator do
     clear_bytes = byte_size(@clear)
     available = state.emitted_bytes + bytes + clear_bytes <= state.maximum_bytes
     emit_frame(available, state, content, bytes, now)
+  end
+
+  defp caption(state) do
+    position = rem(div(state.frame, @caption_frames), tuple_size(state.caption_order))
+    index = elem(state.caption_order, position)
+    Captions.at(index)
   end
 
   defp emit_frame(true, state, content, bytes, now) do

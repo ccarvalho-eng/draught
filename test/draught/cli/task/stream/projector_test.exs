@@ -11,6 +11,28 @@ defmodule Draught.CLI.Task.Stream.ProjectorTest do
   alias Draught.Tool.Call
   alias Draught.Tool.Result
 
+  test "marks assistant segments once across deltas and after tool activity" do
+    state = State.new(:text, 1_024, presentation: :interactive)
+
+    assert {:emit, first, opening} =
+             Projector.project(state, {:provider_event, 1, delta(:text, "Let me ")})
+
+    assert opening.heading
+
+    assert {:emit, second, continuation} =
+             Projector.project(first, {:provider_event, 1, delta(:text, "check.")})
+
+    refute continuation.heading
+
+    assert {:emit, after_tool, _tool} =
+             Projector.project(second, {:provider_event, 1, tool_call(call("file"))})
+
+    assert {:emit, _resumed, resumed} =
+             Projector.project(after_tool, {:provider_event, 2, delta(:text, "Found it.")})
+
+    assert resumed.heading
+  end
+
   test "projects only safe ordered provider and tool fields" do
     state = State.new(:jsonl, 1_024)
     reasoning = delta(:reasoning, "private reasoning")
@@ -75,6 +97,7 @@ defmodule Draught.CLI.Task.Stream.ProjectorTest do
     assert {:emit, _terminal, projected} = Projector.finish(retained, {:ok, response})
     refute projected.streamed
     assert projected.content == "fallback"
+    assert projected.heading
   end
 
   test "emits only a missing final suffix after visible text deltas" do
@@ -91,6 +114,7 @@ defmodule Draught.CLI.Task.Stream.ProjectorTest do
     assert projected.streamed
     assert projected.content == "tial"
     assert projected.prefix_newline
+    refute projected.heading
   end
 
   test "rejects a terminal response that disagrees with visible streamed text" do

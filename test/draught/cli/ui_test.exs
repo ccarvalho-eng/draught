@@ -5,6 +5,57 @@ defmodule Draught.CLI.UITest do
   alias Draught.CLI.Session.Catalog.Entry
   alias Draught.CLI.UI
 
+  test "separates the input area without speaker names or cursor controls" do
+    assert render_input(:open, 12) == "\n╭───────────\n│ › "
+    assert render_input(:close, 12) == "╰───────────\n\n"
+
+    tool =
+      false
+      |> UI.tool_label()
+      |> IO.iodata_to_binary()
+
+    assert tool == "Tool"
+  end
+
+  test "bounds input separators and uses a plain prompt for narrow terminals" do
+    assert render_input(:open, 1) == "\n>"
+    assert render_input(:open, 6) == "\n> "
+    assert render_input(:close, 6) == "\n"
+
+    opening = render_input(:open, 500)
+    assert opening =~ "/help · /model"
+
+    assert opening
+           |> String.split("\n", trim: true)
+           |> Enum.all?(&(String.length(&1) <= 96))
+
+    refute render_input(:open, 80) =~ <<27>>
+  end
+
+  test "keeps input hints and rounded edges within every supported width" do
+    for width <- 1..120, phase <- [:open, :close] do
+      output = render_input(phase, width)
+
+      assert output
+             |> String.split("\n", trim: true)
+             |> Enum.all?(&(String.length(&1) <= width))
+    end
+
+    refute render_input(:open, 16) =~ "/help"
+    assert render_input(:open, 40) =~ "/help · /model"
+  end
+
+  test "input styling is explicit and resets before terminal echo" do
+    output =
+      :open
+      |> UI.input_area(40, true)
+      |> IO.iodata_to_binary()
+
+    assert output =~ "\e["
+    assert String.ends_with?(output, "\e[0m ")
+    assert Regex.replace(~r/\e\[[0-9;]*m/, output, "") == render_input(:open, 40)
+  end
+
   test "renders a bounded unstyled session card" do
     state = state()
     output = render_banner(state, 50, false)
@@ -108,6 +159,12 @@ defmodule Draught.CLI.UITest do
       )
 
     state
+  end
+
+  defp render_input(phase, width) do
+    phase
+    |> UI.input_area(width)
+    |> IO.iodata_to_binary()
   end
 
   defp render_banner(state, width, styled?) do

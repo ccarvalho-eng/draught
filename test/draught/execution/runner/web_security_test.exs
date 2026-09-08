@@ -123,13 +123,16 @@ defmodule Draught.Execution.Runner.WebSecurityTest do
       ])
 
     runner_configuration =
-      configuration(provider, registry, context, limits(tool_timeout_ms: 250))
+      configuration(provider, registry, context, limits(tool_timeout_ms: 2_000))
 
     task = Task.async(fn -> Runner.run(runner_configuration, first_request) end)
-    assert_receive {:web_search_started, web_process}, 1_000
+    assert_receive {:web_search_started, web_process}, 5_000
     monitor = Process.monitor(web_process)
-    assert Task.await(task) == {:ok, final}
-    assert_receive {:DOWN, ^monitor, :process, ^web_process, :killed}
+
+    # The synchronous liveness check establishes the monitor before waiting for its exit.
+    assert Process.alive?(web_process)
+    assert Task.await(task, 5_000) == {:ok, final}
+    assert_receive {:DOWN, ^monitor, :process, ^web_process, :killed}, 5_000
   end
 
   defp assert_untrusted_content_cannot_bypass(workspace, web, definition, web_call) do

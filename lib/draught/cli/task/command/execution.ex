@@ -11,6 +11,7 @@ defmodule Draught.CLI.Task.Command.Execution do
   alias Draught.CLI.Dependencies
   alias Draught.CLI.Instructions
   alias Draught.CLI.Task
+  alias Draught.CLI.Task.Approval.Interaction
   alias Draught.CLI.Task.Command.Result
   alias Draught.CLI.Task.Named
   alias Draught.CLI.Task.Stream
@@ -19,8 +20,18 @@ defmodule Draught.CLI.Task.Command.Execution do
   @spec run(Invocation.t(), Configuration.t(), String.t(), Dependencies.t()) ::
           non_neg_integer()
   def run(invocation, configuration, workspace, dependencies) do
-    stream = Stream.new(invocation.output, dependencies.system, color: invocation.color)
-    {result, observed} = task(invocation, configuration, workspace, dependencies, stream)
+    {interactive_dependencies, approval} =
+      Interaction.setup(invocation, configuration, dependencies)
+
+    stream =
+      Stream.new(invocation.output, dependencies.system,
+        color: invocation.color,
+        approval: approval
+      )
+
+    {result, observed} =
+      task(invocation, configuration, workspace, interactive_dependencies, stream)
+
     Result.emit(result, observed)
   end
 

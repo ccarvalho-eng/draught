@@ -17,6 +17,38 @@ defmodule Draught.CLITest do
 
   @receive_timeout 1_000
 
+  defmodule ApprovalTerminal do
+    @behaviour Draught.CLI.Interactive.Terminal.Adapter
+
+    @impl Draught.CLI.Interactive.Terminal.Adapter
+    def interactive?(_configuration) do
+      true
+    end
+
+    @impl Draught.CLI.Interactive.Terminal.Adapter
+    def read_line(_configuration) do
+      :eof
+    end
+
+    @impl Draught.CLI.Interactive.Terminal.Adapter
+    def request_line(owner) do
+      reference = make_ref()
+      send(owner, {:approval_input, self(), reference})
+      {:ok, reference}
+    end
+
+    @impl Draught.CLI.Interactive.Terminal.Adapter
+    def cancel_read(reference, owner) do
+      send(owner, {:approval_input_cancelled, reference})
+      :ok
+    end
+
+    @impl Draught.CLI.Interactive.Terminal.Adapter
+    def restore(_configuration) do
+      :ok
+    end
+  end
+
   defmodule SystemAdapter do
     @behaviour Draught.CLI.System.Adapter
 
@@ -43,6 +75,11 @@ defmodule Draught.CLITest do
     @impl Draught.CLI.System.Adapter
     def write(stream, content, %{write: :closed} = configuration) do
       send(configuration.owner, {:cli_write_attempt, stream, IO.iodata_to_binary(content)})
+      {:error, :closed}
+    end
+
+    def write(:stderr, content, %{write: :stderr_closed} = configuration) do
+      send(configuration.owner, {:cli_write_attempt, :stderr, IO.iodata_to_binary(content)})
       {:error, :closed}
     end
 
@@ -459,7 +496,7 @@ defmodule Draught.CLITest do
 
     assert_receive {:blocking_provider_started, _provider}, @receive_timeout
     assert_receive {:cli_output, :stdout, indicator}, @receive_timeout
-    assert indicator =~ "Working"
+    assert indicator =~ "…"
     assert indicator =~ <<27>>
 
     assert :ok = Session.cancel(identifier)
@@ -601,6 +638,158 @@ defmodule Draught.CLITest do
     assert request.body["model"] == "qwen3"
     assert_receive {:cli_output, :stdout, "Local task complete"}
     assert_receive {:cli_output, :stdout, "\n"}
+  end
+
+  @tag :tmp_dir
+  test "interactive ask mode previews and approves exactly one edit", %{tmp_dir: workspace} do
+    path = Path.join(workspace, "sample.txt")
+    File.write!(path, "before")
+    dependencies = approval_dependencies(workspace)
+
+    task =
+      Task.Supervisor.async_nolink(Draught.Execution.TaskSupervisor, fn ->
+        CLI.run(["update sample.txt", "--color", "never"], dependencies)
+      end)
+
+    request_edit()
+    assert_receive {:cli_output, :stderr, preview}, @receive_timeout
+    assert preview =~ "Approval required"
+    assert preview =~ ~s("expected":"before")
+    assert preview =~ ~s("replacement":"after")
+    assert_receive {:approval_input, caller, reference}, @receive_timeout
+    assert File.read!(path) == "before"
+
+    send(caller, {:draught_terminal_input, make_ref(), {:ok, "y\n"}})
+    send(caller, {:draught_terminal_input, reference, {:ok, "y\n"}})
+    assert_receive {:scripted_provider_request, provider, request}, @receive_timeout
+    assert [%Tool{result: %{status: :success}} | _messages] = Enum.reverse(request.messages)
+    assert File.read!(path) == "after"
+    send(provider, {:scripted_provider_result, {:ok, response("Updated")}})
+    assert Task.await(task) == 0
+    refute_receive {:approval_input_cancelled, _reference}
+  end
+
+  @tag :tmp_dir
+  test "empty approval input denies the operation and lets the agent continue", %{
+    tmp_dir: workspace
+  } do
+    path = Path.join(workspace, "sample.txt")
+    File.write!(path, "before")
+    dependencies = approval_dependencies(workspace)
+
+    task =
+      Task.Supervisor.async_nolink(Draught.Execution.TaskSupervisor, fn ->
+        CLI.run(["update sample.txt"], dependencies)
+      end)
+
+    request_edit()
+    assert_receive {:approval_input, caller, reference}, @receive_timeout
+    send(caller, {:draught_terminal_input, reference, {:ok, "\n"}})
+    assert_receive {:scripted_provider_request, provider, request}, @receive_timeout
+
+    assert [%Tool{result: %{error: %{code: "approval_denied"}}} | _messages] =
+             Enum.reverse(request.messages)
+
+    send(provider, {:scripted_provider_result, {:ok, response("No edit made")}})
+    assert Task.await(task) == 0
+    assert File.read!(path) == "before"
+  end
+
+  @tag :tmp_dir
+  test "session cancellation remains responsive while terminal approval is pending", %{
+    tmp_dir: workspace
+  } do
+    path = Path.join(workspace, "sample.txt")
+    File.write!(path, "before")
+    identifier = "approval-cancel-#{System.unique_integer([:positive])}"
+    dependencies = approval_dependencies(workspace, identifier: fn -> {:ok, identifier} end)
+
+    task =
+      Task.Supervisor.async_nolink(Draught.Execution.TaskSupervisor, fn ->
+        CLI.run(["update sample.txt"], dependencies)
+      end)
+
+    request_edit()
+    assert_receive {:approval_input, caller, reference}, @receive_timeout
+    assert :ok = Session.cancel(identifier)
+    assert Task.await(task) in [4, 130]
+    assert_receive {:approval_input_cancelled, ^reference}, @receive_timeout
+    send(caller, {:draught_terminal_input, reference, {:ok, "y\n"}})
+    assert File.read!(path) == "before"
+    refute_receive {:scripted_provider_request, _provider, _request}
+  end
+
+  @tag :tmp_dir
+  test "EOF during approval stops the turn without an edit", %{tmp_dir: workspace} do
+    path = Path.join(workspace, "sample.txt")
+    File.write!(path, "before")
+    dependencies = approval_dependencies(workspace)
+
+    task =
+      Task.Supervisor.async_nolink(Draught.Execution.TaskSupervisor, fn ->
+        CLI.run(["update sample.txt"], dependencies)
+      end)
+
+    request_edit()
+    assert_receive {:approval_input, caller, reference}, @receive_timeout
+    send(caller, {:draught_terminal_input, reference, :eof})
+    assert Task.await(task) == 4
+    assert_receive {:approval_input_cancelled, ^reference}
+    assert File.read!(path) == "before"
+    refute_receive {:scripted_provider_request, _provider, _request}
+  end
+
+  @tag :tmp_dir
+  test "a failed preview write never acquires input or executes the operation", %{
+    tmp_dir: workspace
+  } do
+    dependencies = approval_dependencies(workspace, write: :stderr_closed)
+
+    task =
+      Task.Supervisor.async_nolink(Draught.Execution.TaskSupervisor, fn ->
+        CLI.run(["update sample.txt"], dependencies)
+      end)
+
+    request_edit()
+    assert_receive {:cli_write_attempt, :stderr, preview}, @receive_timeout
+    assert preview =~ "Approval required"
+    assert Task.await(task) == 70
+    refute_receive {:approval_input, _caller, _reference}
+    path = Path.join(workspace, "sample.txt")
+    refute File.exists?(path)
+  end
+
+  @tag :tmp_dir
+  test "redirected and JSONL commands do not acquire terminal approval input", %{
+    tmp_dir: workspace
+  } do
+    for {arguments, tty} <- [
+          {["update sample.txt"], false},
+          {["update sample.txt", "--output", "jsonl"], true}
+        ] do
+      dependencies =
+        dependencies(
+          cwd: workspace,
+          tty: tty,
+          terminal: {ApprovalTerminal, self()},
+          provider_factory: {ScriptedProviderFactory, self()}
+        )
+
+      task =
+        Task.Supervisor.async_nolink(Draught.Execution.TaskSupervisor, fn ->
+          CLI.run(arguments, dependencies)
+        end)
+
+      request_edit()
+      assert_receive {:scripted_provider_request, provider, request}, @receive_timeout
+
+      assert [%Tool{result: %{error: %{code: "approval_required"}}} | _messages] =
+               Enum.reverse(request.messages)
+
+      send(provider, {:scripted_provider_result, {:ok, response("Not approved")}})
+      assert Task.await(task) == 0
+      refute_receive {:approval_input, _caller, _reference}
+    end
   end
 
   test "renders one-shot task results as JSONL" do
@@ -803,6 +992,7 @@ defmodule Draught.CLITest do
     {:ok, dependencies} =
       Dependencies.new(
         system: system,
+        terminal: Keyword.get(options, :terminal, {Draught.CLI.Interactive.Terminal.Local, nil}),
         discovery_http: DiscoveryHTTP,
         task: [
           provider: provider_factory,
@@ -811,6 +1001,23 @@ defmodule Draught.CLITest do
       )
 
     dependencies
+  end
+
+  defp approval_dependencies(workspace, options \\ []) do
+    options
+    |> Keyword.merge(
+      cwd: workspace,
+      tty: true,
+      terminal: {ApprovalTerminal, self()},
+      provider_factory: {ScriptedProviderFactory, self()}
+    )
+    |> dependencies()
+  end
+
+  defp request_edit do
+    assert_receive {:scripted_provider_request, provider, _request}, @receive_timeout
+    call = replace_call()
+    send(provider, {:scripted_provider_result, {:ok, tool_response(call)}})
   end
 
   defp queue(response) do

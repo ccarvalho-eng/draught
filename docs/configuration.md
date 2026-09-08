@@ -73,7 +73,7 @@ Risk mode controls which registered tool risk classes may execute and how effect
 | Mode | Anonymous task behavior |
 | --- | --- |
 | `deny` | Only read-risk tools may execute. Write, execute, and network-risk calls are denied by policy. |
-| `ask` | All risk classes reach the approval policy. Read operations are allowed; effectful operations return an approval-required result because the anonymous command has no interactive approval prompt. |
+| `ask` | Read operations are allowed. Effectful operations require a one-time decision on a text terminal; redirected or JSONL commands return `approval_required` instead. |
 | `allow` | All risk classes are admitted and available effectful tools may execute without an approval prompt. |
 
 The default is `ask`. Web tools are not registered in the current one-shot CLI, so `allow` does not add the guarded web capability. An approved command still retains the ambient network access of the Draught operating-system process. Use `allow` only when the selected workspace and task may perform writes or run commands without confirmation. Tool effects completed before a later error, timeout, cancellation, or process interruption remain committed. Anonymous tasks do not roll back those effects and do not retain a task journal. See [Workspace confinement](workspace-confinement.md) for the operating-system boundary.

@@ -1,6 +1,6 @@
 # Command-line interface
 
-The current CLI provides bounded argument parsing, configuration resolution, help, version reporting, diagnostics, streaming anonymous tasks, persistent named tasks, and an interactive prompt loop with workspace-scoped session and model selection. It renders incremental terminal text or versioned JSONL and uses stable exit categories. Interactive approvals, provider selection, and enabled web execution are not available.
+The CLI runs anonymous or persistent agent tasks and provides an interactive prompt with session and model selection. Text terminals support per-operation approval prompts; automation uses versioned JSONL and stable exit categories. Interactive provider selection and enabled web execution are not available.
 
 ## Available commands
 
@@ -32,7 +32,7 @@ draught -- "--explain this argument"
 | `--resume ID` | Continues a persistent named session with the supplied task. |
 | `--web` / `--no-web` | Resolves the web setting. An enabled value makes task execution fail explicitly until a search adapter is connected. |
 | `--output text\|jsonl` | Selects human-readable or machine-readable output where supported. |
-| `--color auto\|always\|never` | Controls whether terminal-only activity rendering is allowed; task text remains unstyled. |
+| `--color auto\|always\|never` | Controls terminal label styling and activity rendering; model content remains unstyled. |
 | `--diagnostics` / `--no-diagnostics` | Records the diagnostics preference; it does not expand doctor output in this slice. |
 | `--help` | Requests command help. |
 | `--version` | Requests version output. |
@@ -53,7 +53,9 @@ Ollama model selection follows the provider inventory:
 
 The one-shot path requests provider streaming. Text deltas are printed in order as they arrive. Reasoning deltas are not displayed. Tool events expose only the validated tool name, outcome, and normalized error code; call identifiers, arguments, output, provenance, and provider payloads are excluded.
 
-On a text terminal at least 40 columns wide, the command displays a compact activity indicator after a short delay while it is waiting for the first visible event. The indicator is cleared before output and has an independent 16 KiB lifetime output limit. It is disabled for `--color never`, redirected output, unavailable or narrow terminal dimensions, and JSONL. A closed output pipe cancels the active session and returns the internal-error status instead of continuing to execute unseen work.
+The interactive prompt separates input from responses with a rounded, open-sided frame and a `›` marker. Wider terminals include `/help` and `/model` hints. The frame permits ordinary line wrapping; narrow terminals fall back to `>`. Assistant segments use spacing without speaker labels; indented `Tool:` records identify tool activity. These distinctions remain visible with `--color never`. Redirected text and JSONL retain their plain output formats.
+
+On a text terminal at least 40 columns wide, the command displays a compact activity indicator after a short delay while it is waiting for the first visible event. Each turn shuffles the full set of 510 short fantasy-themed captions, changing captions roughly every four seconds without repeating within a cycle. Captions do not describe execution stages or report completed work. The indicator is cleared before output and has an independent 16 KiB lifetime output limit. It is disabled for `--color never`, redirected output, unavailable or narrow terminal dimensions, and JSONL. A closed output pipe cancels the active session and returns the internal-error status instead of continuing to execute unseen work.
 
 JSONL emits one record per visible event followed by exactly one terminal record. Every record is written to standard output, has a monotonically increasing `sequence`, and ends with one newline:
 
@@ -63,6 +65,18 @@ JSONL emits one record per visible event followed by exactly one terminal record
 ```
 
 When the final provider iteration emitted no visible text delta, the terminal record carries the final assistant `content` and sets `content_streamed` to `false`. If the terminal response extends already streamed text, `content` contains only the missing suffix. A terminal response that disagrees with visible streamed text fails closed. When usage is available and representable, `usage` contains canonical token counts. A normalized task failure is written to standard error in text mode or as the terminal standard-output record in JSONL mode. Setup failures use the same terminal envelope without reflecting rejected configuration values.
+
+## Terminal approvals
+
+With the default `ask` risk mode, effectful operations display a separate approval block when standard input, output, and error are attached to terminals and output is text. This applies to anonymous tasks, named tasks, and the interactive prompt. Read operations do not prompt.
+
+The block identifies the tool and risk and shows the complete operation as escaped JSON, including the workspace and exact command arguments or replacement text. Type `y` or `yes` to approve that operation once. Enter, `n`, and other input deny it. Missing or oversized previews are denied without requesting input. There is no session-wide grant, and a resumed session never reuses an earlier decision.
+
+Approval has a 25-second deadline within the existing 30-second tool budget. The activity indicator pauses while input is pending. End of input, input failure, requester termination, and expiry fail closed; the turn stops and the CLI must be restarted. Cancellation remains responsive while waiting. Already completed effects are not rolled back.
+
+Erlang cannot cancel an outstanding terminal line read. Draught therefore invalidates that input device when a pending read is abandoned, discards any late reply, and refuses further reads from that device in the same VM. A fresh CLI process is required after this failure. Applications that restart the input coordinator must likewise restart the VM before using local interactive input again.
+
+Redirected streams, JSONL, and application-facing task APIs do not acquire approval input. Their default effectful-tool result remains `approval_required`. `deny` blocks effectful tools before approval; `allow` deliberately bypasses these prompts. Preview text can contain sensitive file contents or arguments: it is displayed only in the approval block and is excluded from the event stream, telemetry, and journals.
 
 ## Application-supplied approval policies
 
@@ -75,7 +89,7 @@ Applications embedding the CLI task APIs can pass an approval adapter through `D
   )
 ```
 
-The adapter implements `Draught.Tool.Approval.Policy` and receives only canonical, bounded approval metadata. An explicit dependency replaces the risk-derived default and any low-level preparation approval option. Omitting it or passing `nil` preserves existing defaults and explicit preparation options. The configured risk allowlist is checked first: an adapter cannot admit writes under `deny`, enable web access, change the workspace, or increase execution budgets. An injected policy can still deny a call under `allow`.
+The adapter implements `Draught.Tool.Approval.Policy` and receives canonical, bounded metadata with an optional sensitive operation preview. An explicit dependency replaces the risk-derived default and any low-level preparation approval option and takes precedence over terminal prompts. Omitting it or passing `nil` preserves application task defaults; CLI text terminals install the interactive policy described above. The configured risk allowlist is checked first: an adapter cannot admit writes under `deny`, enable web access, change the workspace, or increase execution budgets. An injected policy can still deny a call under `allow`.
 
 Anonymous, named-create, and resumed tasks use the same preparation boundary. A resumed invocation supplies its own policy; adapter configuration and earlier grants are not restored from the journal or session binding. Approval waiting remains inside the tool timeout. This injection boundary does not add terminal prompts or a configuration-file setting.
 
@@ -123,7 +137,7 @@ Session names are display metadata and need not be unique. An ambiguous name mus
 
 The parser reserves direct-command input beginning with `!`, file lookup input beginning with `@`, and the remaining documented slash command names. Those effects return an explicit unavailable result until their policy boundaries are connected.
 
-The prompt loop is text- and terminal-only. It restores its terminal boundary after exit, end of input, or an input failure and prints `Session ID: ID` on ordinary exit. Active-turn cancellation, interactive approval prompts, fuzzy command and model completion, provider selection, and queued input remain pending.
+The prompt loop is text- and terminal-only. It restores its terminal boundary after exit, end of input, or an input failure and prints `Session ID: ID` on ordinary exit. Active-turn keyboard cancellation, fuzzy command and model completion, provider selection, and queued input remain pending.
 
 ## Doctor
 

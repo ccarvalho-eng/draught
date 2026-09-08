@@ -16,6 +16,10 @@ defmodule Draught.CLI.System.Adapter do
   @doc "Reads at most the requested number of bytes from a regular non-symlink file."
   @callback read_file(String.t(), pos_integer(), configuration()) :: file_result()
 
+  @doc "Atomically replaces a regular file with owner-only content."
+  @callback write_file(String.t(), binary(), configuration()) ::
+              :ok | {:error, :io | :publication_unknown | :unsafe_file}
+
   @doc "Checks whether a workspace is an accessible directory without mutating it."
   @callback workspace(String.t(), configuration()) ::
               :ok | {:error, :inaccessible | :not_directory}

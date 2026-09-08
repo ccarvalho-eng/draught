@@ -16,6 +16,7 @@ defmodule Draught.CLI.Configuration.Error do
           | :invalid_type
           | :invalid_value
           | :missing_credential
+          | :publication_unknown
           | :required
           | :source_unavailable
           | :too_deep

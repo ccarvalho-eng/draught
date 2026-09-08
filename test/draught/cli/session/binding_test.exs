@@ -82,8 +82,21 @@ defmodule Draught.CLI.Session.BindingTest do
     assert {:ok, bound} = Binding.bind_configuration(binding, %{configuration | model: nil})
     assert bound.model == "free-model"
 
+    user_default = %{
+      configuration
+      | model: "other",
+        origins: %{model: :user}
+    }
+
+    assert {:ok, user_bound} = Binding.bind_configuration(binding, user_default)
+    assert user_bound.model == "free-model"
+
     assert {:error, %{code: "session_binding_mismatch"}} =
-             Binding.bind_configuration(binding, %{configuration | model: "other"})
+             Binding.bind_configuration(binding, %{
+               configuration
+               | model: "other",
+                 origins: %{model: :flags}
+             })
 
     assert {:error, %{code: "session_binding_mismatch"}} =
              Binding.bind_configuration(binding, %{

@@ -23,6 +23,7 @@ defmodule Draught.CLI.Interactive.Session.Command do
           | {:sessions, [Catalog.Entry.t()], :active | :all | :archived}
   @type result ::
           {:ok, State.t(), Configuration.t(), view()}
+          | {:error, Startup.category(), term()}
           | {:error, term()}
 
   @doc "Executes one session command without performing terminal input or output."

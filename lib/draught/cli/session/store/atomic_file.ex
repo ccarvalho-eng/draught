@@ -6,6 +6,8 @@ defmodule Draught.CLI.Session.Store.AtomicFile do
   synchronized, and removed after every outcome.
   """
 
+  alias Draught.CLI.Storage.Directory
+
   @mode 0o600
 
   @type publication :: :create | :replace
@@ -39,32 +41,9 @@ defmodule Draught.CLI.Session.Store.AtomicFile do
 
   defp publish_and_sync(temporary, path, publication) do
     case publish(temporary, path, publication) do
-      :ok -> sync_parent(path)
+      :ok -> Directory.sync_parent(path)
       {:error, _reason} -> {:error, :io}
     end
-  end
-
-  defp sync_parent(path) do
-    directory =
-      path
-      |> Path.dirname()
-      |> String.to_charlist()
-
-    case :file.open(directory, [:read, :raw, :directory]) do
-      {:ok, device} -> sync_directory(device)
-      {:error, _reason} -> {:error, :publication_unknown}
-    end
-  end
-
-  defp sync_directory(device) do
-    result =
-      case :file.sync(device) do
-        :ok -> :ok
-        {:error, _reason} -> {:error, :publication_unknown}
-      end
-
-    :file.close(device)
-    result
   end
 
   defp write_open(device, path, content) do

@@ -1,12 +1,13 @@
 defmodule Draught.CLI.Interactive.Model.Command do
   @moduledoc """
-  Handles interactive model inspection and pre-persistence selection.
+  Handles interactive model inspection and durable user-default selection.
 
   Ollama selections resolve only against a bounded compatible inventory. Other
   providers delegate exact model validation to their provider-construction boundary.
   """
 
   alias Draught.CLI.Configuration
+  alias Draught.CLI.Configuration.User.Preference
   alias Draught.CLI.Dependencies
   alias Draught.CLI.Interactive.Model.Catalog
   alias Draught.CLI.Interactive.Model.Reference
@@ -14,23 +15,35 @@ defmodule Draught.CLI.Interactive.Model.Command do
   alias Draught.CLI.Task.Provider
 
   @type view :: {:models, [String.t()], String.t() | nil} | {:selected, String.t()}
-  @type result :: {:ok, State.t(), view()} | {:error, term()}
+  @type result ::
+          {:ok, State.t(), Configuration.t(), view()}
+          | {:error, term()}
 
-  @doc "Lists compatible models or selects one for the current fresh session."
+  @doc "Lists compatible models or saves and selects one for fresh sessions."
   @spec run(String.t() | nil, State.t(), Configuration.t(), Dependencies.t()) :: result()
   def run(nil, state, configuration, dependencies) do
     with {:ok, models} <- Catalog.list(configuration, dependencies),
          {:ok, displayed} <- State.display_models(state, models) do
-      {:ok, displayed, {:models, models, state.model}}
+      {:ok, displayed, configuration, {:models, models, state.model}}
     end
   end
 
   def run(reference, state, configuration, dependencies) do
     with :ok <- State.model_selectable(state),
          {:ok, model} <- resolve(reference, state, configuration, dependencies),
-         {:ok, selected} <- State.select_model(state, model) do
-      {:ok, selected, {:selected, model}}
+         {:ok, selected} <- State.select_model(state, model),
+         :ok <- Preference.save_model(model, dependencies.system) do
+      {:ok, selected, select_configuration(configuration, model), {:selected, model}}
+    else
+      {:error, :outcome_unknown} -> {:error, :preference_outcome_unknown}
+      {:error, :not_saved} -> {:error, :preference_not_saved}
+      {:error, _reason} = result -> result
     end
+  end
+
+  defp select_configuration(configuration, model) do
+    origins = Map.put(configuration.origins, :model, :user)
+    %{configuration | model: model, origins: origins}
   end
 
   defp resolve(

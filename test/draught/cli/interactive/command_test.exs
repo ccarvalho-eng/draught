@@ -33,6 +33,12 @@ defmodule Draught.CLI.Interactive.CommandTest do
     end
 
     @impl Draught.CLI.System.Adapter
+    def write_file(path, content, configuration) do
+      send(configuration.owner, {:interactive_file_write, path, content})
+      configuration.file_write
+    end
+
+    @impl Draught.CLI.System.Adapter
     def workspace(_path, _configuration) do
       :ok
     end
@@ -292,7 +298,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
     queue_inventory(["deepseek-r1", "qwen3"])
     queue_inventory(["deepseek-r1", "qwen3"])
     queue_inventory(["qwen3", "deepseek-r1"])
-    queue_inventory(["deepseek-r1", "qwen3"])
+    queue_model()
     input({:ok, "start a task\n"})
     input({:ok, "/model 2\n"})
     input({:ok, "/model\n"})
@@ -304,6 +310,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
 
     dependencies =
       dependencies(
+        configuration_home: temporary_directory,
         cwd: temporary_directory,
         provider_factory: :local,
         state: temporary_directory
@@ -318,10 +325,10 @@ defmodule Draught.CLI.Interactive.CommandTest do
     assert output =~ "Compatible models:"
     assert output =~ "1.   qwen3"
     assert output =~ "2.   deepseek-r1"
-    assert output =~ "Selected model deepseek-r1."
+    assert output =~ "Selected model deepseek-r1 and saved it as the user default."
     assert output =~ "Model: deepseek-r1"
     assert output =~ "Selected session fresh."
-    assert output =~ "Model: selection required"
+    assert [_first, _second | _remaining] = Regex.scan(~r/Model: deepseek-r1/, output)
     assert_receive :interactive_terminal_restored
   end
 
@@ -340,6 +347,90 @@ defmodule Draught.CLI.Interactive.CommandTest do
   end
 
   @tag :tmp_dir
+  test "saves an interactively selected model as the user default", %{
+    tmp_dir: temporary_directory
+  } do
+    queue_inventory(["qwen3", "deepseek-r1"])
+    queue_inventory(["qwen3", "deepseek-r1"])
+    input({:ok, "/model\n"})
+    input({:ok, "/model 2\n"})
+    input({:ok, "/exit\n"})
+
+    dependencies =
+      dependencies(
+        configuration_home: temporary_directory,
+        provider_factory: :local
+      )
+
+    assert CLI.run([], dependencies) == 0
+
+    path = Path.join([temporary_directory, "draught", "config.json"])
+    assert_receive {:interactive_file_write, ^path, content}
+    assert {:ok, %{"model" => "deepseek-r1"}} = Jason.decode(content)
+    assert_receive :interactive_terminal_restored
+  end
+
+  test "keeps the current shell when a fresh session model cannot be prepared" do
+    queue_inventory(["qwen3"])
+    send(self(), {:discovery_response, {:ok, %HTTP.Response{status: 500, body: ""}}})
+    input({:ok, "/new fresh\n"})
+    input({:ok, "/status\n"})
+    input({:ok, "/exit\n"})
+
+    assert CLI.run([], dependencies(provider_factory: :local)) == 0
+    output = plain(receive_output())
+
+    assert output =~ "Session command could not be completed."
+    assert output =~ "ID: 00000000-0000-4000-8000-000000000001"
+    refute output =~ "Selected session fresh."
+    assert_receive :interactive_terminal_restored
+  end
+
+  test "keeps model selection unchanged when the user default cannot be saved" do
+    queue_inventory(["qwen3", "deepseek-r1"])
+    queue_inventory(["qwen3", "deepseek-r1"])
+    input({:ok, "/model\n"})
+    input({:ok, "/model 2\n"})
+    input({:ok, "/status\n"})
+    input({:ok, "/exit\n"})
+
+    assert CLI.run([], dependencies(provider_factory: :local)) == 0
+    output = plain(receive_output())
+
+    assert output =~
+             "Model selection was not changed because the user configuration could not be updated."
+
+    assert output =~ "Model: selection required"
+    assert_receive :interactive_terminal_restored
+  end
+
+  @tag :tmp_dir
+  test "reports an unconfirmed user-default publication without changing shell state", %{
+    tmp_dir: temporary_directory
+  } do
+    queue_inventory(["qwen3", "deepseek-r1"])
+    queue_inventory(["qwen3", "deepseek-r1"])
+    input({:ok, "/model\n"})
+    input({:ok, "/model 2\n"})
+    input({:ok, "/status\n"})
+    input({:ok, "/exit\n"})
+
+    dependencies =
+      dependencies(
+        configuration_home: temporary_directory,
+        file_write: {:error, :publication_unknown},
+        provider_factory: :local
+      )
+
+    assert CLI.run([], dependencies) == 0
+    output = plain(receive_output())
+
+    assert output =~ "The user configuration update could not be confirmed."
+    assert output =~ "Model: selection required"
+    assert_receive :interactive_terminal_restored
+  end
+
+  @tag :tmp_dir
   test "persists the interactively selected model on the first turn", %{
     tmp_dir: temporary_directory
   } do
@@ -352,6 +443,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
 
     dependencies =
       dependencies(
+        configuration_home: temporary_directory,
         cwd: temporary_directory,
         provider_factory: BoundProviderFactory,
         state: temporary_directory
@@ -360,7 +452,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
     assert CLI.run(["--model", "qwen3"], dependencies) == 0
     output = plain(receive_output())
 
-    assert output =~ "Selected model deepseek-r1."
+    assert output =~ "Selected model deepseek-r1 and saved it as the user default."
     assert output =~ "completed"
     assert output =~ "ollama/deepseek-r1"
     assert_receive :interactive_terminal_restored
@@ -726,6 +818,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
          columns: 50,
          cwd: Keyword.get(options, :cwd, "/workspace"),
          environment: environment(options),
+         file_write: Keyword.get(options, :file_write, :ok),
          owner: owner,
          tty: Keyword.get(options, :tty, true)
        }}
@@ -775,9 +868,15 @@ defmodule Draught.CLI.Interactive.CommandTest do
   end
 
   defp environment(options) do
-    case Keyword.fetch(options, :state) do
-      {:ok, state} -> %{"XDG_STATE_HOME" => state}
-      :error -> %{}
+    %{}
+    |> put_environment(options, :state, "XDG_STATE_HOME")
+    |> put_environment(options, :configuration_home, "XDG_CONFIG_HOME")
+  end
+
+  defp put_environment(environment, options, option, variable) do
+    case Keyword.fetch(options, option) do
+      {:ok, value} -> Map.put(environment, variable, value)
+      :error -> environment
     end
   end
 

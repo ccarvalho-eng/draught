@@ -41,13 +41,13 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
   end
 
   @doc "Frames one terminal read and returns input only after both boundaries are written."
-  @spec read(Dependencies.t(), :auto | :always | :never) ::
+  @spec read(State.t(), Dependencies.t(), :auto | :always | :never) ::
           {:ok, parsed_input()}
           | :eof
           | :interrupted
           | {:error, :io}
           | {:error, :write, non_neg_integer()}
-  def read(dependencies, color \\ :never) do
+  def read(%State{} = state, dependencies, color \\ :never) do
     {system, configuration} = dependencies.system
     width = terminal_width(system.columns(configuration))
     styled? = styled?(color, system.tty?(:stdout, configuration))
@@ -57,7 +57,7 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
       0 ->
         dependencies.terminal
         |> read_line()
-        |> finish_read({width, styled?}, dependencies)
+        |> finish_read({state, width, styled?}, dependencies)
 
       status ->
         {:error, :write, status}
@@ -86,8 +86,13 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
     result
   end
 
-  defp finish_read(result, {width, styled?}, dependencies) do
-    closing = [read_separator(result), UI.input_area(:close, width, styled?)]
+  defp finish_read(result, {state, width, styled?}, dependencies) do
+    closing = [
+      read_separator(result),
+      UI.input_area(:close, width, styled?),
+      UI.prompt_context(state, width, styled?),
+      "\n"
+    ]
 
     case write(closing, :stdout, :success, dependencies) do
       0 -> parse_read(result)

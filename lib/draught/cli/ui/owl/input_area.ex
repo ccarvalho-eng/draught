@@ -32,7 +32,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
   end
 
   def render(:close, width, styled?) when width >= 8 do
-    [decorate(["╰", rule(width - 1)], :light_black, styled?), "\n\n"]
+    [decorate(["╰", rule(width - 1)], :light_black, styled?), "\n"]
   end
 
   def render(:close, _width, _styled?) do

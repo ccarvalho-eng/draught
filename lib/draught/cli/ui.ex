@@ -81,6 +81,13 @@ defmodule Draught.CLI.UI do
     Owl.input_area(phase, width, styled?)
   end
 
+  @doc "Renders the active model and workspace beneath submitted interactive input."
+  @spec prompt_context(State.t(), pos_integer(), boolean()) :: iodata()
+  def prompt_context(%State{} = state, width, styled? \\ false)
+      when is_integer(width) and width > 0 and is_boolean(styled?) do
+    Owl.prompt_context(state, width, styled?)
+  end
+
   @doc "Renders the fixed tool-activity label with an explicit terminal styling decision."
   @spec tool_label(boolean()) :: iodata()
   def tool_label(styled?) when is_boolean(styled?) do

@@ -3,6 +3,7 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
 
   alias Draught.CLI.Dependencies
   alias Draught.CLI.Interactive.Session.Terminal
+  alias Draught.CLI.Interactive.State
   alias Draught.CLI.UI
 
   defmodule SystemAdapter do
@@ -78,15 +79,15 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
 
   test "frames a line before returning its parsed command" do
     dependencies = dependencies({:ok, "/exit\n"})
-    assert {:ok, {:ok, {:command, :exit, nil}}} = Terminal.read(dependencies)
+    assert {:ok, {:ok, {:command, :exit, nil}}} = Terminal.read(state(), dependencies)
     assert_receive {:output, :stdout, "\n╭───────────\n│ › "}
     assert_receive :input_read
-    assert_receive {:output, :stdout, "╰───────────\n\n"}
+    assert_receive {:output, :stdout, "╰───────────\nqwen3  ·  /…\n\n"}
   end
 
   test "does not read any input when the opening output fails" do
     dependencies = dependencies({:ok, "unread"}, true)
-    assert {:error, :write, 70} = Terminal.read(dependencies)
+    assert {:error, :write, 70} = Terminal.read(state(), dependencies)
     assert_receive {:output, :stdout, "\n╭───────────\n│ › "}
     refute_receive :input_read
     refute_receive {:output, _, _}
@@ -94,25 +95,25 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
 
   test "does not return a parsed task if the closing output fails" do
     dependencies = dependencies({:ok, "do not run this task\n"}, false)
-    assert {:error, :write, 70} = Terminal.read(dependencies)
+    assert {:error, :write, 70} = Terminal.read(state(), dependencies)
     assert_receive :input_read
-    assert_receive {:output, :stdout, "╰───────────\n\n"}
+    assert_receive {:output, :stdout, "╰───────────\nqwen3  ·  /…\n\n"}
   end
 
   test "closes incomplete input lines before the next output without reflecting input" do
     input = "text without trailing newline"
     dependencies = dependencies({:ok, input})
-    assert {:ok, {:ok, {:prompt, ^input}}} = Terminal.read(dependencies)
-    assert_receive {:output, :stdout, "\n╰───────────\n\n"}
+    assert {:ok, {:ok, {:prompt, ^input}}} = Terminal.read(state(), dependencies)
+    assert_receive {:output, :stdout, "\n╰───────────\nqwen3  ·  /…\n\n"}
   end
 
   test "preserves EOF, interruption and input errors after closing the input area" do
     for result <- [:eof, :interrupted, {:error, :io}] do
       dependencies = dependencies(result)
-      assert ^result = Terminal.read(dependencies)
+      assert ^result = Terminal.read(state(), dependencies)
       assert_receive {:output, :stdout, "\n╭───────────\n│ › "}
       assert_receive :input_read
-      assert_receive {:output, :stdout, "\n╰───────────\n\n"}
+      assert_receive {:output, :stdout, "\n╰───────────\nqwen3  ·  /…\n\n"}
     end
   end
 
@@ -124,8 +125,25 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
       |> UI.input_area(50)
       |> IO.iodata_to_binary()
 
-    assert :eof = Terminal.read(dependencies)
+    closing = ["\n", UI.input_area(:close, 50), UI.prompt_context(state(), 50), "\n"]
+    expected_closing = IO.iodata_to_binary(closing)
+
+    assert :eof = Terminal.read(state(), dependencies)
     assert_receive {:output, :stdout, ^opening}
+    assert_receive {:output, :stdout, ^expected_closing}
+  end
+
+  defp state do
+    {:ok, state} =
+      State.new(
+        session_id: "session-01",
+        provider: "ollama",
+        model: "qwen3",
+        workspace: "/workspace",
+        web: false
+      )
+
+    state
   end
 
   defp dependencies(result, failure \\ nil, columns \\ {:ok, 12}) do

@@ -20,7 +20,7 @@ Draught.Web.Policy.status(policy)
 
 The resolver is pure and does not read application environment, files, or process state. Interfaces are responsible for reading configuration sources and passing their values in the documented order. The CLI maps its combined `web` setting to the guarded fetch capability; library consumers may resolve search and fetch independently.
 
-An enabled operation also requires an explicit adapter. The included fetch adapter uses guarded HTTP(S) retrieval. Search remains an injected adapter because search services have different result schemas, authentication requirements, and usage policies.
+An enabled operation also requires an explicit adapter. The included fetch adapter uses guarded HTTP(S) retrieval. The included SearXNG adapter supports a configured JSON endpoint through that same fetch transport. Other search services remain injectable because result schemas, authentication requirements, and usage policies differ.
 
 For CLI tasks, `--web` enables the included `web_fetch` tool and `--no-web` disables it. User configuration and `DRAUGHT_WEB` provide the same combined setting under the documented precedence rules. The default is disabled. Project configuration may disable web access but cannot enable it. Enabling web does not bypass the network risk class or approval policy.
 
@@ -67,7 +67,21 @@ Redirects are followed manually. HTTPS-to-HTTP downgrades, loops, missing or dup
 
 A search adapter implements `Draught.Web.Search.Adapter` and returns a list of maps or `Draught.Web.Search.Result.Item` values containing `title`, `url`, and `snippet`. Draught reconstructs every item, caps the result count and field sizes, removes query strings and fragments from provenance URLs, and renders one fixed JSON envelope.
 
-Search adapters receive the effective `Draught.Web.Policy`. Adapter invocation is supervised and bounded by the total operation timeout, and returned values are reconstructed through the result limits. Adapter modules and their configuration are trusted application code: they must apply the same isolation principles to their own HTTP client and must not read ambient credentials or proxy settings. Credentials explicitly supplied in trusted adapter configuration remain the host application's responsibility and must not appear in results, errors, events, or logs.
+`Draught.Web.Search.Transport.Searxng` accepts an explicit endpoint whose [SearXNG search API](https://docs.searxng.org/dev/search_api.html) enables JSON responses:
+
+```elixir
+{:ok, web} =
+  Draught.Web.Capability.new(
+    policy: [search: true],
+    search:
+      {Draught.Web.Search.Transport.Searxng,
+       endpoint: "https://search.example/search"}
+  )
+```
+
+The endpoint must be an HTTP(S) URL without credentials, fragments, or an existing query string. The adapter adds the bounded query, `format=json`, and moderate safe-search parameters, then delegates the request to the guarded Mint fetch transport. Search responses therefore receive the same address, redirect, content-type, byte, and time validation as page fetching. Returned JSON must contain a `results` list with bounded `title` and `url` strings; missing snippets become empty strings. CLI search configuration is not connected yet.
+
+Search adapters receive the effective `Draught.Web.Policy`. Adapter invocation is supervised and bounded by the total operation timeout, and returned values are reconstructed through the result limits. Custom adapter modules and their configuration are trusted application code: they must apply the same isolation principles to their own HTTP client and must not read ambient credentials or proxy settings. Credentials explicitly supplied in trusted adapter configuration remain the host application's responsibility and must not appear in results, errors, events, or logs.
 
 Custom fetch adapters are also trusted application code. The capability boundary validates their callback and bounds their execution and returned value, but only the included Mint transport provides Draught's address-pinned egress checks.
 

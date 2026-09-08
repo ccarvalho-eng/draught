@@ -7,6 +7,27 @@
 
 Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. Run tasks interactively or headlessly with Ollama or an OpenAI-compatible provider.
 
+## Motivation
+
+### Access without a paid model subscription
+
+Subscription fees and metered APIs can put coding assistance out of reach. Draught aims to make agentic work accessible to developers who cannot afford premium tools, using freely available models on their own machines through Ollama. Local inference avoids per-request API charges, but still requires suitable hardware, electricity, and a model whose license permits the intended use. Provider-agnostic interfaces leave that choice with the user.
+
+### An OTP foundation for agents
+
+The architectural inspiration is the actor model and [OTP supervision](https://www.erlang.org/doc/system/sup_princ.html): keep conversation state separate from the work performed on its behalf. Sessions own their lifecycle; model requests and tool calls execute in isolated, supervised tasks with explicit timeouts and cancellation. Pure functions define state transitions and permission policies. This separation provides failure boundaries without making the model responsible for runtime safety. Restarting a process is not permission to repeat an edit or command. See [Architecture](docs/architecture.md) for the supervision and execution contracts.
+
+### An opportunity to stay engaged
+
+Local models may need more guidance and checking than top-tier hosted models, depending on the model and task. If you work with one, consider using that extra involvement as an opportunity to learn: investigate why a suggestion fails, consult the documentation, ask for explanations, and test your own understanding. More intervention can be frustrating, but it can also leave room for hands-on practice instead of delegating the entire problem.
+
+Research offers a reason to value that engagement:
+
+- [Shen and Tamkin (2026), *How AI Impacts Skill Formation*](https://arxiv.org/abs/2601.20245), a preprint, reports lower immediate skill scores with AI assistance in a randomized study of 52 developers learning an unfamiliar library. Exploratory analysis associated explanation-seeking and conceptual questions with better learning outcomes than delegation-heavy use.
+- [Bastani et al. (2025), *Generative AI without guardrails can harm learning*](https://doi.org/10.1073/pnas.2422633122), published in PNAS, found worse subsequent unaided performance with an unrestricted AI tutor in high-school mathematics; learning-oriented safeguards largely mitigated that effect.
+
+These studies concern learning in specific settings. They do not establish long-term cognitive effects or show that weaker models teach better. Draught has not been evaluated for learning outcomes.
+
 ## Documentation
 
 ### Start here
@@ -52,9 +73,9 @@ Tool execution is governed by capability and approval policies. Web tools are op
 
 | Library | Role |
 | --- | --- |
-| Owl | Terminal rendering. |
-| Req | Provider HTTP requests. |
-| Mint | Guarded web fetching. |
+| [Owl](https://github.com/fuelen/owl) | Terminal rendering. |
+| [Req](https://github.com/wojtekmach/req) | Provider HTTP requests. |
+| [Mint](https://github.com/elixir-mint/mint) | Guarded web fetching. |
 
 Mix installs these libraries with the project dependencies. Workspace file tools are implemented in Elixir and require no external search utility.
 

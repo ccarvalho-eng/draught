@@ -4,6 +4,9 @@ defmodule Draught.Execution.BoundedTaskTest do
   alias Draught.Execution.BoundedTask
   alias Draught.Execution.Runner.Failure.Runtime
 
+  @execution_timeout 500
+  @receive_timeout 2_000
+
   test "returns the effect result while its owner remains alive" do
     assert BoundedTask.run(
              fn -> {:ok, :completed} end,
@@ -16,46 +19,42 @@ defmodule Draught.Execution.BoundedTaskTest do
   test "excludes an explicitly suspended interval from the deadline" do
     test_process = self()
 
-    result =
-      BoundedTask.run(
-        fn ->
-          BoundedTask.without_timeout(fn ->
-            send(test_process, :approval_started)
-            Process.sleep(25)
-          end)
+    task =
+      Task.async(fn ->
+        BoundedTask.run(
+          fn -> suspended_effect(test_process) end,
+          @execution_timeout,
+          Runtime.provider_timeout(),
+          Runtime.provider_crashed()
+        )
+      end)
 
-          {:ok, :completed}
-        end,
-        10,
-        Runtime.provider_timeout(),
-        Runtime.provider_crashed()
-      )
+    assert_receive {:approval_started, worker}, @receive_timeout
+    task_reference = task.ref
+    refute_receive {^task_reference, _result}, @execution_timeout + 100
+    send(worker, :approved)
 
-    assert_receive :approval_started
-    assert result == {:ok, :completed}
+    assert Task.await(task, @receive_timeout) == {:ok, :completed}
   end
 
   test "resumes charging the remaining budget after suspension" do
-    result =
-      BoundedTask.run(
-        fn ->
-          Process.send_after(self(), :decision, 25)
+    test_process = self()
 
-          BoundedTask.without_timeout(fn ->
-            receive do
-              :decision -> :ok
-            end
-          end)
+    task =
+      Task.async(fn ->
+        BoundedTask.run(
+          fn -> resumed_effect(test_process) end,
+          @execution_timeout,
+          Runtime.provider_timeout(),
+          Runtime.provider_crashed()
+        )
+      end)
 
-          Process.sleep(25)
-          {:ok, :completed}
-        end,
-        10,
-        Runtime.provider_timeout(),
-        Runtime.provider_crashed()
-      )
+    assert_receive {:approval_started, worker}, @receive_timeout
+    send(worker, :approved)
+    assert_receive :active_work_started, @receive_timeout
 
-    assert {:error, %{code: "provider_timeout"}} = result
+    assert {:error, %{code: "provider_timeout"}} = Task.await(task, @receive_timeout)
   end
 
   test "terminates the effect task when its owner exits" do
@@ -95,5 +94,27 @@ defmodule Draught.Execution.BoundedTaskTest do
     receive do
       :finish -> {:ok, :completed}
     end
+  end
+
+  defp resumed_effect(test_process) do
+    wait_for_approval(test_process)
+    send(test_process, :active_work_started)
+    Process.sleep(@execution_timeout + 100)
+    {:ok, :completed}
+  end
+
+  defp suspended_effect(test_process) do
+    wait_for_approval(test_process)
+    {:ok, :completed}
+  end
+
+  defp wait_for_approval(test_process) do
+    BoundedTask.without_timeout(fn ->
+      send(test_process, {:approval_started, self()})
+
+      receive do
+        :approved -> :ok
+      end
+    end)
   end
 end

@@ -1,16 +1,17 @@
 defmodule Draught.CLI.UI.Owl.InputArea do
   @moduledoc """
-  Renders a bounded, open-sided input frame for ordinary terminal line editing.
+  Renders a bounded input frame for ordinary terminal line editing.
 
-  The top rail keeps active model and workspace context beside command hints.
-  No right-hand border or cursor repositioning interferes with wrapped input,
-  and styling is reset before the terminal echoes any user text.
+  The top rail keeps active model and workspace context beside help discovery.
+  The rails close at both corners while the input line remains open on the
+  right so wrapped text needs no cursor repositioning. Styling is reset before
+  the terminal echoes any user text.
   """
 
   alias Elixir.Owl.Data
 
-  @maximum_width 96
-  @hint "  /help · /model "
+  @maximum_width 512
+  @hint "  /help "
 
   @doc "Renders one input boundary with explicit terminal width and styling."
   @spec render(:open | :close, String.t(), String.t(), pos_integer(), boolean()) :: iodata()
@@ -21,7 +22,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
       "\n",
       decorate("│ ", :light_black, styled?),
       decorate("›", [:cyan, :bright], styled?),
-      " "
+      "  "
     ]
   end
 
@@ -34,7 +35,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
   end
 
   def render(:close, _model, _workspace, width, styled?) when width >= 8 do
-    [decorate(["╰", rule(width - 1)], :light_black, styled?), "\n"]
+    [decorate(["╰", rule(width - 2), "╯"], :light_black, styled?), "\n"]
   end
 
   def render(:close, _model, _workspace, _width, _styled?) do
@@ -43,7 +44,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
 
   defp top(model, workspace, width, styled?) do
     bounded_width = min(width, @maximum_width)
-    available = bounded_width - 3
+    available = bounded_width - 4
     context = model <> " · " <> workspace
     label = context <> @hint
     fits? = Data.length(label) <= available
@@ -60,7 +61,8 @@ defmodule Draught.CLI.UI.Owl.InputArea do
       decorate(" · ", :light_black, styled?),
       decorate(workspace, :green, styled?),
       decorate(@hint, :light_black, styled?),
-      decorate(rule(remainder), :light_black, styled?)
+      decorate(rule(remainder), :light_black, styled?),
+      decorate("╮", :light_black, styled?)
     ]
   end
 
@@ -69,7 +71,8 @@ defmodule Draught.CLI.UI.Owl.InputArea do
 
     [
       decorate("╭─ ", :light_black, styled?),
-      decorate(truncated, :light_black, styled?)
+      decorate(truncated, :light_black, styled?),
+      decorate("╮", :light_black, styled?)
     ]
   end
 
@@ -87,7 +90,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
   end
 
   defp rule(width) do
-    String.duplicate("─", min(width, @maximum_width - 1))
+    String.duplicate("─", min(width, @maximum_width - 2))
   end
 
   defp decorate(content, sequences, true) do

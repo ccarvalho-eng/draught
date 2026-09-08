@@ -57,7 +57,7 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
       0 ->
         dependencies.terminal
         |> read_line()
-        |> finish_read({state, width, styled?}, dependencies)
+        |> finish_read({state, styled?}, dependencies)
 
       status ->
         {:error, :write, status}
@@ -86,7 +86,10 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
     result
   end
 
-  defp finish_read(result, {state, width, styled?}, dependencies) do
+  defp finish_read(result, {state, styled?}, dependencies) do
+    {system, configuration} = dependencies.system
+    width = terminal_width(system.columns(configuration))
+
     closing = [
       read_separator(result),
       UI.input_area(:close, state, width, styled?),

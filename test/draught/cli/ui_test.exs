@@ -6,8 +6,8 @@ defmodule Draught.CLI.UITest do
   alias Draught.CLI.UI
 
   test "separates the input area without speaker names or cursor controls" do
-    assert render_input(:open, 12) == "\n╭─ qwen3 · …\n│ › "
-    assert render_input(:close, 12) == "╰───────────\n"
+    assert render_input(:open, 12) == "\n╭─ qwen3 ·…╮\n│ ›  "
+    assert render_input(:close, 12) == "╰──────────╯\n"
 
     tool =
       false
@@ -24,11 +24,25 @@ defmodule Draught.CLI.UITest do
 
     opening = render_input(:open, 500)
     assert opening =~ "qwen3 · /workspace"
-    assert opening =~ "/help · /model"
+    assert opening =~ "/help"
+    refute opening =~ "/model"
+
+    ["", top, prompt] = String.split(opening, "\n")
+    assert String.length(top) == 500
+    assert String.ends_with?(top, "╮")
+    assert prompt == "│ ›  "
 
     assert opening
            |> String.split("\n", trim: true)
-           |> Enum.all?(&(String.length(&1) <= 96))
+           |> Enum.all?(&(String.length(&1) <= 500))
+
+    oversized_top =
+      :open
+      |> render_input(10_000)
+      |> String.split("\n")
+      |> Enum.at(1)
+
+    assert String.length(oversized_top) == 512
 
     refute render_input(:open, 80) =~ <<27>>
   end
@@ -42,8 +56,11 @@ defmodule Draught.CLI.UITest do
              |> Enum.all?(&(String.length(&1) <= width))
     end
 
+    assert render_input(:close, 120) =~ "╯"
+
     refute render_input(:open, 16) =~ "/help"
-    assert render_input(:open, 40) =~ "/help · /model"
+    assert render_input(:open, 40) =~ "/help"
+    refute render_input(:open, 40) =~ "/model"
   end
 
   test "input styling is explicit and resets before terminal echo" do
@@ -53,7 +70,7 @@ defmodule Draught.CLI.UITest do
       |> IO.iodata_to_binary()
 
     assert output =~ "\e["
-    assert String.ends_with?(output, "\e[0m ")
+    assert String.ends_with?(output, "\e[0m  ")
     assert Regex.replace(~r/\e\[[0-9;]*m/, output, "") == render_input(:open, 40)
   end
 
@@ -65,7 +82,7 @@ defmodule Draught.CLI.UITest do
       |> UI.input_area(state, 20, false)
       |> IO.iodata_to_binary()
 
-    assert output =~ "safehidden · /wo…"
+    assert output =~ "safehidden · /w…"
     refute output =~ <<27>>
     refute output =~ "\nforged"
   end

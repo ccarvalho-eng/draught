@@ -36,14 +36,14 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
 
     @impl Draught.CLI.System.Adapter
     def columns(configuration) do
-      configuration.columns
+      resolve_columns(configuration.columns)
     end
 
     @impl Draught.CLI.System.Adapter
     def write(stream, content, configuration) do
       text = IO.iodata_to_binary(content)
       send(configuration.owner, {:output, stream, text})
-      opening? = String.ends_with?(text, "› ")
+      opening? = String.ends_with?(text, "›  ")
 
       write_result(configuration.failure == opening?)
     end
@@ -54,6 +54,14 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
 
     defp write_result(false) do
       :ok
+    end
+
+    defp resolve_columns(callback) when is_function(callback, 0) do
+      callback.()
+    end
+
+    defp resolve_columns(value) do
+      value
     end
   end
 
@@ -80,15 +88,15 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
   test "frames a line before returning its parsed command" do
     dependencies = dependencies({:ok, "/exit\n"})
     assert {:ok, {:ok, {:command, :exit, nil}}} = Terminal.read(state(), dependencies)
-    assert_receive {:output, :stdout, "\n╭─ qwen3 · …\n│ › "}
+    assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ ›  "}
     assert_receive :input_read
-    assert_receive {:output, :stdout, "╰───────────\n\n"}
+    assert_receive {:output, :stdout, "╰──────────╯\n\n"}
   end
 
   test "does not read any input when the opening output fails" do
     dependencies = dependencies({:ok, "unread"}, true)
     assert {:error, :write, 70} = Terminal.read(state(), dependencies)
-    assert_receive {:output, :stdout, "\n╭─ qwen3 · …\n│ › "}
+    assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ ›  "}
     refute_receive :input_read
     refute_receive {:output, _, _}
   end
@@ -97,24 +105,57 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
     dependencies = dependencies({:ok, "do not run this task\n"}, false)
     assert {:error, :write, 70} = Terminal.read(state(), dependencies)
     assert_receive :input_read
-    assert_receive {:output, :stdout, "╰───────────\n\n"}
+    assert_receive {:output, :stdout, "╰──────────╯\n\n"}
   end
 
   test "closes incomplete input lines before the next output without reflecting input" do
     input = "text without trailing newline"
     dependencies = dependencies({:ok, input})
     assert {:ok, {:ok, {:prompt, ^input}}} = Terminal.read(state(), dependencies)
-    assert_receive {:output, :stdout, "\n╰───────────\n\n"}
+    assert_receive {:output, :stdout, "\n╰──────────╯\n\n"}
   end
 
   test "preserves EOF, interruption and input errors after closing the input area" do
     for result <- [:eof, :interrupted, {:error, :io}] do
       dependencies = dependencies(result)
       assert ^result = Terminal.read(state(), dependencies)
-      assert_receive {:output, :stdout, "\n╭─ qwen3 · …\n│ › "}
+      assert_receive {:output, :stdout, "\n╭─ qwen3 ·…╮\n│ ›  "}
       assert_receive :input_read
-      assert_receive {:output, :stdout, "\n╰───────────\n\n"}
+      assert_receive {:output, :stdout, "\n╰──────────╯\n\n"}
     end
+  end
+
+  test "resamples terminal width before closing the input area" do
+    columns = fn ->
+      receive do
+        {:columns, width} -> {:ok, width}
+      end
+    end
+
+    send(self(), {:columns, 40})
+    send(self(), {:columns, 20})
+
+    dependencies = dependencies({:ok, "/exit\n"}, nil, columns)
+    assert {:ok, {:ok, {:command, :exit, nil}}} = Terminal.read(state(), dependencies)
+
+    assert_receive {:output, :stdout, opening}
+    assert_receive :input_read
+    assert_receive {:output, :stdout, closing}
+
+    opening_width =
+      opening
+      |> String.split("\n")
+      |> Enum.at(1)
+      |> String.length()
+
+    closing_width =
+      closing
+      |> String.split("\n")
+      |> hd()
+      |> String.length()
+
+    assert opening_width == 40
+    assert closing_width == 20
   end
 
   test "uses the bounded fallback when terminal columns are unavailable" do

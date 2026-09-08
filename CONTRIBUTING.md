@@ -4,6 +4,16 @@ Contributions are welcome while Draught's initial contracts are being establishe
 
 Before proposing a change, review the relevant [roadmap milestone](https://github.com/ccarvalho-eng/draught/milestones) and the [architecture guide](docs/architecture.md). Open an issue first for new public APIs, architectural changes, provider contracts, persistence formats, or security-policy changes.
 
+## Setup and quality checks
+
+Install dependencies from a source checkout:
+
+```sh
+mix setup
+```
+
+Run `mix quality` during development and `mix precommit` before requesting review. The complete gate checks formatting, compilation warnings, dependency hygiene, compile cycles, compatible Credo and ExSlop rules, zero-clone ExDNA analysis, strict Reach smells, tests and coverage, Dialyzer, documentation coverage, HexDocs generation, and package assembly.
+
 ## Development workflow
 
 1. Create a focused branch from `main`.

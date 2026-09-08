@@ -1,110 +1,68 @@
 # Draught
 
-[![CI](https://github.com/ccarvalho-eng/draught/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ccarvalho-eng/draught/actions/workflows/ci.yml)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/ccarvalho-eng/draught/blob/main/LICENSE)
-[![Elixir: 1.18+](https://img.shields.io/badge/Elixir-1.18%2B-4B275F.svg)](mix.exs)
-[![Project status: pre-alpha](https://img.shields.io/badge/status-pre--alpha-orange.svg)](https://github.com/ccarvalho-eng/draught/milestones)
+[![CI](https://img.shields.io/github/actions/workflow/status/ccarvalho-eng/draught/ci.yml?branch=main&style=flat-square&logo=githubactions&logoColor=white&label=CI)](https://github.com/ccarvalho-eng/draught/actions/workflows/ci.yml)
+[![Elixir](https://img.shields.io/badge/Elixir-1.18%2B-4B275F?style=flat-square&logo=elixir&logoColor=white)](mix.exs)
+[![Erlang/OTP](https://img.shields.io/badge/Erlang%2FOTP-27%20%7C%2029-B84444?style=flat-square&logo=erlang&logoColor=white)](.github/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/Coverage-90%25%2B-2E7D32?style=flat-square)](mix.exs)
+[![Doc coverage](https://img.shields.io/badge/Doc%20coverage-100%25-D98A45?style=flat-square)](mix.exs)
+[![License](https://img.shields.io/badge/License-Apache--2.0-8CC8E8?style=flat-square&logo=apache&logoColor=white)](https://github.com/ccarvalho-eng/draught/blob/main/LICENSE)
 
-Draught is a provider-neutral coding-agent runtime and CLI for Elixir and the BEAM.
-
-The project is in pre-alpha development. Provider integrations, tool contracts, standard coding tools, approval policy, workspace confinement, bounded runner coordination, supervised session lifecycles, local journals, conversation interchange, the guarded web core, sanitized telemetry, bounded `AGENTS.md` guidance, streaming tasks, and an interactive prompt loop with local session and model selection are implemented. Interactive approvals, enabled web execution, plugins, MCP, scheduled loops, and distribution remain planned.
-
-## Design constraints
-
-| Concern | Constraint |
-| --- | --- |
-| Setup | The first-run path must not require knowledge of OTP, provider internals, or system dependency management. |
-| Provider integration | Providers and clients exchange Draught contracts instead of vendor payloads. |
-| Local models | Agentic work must be available through locally hosted models without requiring a paid model API. |
-| Runtime design | Domain values and transitions are pure. Processes are limited to state, concurrency, isolation, cancellation, or resource ownership. |
-| Authorization | Tool access, web access, budgets, timeouts, and mutations are explicit capabilities enforced independently of model output. |
-| Observability | Telemetry excludes credentials, message content, and raw provider values. Content-bearing events are handled by explicit CLI and journal policies. |
-
-## Project status
-
-| Area | Status |
-| --- | --- |
-| Project foundation and quality gates | Complete |
-| Canonical provider-neutral contracts | Complete |
-| OpenAI-compatible and Ollama providers | Complete |
-| Tool registry, execution contract, and standard coding tools | Complete |
-| Approval policy and workspace confinement | Complete |
-| Bounded agent runner | Complete |
-| Supervised session lifecycle | Complete |
-| Versioned local journals and replay | Complete |
-| Portable conversation interchange | Complete |
-| Privacy-safe telemetry | Complete |
-| Guarded web core and provenance | Complete |
-| CLI parsing, configuration, doctor, streaming tasks, and named-session resume | Complete |
-| Interactive prompt loop, status, help, doctor, model selection, session catalog, archive, and exit | Complete |
-| Interactive approvals, fuzzy command and model completion, provider selection, enabled web execution, plugins, MCP, scheduled loops, and distribution | Planned |
-
-The [GitHub milestones](https://github.com/ccarvalho-eng/draught/milestones) are the authoritative implementation roadmap. APIs may change before the first tagged alpha.
-
-## Provider contracts
-
-Draught keeps conversations and providers independent. Applications construct canonical messages and requests, then inject an adapter explicitly:
-
-```elixir
-{:ok, user} = Draught.Conversation.user("Explain this project")
-{:ok, request} = Draught.Provider.Request.new(model: "local-model", messages: [user])
-{:ok, assistant} = Draught.Conversation.assistant(content: "A provider-neutral agent runtime.")
-{:ok, response} = Draught.Provider.Response.new(message: assistant, finish_reason: :stop)
-
-{:ok, fake} =
-  Draught.Provider.Fake.new(
-    completions: [%{request: request, response: response}]
-  )
-
-Draught.Provider.complete({Draught.Provider.Fake, fake}, request)
-# => {:ok, response}
-```
-
-The included fake is pure and route-based. It provides deterministic offline tests without processes, global configuration, or network access.
+Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. Run tasks interactively or headlessly with Ollama or an OpenAI-compatible provider.
 
 ## Documentation
+
+### Start here
 
 - [Getting started](docs/getting-started.md)
 - [CLI](docs/cli.md)
 - [Configuration](docs/configuration.md)
+
+### Design and runtime
+
 - [Architecture](docs/architecture.md)
-- [Ollama provider](docs/providers/ollama.md)
 - [Tool execution](docs/tools.md)
 - [Agent runner](docs/runner.md)
 - [Session lifecycle](docs/sessions.md)
 - [Session journals](docs/session-journals.md)
+
+### Providers and data
+
+- [Ollama provider](docs/providers/ollama.md)
 - [Conversation interchange](docs/conversation-interchange.md)
+
+### Operations and security
+
 - [Telemetry](docs/telemetry.md)
 - [Web access](docs/web-access.md)
 - [Workspace confinement](docs/workspace-confinement.md)
 
+## Built-in agent tools
+
+| Tool | Purpose |
+| --- | --- |
+| `read_file` | Read a workspace file. |
+| `list_directory` | List a workspace directory. |
+| `search_workspace` | Search workspace files for literal text. |
+| `replace_in_file` | Replace one exact occurrence in a file. |
+| `run_command` | Run an executable with arguments. |
+| `web_search` | Search through an injected adapter. |
+| `web_fetch` | Retrieve text from an HTTP(S) page. |
+
+Tool execution is governed by capability and approval policies. Web tools are opt-in runtime capabilities; CLI web execution is unavailable. See [Tool execution](docs/tools.md) for permissions, limits, and executable dependencies.
+
+## Libraries
+
+| Library | Role |
+| --- | --- |
+| Owl | Terminal rendering. |
+| Req | Provider HTTP requests. |
+| Mint | Guarded web fetching. |
+
+Mix installs these libraries with the project dependencies. Workspace file tools are implemented in Elixir and require no external search utility.
+
 ## Security
 
-Draught treats model output and external content as untrusted. Provider responses do not grant tool permissions; every action remains subject to typed argument validation, capability checks, risk policy, budgets, timeouts, workspace rules, and user approval.
-
-Web access is disabled by default and explicitly configurable. Search results and fetched pages retain sanitized provenance and remain untrusted data, with bounded content handling and network controls. The current one-shot CLI rejects enabled web execution until a search adapter is connected. See the [web access guide](docs/web-access.md) for controls and limitations, and the [security policy](SECURITY.md) for the trust model and vulnerability reporting process.
-
-## Development
-
-Install dependencies:
-
-```sh
-mix setup
-```
-
-Run the development quality gate:
-
-```sh
-mix quality
-```
-
-Run the complete pre-commit gate:
-
-```sh
-mix precommit
-```
-
-The pre-commit gate runs formatting, warnings, dependency hygiene, compile-cycle detection, every compatible Credo and ExSlop check, zero-clone ExDNA analysis, strict Reach smells, tests and coverage, Dialyzer, documentation coverage, HexDocs generation, and package assembly.
+Draught treats model output and external content as untrusted. Workspace confinement is not an operating-system sandbox. Read the [security policy](SECURITY.md) for trust boundaries and private vulnerability reporting.
 
 ## Contributing
 

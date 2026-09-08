@@ -2,6 +2,17 @@
 
 Draught is a layered agent runtime built as a functional core with an imperative shell. Domain values, policies, and state transitions are plain data and pure functions. Processes exist only where the runtime needs concurrency, isolation, cancellation, supervision, or ownership of a resource.
 
+## Design constraints
+
+| Concern | Constraint |
+| --- | --- |
+| Setup | The first-run path must not require knowledge of OTP, provider internals, or system dependency management. |
+| Provider integration | Providers and clients exchange Draught contracts instead of vendor payloads. |
+| Local models | Agentic work must be available through locally hosted models without requiring a paid model API. |
+| Runtime design | Domain values and transitions are pure. Processes are limited to state, concurrency, isolation, cancellation, or resource ownership. |
+| Authorization | Tool access, web access, budgets, timeouts, and mutations are explicit capabilities enforced independently of model output. |
+| Observability | Telemetry excludes credentials, message content, and raw provider values. Content-bearing events are handled by explicit CLI and journal policies. |
+
 ## Internal layers
 
 Dependencies point inward. The domain does not know which CLI, model provider, persistence backend, web client, or operating-system adapter is in use.
@@ -316,6 +327,25 @@ sequenceDiagram
 The provider facade owns terminal delivery. An adapter may emit only deltas and tool calls. If the consumer returns `:halt`, the facade aborts adapter emission immediately and returns a canonical cancellation error. This central ownership prevents missing, duplicated, contradictory, or out-of-order terminal events.
 
 Provider adapters are explicitly injected as `{module, config}`. The deterministic fake adapter is an immutable collection of exact request routes, with no process or global state.
+
+### Provider contract example
+
+Applications construct canonical messages and requests, then inject an adapter explicitly. The fake adapter supports deterministic offline tests without network access:
+
+```elixir
+{:ok, user} = Draught.Conversation.user("Explain this project")
+{:ok, request} = Draught.Provider.Request.new(model: "local-model", messages: [user])
+{:ok, assistant} = Draught.Conversation.assistant(content: "A provider-agnostic agent runtime.")
+{:ok, response} = Draught.Provider.Response.new(message: assistant, finish_reason: :stop)
+
+{:ok, fake} =
+  Draught.Provider.Fake.new(
+    completions: [%{request: request, response: response}]
+  )
+
+Draught.Provider.complete({Draught.Provider.Fake, fake}, request)
+# => {:ok, response}
+```
 
 ## Contracts and trust boundaries
 

@@ -67,6 +67,10 @@ flowchart LR
   Process --> Result
 ```
 
+## Executable dependencies
+
+Workspace file tools are implemented in Elixir and require no external utilities. `run_command` uses executables available through its configured path. Draught does not install or bundle ripgrep (`rg`), `fzf`, or `pgcli`.
+
 ## Command process boundary
 
 `run_command` accepts an executable and a JSON array of arguments. It does not accept a shell command string and does not perform shell expansion. Executable names are resolved against the configured absolute search path; explicit executable paths are also supported.

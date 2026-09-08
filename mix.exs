@@ -17,6 +17,7 @@ defmodule Draught.MixProject do
       docs: docs(),
       package: package(),
       escript: [main_module: Draught.CLI.EntryPoint],
+      releases: releases(),
       aliases: aliases(),
       deps: deps(),
       test_coverage: [tool: ExCoveralls, summary: [threshold: 90]],
@@ -30,7 +31,7 @@ defmodule Draught.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {Draught.Application, []}
+      mod: {application_module(Mix.target()), []}
     ]
   end
 
@@ -60,6 +61,38 @@ defmodule Draught.MixProject do
     ]
   end
 
+  defp application_module(:cli) do
+    Draught.CLI.Release.Application
+  end
+
+  defp application_module(_target) do
+    Draught.Application
+  end
+
+  defp releases do
+    [
+      draught: [
+        steps: [&validate_release_target/1, :assemble, &Burrito.wrap/1],
+        burrito: [
+          targets: [
+            macos_arm64: [os: :darwin, cpu: :aarch64],
+            macos_x86_64: [os: :darwin, cpu: :x86_64],
+            linux_arm64: [os: :linux, cpu: :aarch64],
+            linux_x86_64: [os: :linux, cpu: :x86_64]
+          ]
+        ]
+      ]
+    ]
+  end
+
+  defp validate_release_target(release) do
+    if Mix.target() != :cli do
+      Mix.raise("Build the executable with MIX_TARGET=cli MIX_ENV=prod mix release draught")
+    end
+
+    release
+  end
+
   defp docs do
     [
       main: "readme",
@@ -71,6 +104,7 @@ defmodule Draught.MixProject do
         "docs/getting-started.md",
         "docs/cli.md",
         "docs/configuration.md",
+        "docs/distribution.md",
         "docs/architecture.md",
         "docs/conversation-interchange.md",
         "docs/runner.md",
@@ -89,7 +123,8 @@ defmodule Draught.MixProject do
         CLI: [
           "docs/getting-started.md",
           "docs/cli.md",
-          "docs/configuration.md"
+          "docs/configuration.md",
+          "docs/distribution.md"
         ],
         Guides: [
           "docs/architecture.md",
@@ -109,6 +144,7 @@ defmodule Draught.MixProject do
 
   defp deps do
     [
+      {:burrito, "== 1.6.0"},
       {:jason, "~> 1.4"},
       {:mint, "~> 1.10"},
       {:owl, "~> 0.13.1"},

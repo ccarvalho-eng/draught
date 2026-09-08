@@ -7,6 +7,22 @@
 
 Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. Run tasks interactively or headlessly with Ollama or an OpenAI-compatible provider.
 
+## Installation
+
+Build and install the command from a source checkout:
+
+```shell
+git clone https://github.com/ccarvalho-eng/draught.git
+cd draught
+mix setup
+mix escript.build
+mkdir -p "$HOME/.local/bin"
+install -m 755 draught "$HOME/.local/bin/draught"
+"$HOME/.local/bin/draught" --version
+```
+
+This method requires Elixir and Erlang/OTP. Add `$HOME/.local/bin` to `PATH` to invoke the command as `draught`. See [Getting started](docs/getting-started.md) for Ollama and model setup, and [Distribution](docs/distribution.md) for native builds, upgrades, and uninstalling.
+
 ## Motivation
 
 [Draught](https://www.merriam-webster.com/dictionary/draught), pronounced "draft", can mean a drink or a dose of medicine, suggesting a measured approach to assistance. The name also echoes "draft": a starting point to examine, revise, and develop into your own solution. Assistance contributes to the work; it does not make the result final or replace your judgment.

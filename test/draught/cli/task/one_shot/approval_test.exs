@@ -16,6 +16,7 @@ defmodule Draught.CLI.Task.OneShot.ApprovalTest do
   alias Draught.Tool.Call
 
   @receive_timeout 1_000
+  @tool_timeout 1_000
   @moduletag :tmp_dir
 
   defmodule Provider do
@@ -136,7 +137,7 @@ defmodule Draught.CLI.Task.OneShot.ApprovalTest do
         {:ok, preparation} =
           Preparation.new("edit the file", selection, workspace,
             approval: approval,
-            limits: [tool_timeout_ms: 100],
+            limits: [tool_timeout_ms: @tool_timeout],
             risk: :ask
           )
 
@@ -153,7 +154,7 @@ defmodule Draught.CLI.Task.OneShot.ApprovalTest do
 
     assert_receive {:approval_input_requested, caller, reference}, @receive_timeout
     task_reference = task.ref
-    refute_receive {^task_reference, _result}, 150
+    refute_receive {^task_reference, _result}, @tool_timeout + 100
 
     send(caller, {:draught_terminal_input, reference, {:ok, "y\n"}})
 

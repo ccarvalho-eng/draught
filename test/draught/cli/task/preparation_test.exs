@@ -99,6 +99,37 @@ defmodule Draught.CLI.Task.PreparationTest do
     refute capability.policy.search
   end
 
+  test "registers guarded search independently from page fetching" do
+    assert {:ok, provider} = Fake.new()
+    assert {:ok, selection} = Selection.new({Fake, provider}, "free-model")
+
+    web = %{
+      fetch: false,
+      search: true,
+      search_url: "https://search.example.test/search"
+    }
+
+    assert {:ok, preparation} =
+             Preparation.new("Search", selection, "/workspace", web: web)
+
+    names = Registry.names(preparation.runner.registry)
+    assert "web_search" in names
+    refute "web_fetch" in names
+
+    capability = preparation.runner.tool_context.web
+    assert capability.policy.search
+    refute capability.policy.fetch
+  end
+
+  test "requires an explicit endpoint when search is enabled" do
+    assert {:ok, provider} = Fake.new()
+    assert {:ok, selection} = Selection.new({Fake, provider}, "free-model")
+    web = %{fetch: false, search: true, search_url: nil}
+
+    assert {:error, error} = Preparation.new("Search", selection, "/workspace", web: web)
+    assert hd(error.violations).path == [:web, :search_url]
+  end
+
   test "appends a prompt to explicit replay history and retains a journal adapter" do
     assert {:ok, provider} = Fake.new()
     assert {:ok, selection} = Selection.new({Fake, provider}, "free-model")

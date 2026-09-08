@@ -15,6 +15,8 @@ defmodule Draught.CLI.Configuration.Projection do
       "model" => configuration.model,
       "base_url" => safe_endpoint(configuration.base_url),
       "web" => configuration.web,
+      "web_search" => configuration.web_search,
+      "web_search_url" => safe_optional_endpoint(configuration.web_search_url),
       "risk" => Atom.to_string(configuration.risk),
       "credential" => credential_status(configuration.credential),
       "header_names" => header_names(configuration.headers),
@@ -51,5 +53,13 @@ defmodule Draught.CLI.Configuration.Projection do
   defp safe_endpoint(base_url) do
     uri = URI.parse(base_url)
     URI.to_string(%{uri | path: nil, query: nil, fragment: nil, userinfo: nil})
+  end
+
+  defp safe_optional_endpoint(nil) do
+    nil
+  end
+
+  defp safe_optional_endpoint(url) do
+    safe_endpoint(url)
   end
 end

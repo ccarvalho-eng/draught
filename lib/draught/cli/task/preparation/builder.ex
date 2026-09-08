@@ -5,6 +5,7 @@ defmodule Draught.CLI.Task.Preparation.Builder do
 
   alias Draught.CLI.Task.Preparation
   alias Draught.CLI.Task.Preparation.Builder.Assembly
+  alias Draught.CLI.Task.Preparation.Web
   alias Draught.CLI.Task.Provider.Selection
   alias Draught.Provider.Capabilities
   alias Draught.Validation.Error
@@ -22,7 +23,7 @@ defmodule Draught.CLI.Task.Preparation.Builder do
   defp web(attributes) do
     attributes
     |> Map.get(:web, false)
-    |> Value.boolean([:web])
+    |> Web.capability()
   end
 
   defp provider_mode(selection, attributes) do

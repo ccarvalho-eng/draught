@@ -46,6 +46,30 @@ defmodule Draught.CLI.Session.BindingTest do
     assert {:error, %{code: "session_binding_mismatch"}} = Binding.verify(binding, changed)
   end
 
+  test "rejects web permission drift", %{tmp_dir: tmp_dir} do
+    configuration = configuration("free-model")
+    assert {:ok, provider} = Fake.new()
+    assert {:ok, selection} = Selection.new({Fake, provider}, "free-model")
+    assert {:ok, preparation} = Preparation.new("Inspect", selection, tmp_dir)
+    binding = Binding.new(configuration, preparation)
+
+    assert {:ok, changed} = Preparation.new("Continue", selection, tmp_dir, web: true)
+    assert {:error, %{code: "session_binding_mismatch"}} = Binding.verify(binding, changed)
+  end
+
+  test "rejects web search endpoint drift", %{tmp_dir: tmp_dir} do
+    configuration = configuration("free-model")
+    assert {:ok, provider} = Fake.new()
+    assert {:ok, selection} = Selection.new({Fake, provider}, "free-model")
+    first_web = %{fetch: false, search: true, search_url: "https://one.example.test/search"}
+    next_web = %{fetch: false, search: true, search_url: "https://two.example.test/search"}
+    assert {:ok, preparation} = Preparation.new("Inspect", selection, tmp_dir, web: first_web)
+    binding = Binding.new(configuration, preparation)
+
+    assert {:ok, changed} = Preparation.new("Continue", selection, tmp_dir, web: next_web)
+    assert {:error, %{code: "session_binding_mismatch"}} = Binding.verify(binding, changed)
+  end
+
   test "forces the recorded model and rejects connection or explicit model drift", %{
     tmp_dir: tmp_dir
   } do
@@ -193,6 +217,7 @@ defmodule Draught.CLI.Session.BindingTest do
       credential: nil,
       headers: %{"x-private" => "private-header"},
       web: false,
+      web_search: false,
       risk: :deny,
       origins: %{}
     }

@@ -30,7 +30,9 @@ draught -- "--explain this argument"
 | `--base-url URL` | Overrides the selected profile endpoint when the profile is not credential-bound. |
 | `--session ID` | Creates a persistent named session for the supplied task. |
 | `--resume ID` | Continues a persistent named session with the supplied task. |
-| `--web` / `--no-web` | Enables or disables guarded page fetching. Search remains a separate library adapter boundary. |
+| `--web` / `--no-web` | Enables or disables guarded page fetching. |
+| `--web-search` / `--no-web-search` | Enables or disables guarded search. |
+| `--web-search-url URL` | Selects the explicit SearXNG-compatible JSON search endpoint. |
 | `--output text\|jsonl` | Selects human-readable or machine-readable output where supported. |
 | `--color auto\|always\|never` | Controls terminal label styling and activity rendering; model content remains unstyled. |
 | `--diagnostics` / `--no-diagnostics` | Records the diagnostics preference; it does not expand doctor output in this slice. |
@@ -109,7 +111,7 @@ Continue it with another task:
 draught --resume review "address the remaining test failure"
 ```
 
-Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the retained canonical conversation required by the provider, including the effective system instruction loaded for the first turn. Streaming deltas are transient and are not journaled; the validated provider result remains authoritative for replay. Resume reuses the recorded system instruction without re-reading `AGENTS.md`. A session is bound to its profile, provider connection, provider adapter, exact negotiated capability set, and exact model when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model. Bindings created before capability identity was introduced are upgraded atomically after their first verified resume.
+Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the retained canonical conversation required by the provider, including the effective system instruction loaded for the first turn. Streaming deltas are transient and are not journaled; the validated provider result remains authoritative for replay. Resume reuses the recorded system instruction without re-reading `AGENTS.md`. A session is bound to its profile, provider connection, provider adapter, exact negotiated capability set, exact model, web permissions, web adapters, and configured search endpoint when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model. Bindings created before capability identity was introduced are upgraded atomically after their first verified resume.
 
 Only a session whose durable history ends at a successful assistant response can resume automatically. Empty, interrupted, failed, malformed, oversized, unsafe, or concurrently leased session state fails closed. A second create with the same identifier is rejected. Bare `draught --resume ID` enters the prompt loop on a terminal and requires a task argument when standard output is redirected or JSONL is selected.
 

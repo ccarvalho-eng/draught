@@ -33,7 +33,11 @@ defmodule Draught.CLI.Session.Binding do
   def new(%Configuration{} = configuration, %Preparation{} = preparation) do
     %__MODULE__{
       adapter: adapter(preparation),
-      capabilities: CapabilityIdentity.fingerprint(preparation.capabilities),
+      capabilities:
+        CapabilityIdentity.fingerprint(
+          preparation.capabilities,
+          preparation.runner.tool_context.web
+        ),
       connection: ConnectionIdentity.fingerprint(configuration),
       model: preparation.request.model,
       profile: configuration.profile,
@@ -70,7 +74,10 @@ defmodule Draught.CLI.Session.Binding do
     current = {
       adapter(preparation),
       preparation.request.model,
-      CapabilityIdentity.fingerprint(preparation.capabilities)
+      CapabilityIdentity.fingerprint(
+        preparation.capabilities,
+        preparation.runner.tool_context.web
+      )
     }
 
     expected = {binding.adapter, binding.model, binding.capabilities}

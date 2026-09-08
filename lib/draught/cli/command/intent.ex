@@ -8,7 +8,17 @@ defmodule Draught.CLI.Command.Intent do
   alias Draught.CLI.Command.Options
   alias Draught.CLI.Command.Specification
 
-  @operational_options [:provider, :model, :base_url, :session, :resume, :web, :diagnostics]
+  @operational_options [
+    :provider,
+    :model,
+    :base_url,
+    :session,
+    :resume,
+    :web,
+    :web_search,
+    :web_search_url,
+    :diagnostics
+  ]
 
   @doc "Resolves named commands and root task text into one invocation."
   @spec resolve([String.t()], [String.t()], Options.t()) ::
@@ -126,6 +136,8 @@ defmodule Draught.CLI.Command.Intent do
       session: options.session,
       resume: options.resume,
       web: options.web,
+      web_search: options.web_search,
+      web_search_url: options.web_search_url,
       output: options.output,
       color: options.color,
       diagnostics: options.diagnostics

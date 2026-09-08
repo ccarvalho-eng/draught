@@ -79,6 +79,8 @@ defmodule Draught.CLI.Configuration.LoaderTest do
     assert configuration.base_url == "http://localhost:11434"
     assert configuration.model == nil
     refute configuration.web
+    refute configuration.web_search
+    assert configuration.web_search_url == nil
   end
 
   test "rejects project authority expansion before any provider operation" do
@@ -91,6 +93,22 @@ defmodule Draught.CLI.Configuration.LoaderTest do
 
     assert {:error, %Error{source: :project, code: :authority_denied}} =
              Loader.load(invocation, system)
+  end
+
+  test "loads independent search permission and endpoint from explicit flags" do
+    invocation = %Invocation{
+      command: :doctor,
+      web: :disabled,
+      web_search: :enabled,
+      web_search_url: "https://search.example.test/search"
+    }
+
+    system = {SystemAdapter, %{cwd: "/workspace", environment: %{}, files: %{}}}
+
+    assert {:ok, configuration, "/workspace"} = Loader.load(invocation, system)
+    refute configuration.web
+    assert configuration.web_search
+    assert configuration.web_search_url == "https://search.example.test/search"
   end
 
   test "rejects malformed environment settings without retaining their values" do

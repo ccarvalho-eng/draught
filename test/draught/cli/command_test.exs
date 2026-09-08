@@ -23,6 +23,9 @@ defmodule Draught.CLI.CommandTest do
       "--session",
       "review",
       "--web",
+      "--web-search",
+      "--web-search-url",
+      "https://search.example.test/search",
       "--output",
       "jsonl",
       "--color",
@@ -40,6 +43,8 @@ defmodule Draught.CLI.CommandTest do
     assert invocation.base_url == "http://localhost:11434"
     assert invocation.session == "review"
     assert invocation.web == :enabled
+    assert invocation.web_search == :enabled
+    assert invocation.web_search_url == "https://search.example.test/search"
     assert invocation.output == :jsonl
     assert invocation.color == :never
     assert invocation.diagnostics
@@ -47,11 +52,18 @@ defmodule Draught.CLI.CommandTest do
 
   test "parses resume and explicit disabled boolean settings" do
     assert {:ok, invocation} =
-             Command.parse(["--resume", "review", "--no-web", "--no-diagnostics"])
+             Command.parse([
+               "--resume",
+               "review",
+               "--no-web",
+               "--no-web-search",
+               "--no-diagnostics"
+             ])
 
     assert invocation.command == :interactive
     assert invocation.resume == "review"
     assert invocation.web == :disabled
+    assert invocation.web_search == :disabled
     refute invocation.diagnostics
   end
 

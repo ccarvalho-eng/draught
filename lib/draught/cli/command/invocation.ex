@@ -12,6 +12,8 @@ defmodule Draught.CLI.Command.Invocation do
             session: nil,
             resume: nil,
             web: :inherit,
+            web_search: :inherit,
+            web_search_url: nil,
             output: :text,
             color: :auto,
             diagnostics: false
@@ -30,6 +32,8 @@ defmodule Draught.CLI.Command.Invocation do
           session: String.t() | nil,
           resume: String.t() | nil,
           web: web(),
+          web_search: web(),
+          web_search_url: String.t() | nil,
           output: output(),
           color: color(),
           diagnostics: boolean()

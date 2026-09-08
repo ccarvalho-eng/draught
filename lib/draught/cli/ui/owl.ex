@@ -102,7 +102,7 @@ defmodule Draught.CLI.UI.Owl do
       "\n",
       label("web:", styled?),
       "       ",
-      web(state.web)
+      web(state.web, state.web_search)
     ]
   end
 
@@ -153,11 +153,15 @@ defmodule Draught.CLI.UI.Owl do
     ["(v", to_string(Application.spec(:draught, :vsn)), ")"]
   end
 
-  defp web(true) do
+  defp web(fetch, search) do
+    ["fetch ", permission(fetch), ", search ", permission(search)]
+  end
+
+  defp permission(true) do
     "enabled"
   end
 
-  defp web(false) do
+  defp permission(false) do
     "disabled"
   end
 end

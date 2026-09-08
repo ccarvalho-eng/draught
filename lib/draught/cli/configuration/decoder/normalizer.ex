@@ -120,6 +120,8 @@ defmodule Draught.CLI.Configuration.Decoder.Normalizer do
   defp known_key("profile"), do: :profile
   defp known_key("model"), do: :model
   defp known_key("web"), do: :web
+  defp known_key("web_search"), do: :web_search
+  defp known_key("web_search_url"), do: :web_search_url
   defp known_key("risk"), do: :risk
   defp known_key("profiles"), do: :profiles
   defp known_key("provider"), do: :provider

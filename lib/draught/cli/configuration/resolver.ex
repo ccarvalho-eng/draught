@@ -149,6 +149,8 @@ defmodule Draught.CLI.Configuration.Resolver do
       credential: credential,
       headers: profile.headers,
       web: Map.get(settings, :web, false),
+      web_search: Map.get(settings, :web_search, false),
+      web_search_url: Map.get(settings, :web_search_url),
       risk: Map.get(settings, :risk, :ask),
       origins: profile_origins
     }

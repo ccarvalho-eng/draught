@@ -22,6 +22,7 @@ defmodule Draught.CLI.Interactive.State do
     :session_id,
     :session_label,
     :web,
+    :web_search,
     :workspace,
     model_catalog: [],
     model_catalog_displayed?: false,
@@ -43,13 +44,23 @@ defmodule Draught.CLI.Interactive.State do
           session_id: String.t(),
           session_label: String.t(),
           web: boolean(),
+          web_search: boolean(),
           workspace: String.t()
         }
 
   @doc "Builds an idle session state from trusted, display-safe context."
   @spec new(map() | keyword()) :: Error.result(t())
   def new(attributes) do
-    keys = [:model, :model_catalog, :provider, :session_id, :session_label, :web, :workspace]
+    keys = [
+      :model,
+      :model_catalog,
+      :provider,
+      :session_id,
+      :session_label,
+      :web,
+      :web_search,
+      :workspace
+    ]
 
     with {:ok, normalized} <- Attributes.normalize(attributes, keys) do
       build(normalized)
@@ -321,6 +332,7 @@ defmodule Draught.CLI.Interactive.State do
   defp build_session(attributes, model, model_catalog, provider, session_id) do
     with {:ok, session_label} <- session_label(attributes, session_id),
          {:ok, web} <- required_boolean(attributes, :web),
+         {:ok, web_search} <- optional_boolean(attributes, :web_search),
          {:ok, workspace} <- Value.required_string(attributes, :workspace) do
       {:ok,
        %__MODULE__{
@@ -330,6 +342,7 @@ defmodule Draught.CLI.Interactive.State do
          session_id: session_id,
          session_label: session_label,
          web: web,
+         web_search: web_search,
          workspace: workspace
        }}
     end
@@ -339,6 +352,12 @@ defmodule Draught.CLI.Interactive.State do
     with {:ok, value} <- Attributes.fetch_required(attributes, key) do
       Value.boolean(value, [key])
     end
+  end
+
+  defp optional_boolean(attributes, key) do
+    attributes
+    |> Map.get(key, false)
+    |> Value.boolean([key])
   end
 
   defp session_label(attributes, identifier) do

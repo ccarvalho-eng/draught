@@ -15,6 +15,8 @@ defmodule Draught.CLI.Command.Options do
             session: nil,
             resume: nil,
             web: :inherit,
+            web_search: :inherit,
+            web_search_url: nil,
             output: :text,
             color: :auto,
             diagnostics: false,
@@ -29,6 +31,8 @@ defmodule Draught.CLI.Command.Options do
           session: String.t() | nil,
           resume: String.t() | nil,
           web: :inherit | :enabled | :disabled,
+          web_search: :inherit | :enabled | :disabled,
+          web_search_url: String.t() | nil,
           output: :text | :jsonl,
           color: :auto | :always | :never,
           diagnostics: boolean(),
@@ -134,14 +138,15 @@ defmodule Draught.CLI.Command.Options do
     with {:ok, provider} <- optional_value(values, :provider),
          {:ok, model} <- optional_value(values, :model),
          {:ok, base_url} <- optional_value(values, :base_url),
+         {:ok, web_search_url} <- optional_value(values, :web_search_url),
          {:ok, session} <- optional_value(values, :session),
          {:ok, resume} <- optional_value(values, :resume) do
-      {:ok, {provider, model, base_url, session, resume}}
+      {:ok, {provider, model, base_url, web_search_url, session, resume}}
     end
   end
 
   defp build(values, strings, output, color) do
-    {provider, model, base_url, session, resume} = strings
+    {provider, model, base_url, web_search_url, session, resume} = strings
 
     %__MODULE__{
       provider: provider,
@@ -150,6 +155,8 @@ defmodule Draught.CLI.Command.Options do
       session: session,
       resume: resume,
       web: boolean_setting(values, :web),
+      web_search: boolean_setting(values, :web_search),
+      web_search_url: web_search_url,
       output: output,
       color: color,
       diagnostics: Map.get(values, :diagnostics, false),

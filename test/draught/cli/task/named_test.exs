@@ -282,6 +282,7 @@ defmodule Draught.CLI.Task.NamedTest do
       credential: nil,
       headers: %{},
       web: false,
+      web_search: false,
       risk: :deny,
       origins: %{}
     }

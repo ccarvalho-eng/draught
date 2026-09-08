@@ -93,6 +93,7 @@ defmodule Draught.CLI.Task.Approval.DependenciesTest do
       base_url: "http://localhost:11434",
       model: "free-model",
       web: false,
+      web_search: false,
       risk: :ask,
       origins: %{}
     }

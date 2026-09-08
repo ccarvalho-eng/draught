@@ -14,7 +14,9 @@ defmodule Draught.CLI.Configuration.Loader do
     "DRAUGHT_MODEL" => "model",
     "DRAUGHT_PROVIDER" => "profile",
     "DRAUGHT_RISK" => "risk",
-    "DRAUGHT_WEB" => "web"
+    "DRAUGHT_WEB" => "web",
+    "DRAUGHT_WEB_SEARCH" => "web_search",
+    "DRAUGHT_WEB_SEARCH_URL" => "web_search_url"
   }
   @defaults %{
     "profile" => "ollama",
@@ -104,15 +106,15 @@ defmodule Draught.CLI.Configuration.Loader do
     end
   end
 
-  defp environment_value("web", "true") do
+  defp environment_value(key, "true") when key in ["web", "web_search"] do
     {:ok, true}
   end
 
-  defp environment_value("web", "false") do
+  defp environment_value(key, "false") when key in ["web", "web_search"] do
     {:ok, false}
   end
 
-  defp environment_value("web", _value) do
+  defp environment_value(key, _value) when key in ["web", "web_search"] do
     :error
   end
 
@@ -130,7 +132,9 @@ defmodule Draught.CLI.Configuration.Loader do
       |> put_present("profile", invocation.provider)
       |> put_present("model", invocation.model)
       |> put_present("base_url", invocation.base_url)
+      |> put_present("web_search_url", invocation.web_search_url)
       |> put_web(invocation.web)
+      |> put_boolean("web_search", invocation.web_search)
 
     Source.from_map(:flags, settings)
   end
@@ -153,6 +157,18 @@ defmodule Draught.CLI.Configuration.Loader do
 
   defp put_web(settings, :disabled) do
     Map.put(settings, "web", false)
+  end
+
+  defp put_boolean(settings, _key, :inherit) do
+    settings
+  end
+
+  defp put_boolean(settings, key, :enabled) do
+    Map.put(settings, key, true)
+  end
+
+  defp put_boolean(settings, key, :disabled) do
+    Map.put(settings, key, false)
   end
 
   defp source_result({:ok, settings}, kind) do
@@ -184,8 +200,10 @@ defmodule Draught.CLI.Configuration.Loader do
   defp environment_path("profile"), do: :profile
   defp environment_path("risk"), do: :risk
   defp environment_path("web"), do: :web
+  defp environment_path("web_search"), do: :web_search
+  defp environment_path("web_search_url"), do: :web_search_url
 
-  defp environment_message("web") do
+  defp environment_message(key) when key in ["web", "web_search"] do
     "must be true or false"
   end
 

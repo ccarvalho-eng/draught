@@ -16,7 +16,7 @@ Choose the target that matches the current system:
 Set `TARGET` to that value and download the versioned archive and checksum:
 
 ```sh
-VERSION=0.1.0-beta.1
+VERSION=0.1.0-beta.2
 TARGET=macos_arm64
 BASE_URL="https://github.com/ccarvalho-eng/draught/releases/download/v${VERSION}"
 ARCHIVE="draught-${TARGET}.tar.gz"
@@ -125,15 +125,6 @@ mix escript.build
 install -m 755 draught "$HOME/.local/bin/draught"
 ```
 
-If the escript was installed from Hex through Mix, fetch the intended package version and replace the registered command explicitly:
-
-```sh
-mix escript.install hex draught VERSION --force
-draught --version
-```
-
-`VERSION` is the exact published package version. Escript installation requires a compatible local Elixir and Erlang toolchain.
-
 ## Uninstall
 
 Run the executable's maintenance command before deleting it:
@@ -149,12 +140,6 @@ For an escript copied from a source build, remove the copied executable:
 
 ```sh
 rm "$HOME/.local/bin/draught"
-```
-
-For an escript installed from Hex through Mix, use:
-
-```sh
-mix escript.uninstall draught
 ```
 
 ## Verification boundaries

@@ -9,7 +9,7 @@ Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. R
 
 ## Motivation
 
-[Draught](https://www.merriam-webster.com/dictionary/draught), pronounced "draft", can mean a drink or a dose of medicine. The name draws on Elixir's alchemical vocabulary and suggests a measured approach to assistance: use what helps, while retaining your own judgment and understanding.
+[Draught](https://www.merriam-webster.com/dictionary/draught), pronounced "draft", can mean a drink or a dose of medicine, suggesting a measured approach to assistance. The name also echoes "draft": a starting point to examine, revise, and develop into your own solution. Assistance contributes to the work; it does not make the result final or replace your judgment.
 
 ### Access without a paid model subscription
 

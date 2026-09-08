@@ -1,0 +1,127 @@
+name: Native builds
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    name: Native ${{ matrix.target }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-24.04
+            target: linux_x86_64
+          - runner: ubuntu-24.04-arm
+            target: linux_arm64
+          - runner: macos-15-intel
+            target: macos_x86_64
+          - runner: macos-15
+            target: macos_arm64
+    env:
+      MIX_ENV: prod
+      MIX_TARGET: cli
+      BURRITO_TARGET: ${{ matrix.target }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Elixir and Erlang
+        uses: erlef/setup-beam@54075bcc5e249e4758d363f27d099f55d843f124 # v1
+        with:
+          elixir-version: "1.19.5"
+          otp-version: "28.4.1"
+          version-type: strict
+
+      - name: Set up Zig
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: "0.16.0"
+
+      - name: Install Linux build dependency
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes xz-utils
+
+      - name: Install macOS build dependency
+        if: runner.os == 'macOS'
+        run: brew list xz || brew install xz
+
+      - name: Fetch locked dependencies
+        run: mix deps.get --check-locked
+
+      - name: Build native executable
+        run: mix release draught
+
+      - name: Read package version
+        id: package
+        shell: bash
+        run: |
+          version=$(mix run --no-start --no-compile -e 'IO.write(Mix.Project.config()[:version])')
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Build escript
+        env:
+          MIX_TARGET: host
+        run: mix escript.build
+
+      - name: Smoke escript
+        timeout-minutes: 3
+        shell: bash
+        env:
+          DRAUGHT_BUILD_VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          smoke_root=$(mktemp -d)
+          env -i HOME="$smoke_root" XDG_CONFIG_HOME="$smoke_root/config" XDG_DATA_HOME="$smoke_root/data" XDG_STATE_HOME="$smoke_root/state" PATH="$PATH" \
+            sh scripts/smoke-cli.sh "$PWD/draught" "$DRAUGHT_BUILD_VERSION"
+
+      - name: Package executable and verify checksum
+        shell: bash
+        run: |
+          archive="draught-${BURRITO_TARGET}.tar.gz"
+          tar -czf "$archive" -C burrito_out "draught_${BURRITO_TARGET}"
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum "$archive" > "$archive.sha256"
+            sha256sum --check "$archive.sha256"
+          else
+            shasum -a 256 "$archive" > "$archive.sha256"
+            shasum -a 256 --check "$archive.sha256"
+          fi
+
+      - name: Smoke packaged executable without a system BEAM
+        timeout-minutes: 3
+        shell: bash
+        env:
+          DRAUGHT_BUILD_VERSION: ${{ steps.package.outputs.version }}
+        run: |
+          artifact_root=$(mktemp -d)
+          smoke_root=$(mktemp -d)
+          archive="draught-${BURRITO_TARGET}.tar.gz"
+          tar -xzf "$archive" -C "$artifact_root"
+          executable="$artifact_root/draught_${BURRITO_TARGET}"
+          env -i HOME="$smoke_root" XDG_CONFIG_HOME="$smoke_root/config" XDG_DATA_HOME="$smoke_root/data" XDG_STATE_HOME="$smoke_root/state" PATH=/usr/bin:/bin DRAUGHT_STANDALONE_SMOKE=1 \
+            sh scripts/smoke-cli.sh "$executable" "$DRAUGHT_BUILD_VERSION"
+
+      - name: Upload native build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: draught-${{ matrix.target }}
+          path: |
+            draught-${{ matrix.target }}.tar.gz
+            draught-${{ matrix.target }}.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 14

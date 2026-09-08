@@ -21,6 +21,7 @@
 
 ## Operations and security
 
+- [Native executable builds](distribution.md)
 - [Telemetry](telemetry.md)
 - [Web access](web-access.md)
 - [Workspace confinement](workspace-confinement.md)

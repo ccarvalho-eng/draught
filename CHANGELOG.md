@@ -25,3 +25,4 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - Interactive input rails now retain the active model and compact workspace beside the command hints.
+- Approval prompts now identify the validated target and reason before requesting input.

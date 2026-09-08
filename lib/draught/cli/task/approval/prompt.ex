@@ -127,6 +127,10 @@ defmodule Draught.CLI.Task.Approval.Prompt do
     [
       "\nApproval required (25 seconds)\nTool: ",
       request.tool,
+      "\nTarget: ",
+      request.target,
+      "\nReason: ",
+      request.arguments_summary,
       "\nRisk: ",
       Atom.to_string(request.risk),
       "\n",

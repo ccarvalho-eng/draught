@@ -6,7 +6,7 @@ defmodule Draught.CLI.UITest do
   alias Draught.CLI.UI
 
   test "separates the input area without speaker names or cursor controls" do
-    assert render_input(:open, 12) == "\n╭─ qwen3 ·…╮\n│ ›  "
+    assert render_input(:open, 12) == "\n╭─ qwen3 ·…╮\n│ › "
     assert render_input(:close, 12) == "╰──────────╯\n"
 
     tool =
@@ -30,7 +30,7 @@ defmodule Draught.CLI.UITest do
     ["", top, prompt] = String.split(opening, "\n")
     assert String.length(top) == 500
     assert String.ends_with?(top, "╮")
-    assert prompt == "│ ›  "
+    assert prompt == "│ › "
 
     assert opening
            |> String.split("\n", trim: true)
@@ -70,7 +70,7 @@ defmodule Draught.CLI.UITest do
       |> IO.iodata_to_binary()
 
     assert output =~ "\e["
-    assert String.ends_with?(output, "\e[0m  ")
+    assert String.ends_with?(output, "\e[0m ")
     assert Regex.replace(~r/\e\[[0-9;]*m/, output, "") == render_input(:open, 40)
   end
 

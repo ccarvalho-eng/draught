@@ -26,7 +26,16 @@ defmodule Draught.CLI.Task.Stream.Indicator do
   end
 
   @doc "Returns the bounded receive timeout until the next indicator frame."
-  @spec wait_timeout(State.t(), non_neg_integer(), integer()) :: non_neg_integer()
+  @spec wait_timeout(State.t(), timeout(), integer()) :: timeout()
+  def wait_timeout(%State{enabled: true, next_at: next_at}, :infinity, now)
+      when is_integer(next_at) and is_integer(now) do
+    max(next_at - now, 0)
+  end
+
+  def wait_timeout(%State{}, :infinity, _now) do
+    :infinity
+  end
+
   def wait_timeout(%State{enabled: true, next_at: next_at}, maximum, now)
       when is_integer(next_at) and is_integer(maximum) and maximum >= 0 and is_integer(now) do
     min(max(next_at - now, 0), maximum)

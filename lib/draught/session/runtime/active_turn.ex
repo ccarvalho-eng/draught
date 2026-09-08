@@ -18,7 +18,7 @@ defmodule Draught.Session.Runtime.ActiveTurn do
           subscriber: pid(),
           task: Task.t(),
           telemetry_span: Draught.Telemetry.Span.handle(),
-          timer: reference(),
+          timer: reference() | nil,
           token: reference()
         }
 
@@ -28,7 +28,7 @@ defmodule Draught.Session.Runtime.ActiveTurn do
           pid(),
           Task.t(),
           Draught.Telemetry.Span.handle(),
-          reference(),
+          reference() | nil,
           reference(),
           delivery()
         ) :: t()

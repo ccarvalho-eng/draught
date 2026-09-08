@@ -19,7 +19,7 @@ defmodule Draught.Session.Settings do
           journal: journal(),
           lifecycle: Lifecycle.t(),
           runner: Configuration.t(),
-          turn_timeout_ms: pos_integer()
+          turn_timeout_ms: pos_integer() | :infinity
         }
 
   @doc "Builds session settings and reserves event-sink ownership for the session."

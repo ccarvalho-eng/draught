@@ -2,21 +2,39 @@ defmodule Draught.CLI.Task.OneShot.Approval do
   @moduledoc """
   Coordinates terminal approval effects without blocking the session observer.
 
-  The observer retains ownership of session deadlines and acknowledgements;
-  this boundary only pauses presentation and advances the current prompt.
+  The observer retains ownership of acknowledgements; this boundary only pauses
+  presentation and advances the current prompt.
   """
 
   alias Draught.CLI.Task.Approval.Prompt
   alias Draught.CLI.Task.Stream
+  alias Draught.Error.Normalized
 
-  @doc "Reports whether the current approval has reached its deadline."
-  @spec expired?(Stream.t()) :: boolean()
-  def expired?(stream) do
-    Prompt.wait_timeout(stream.approval, 1) == 0
+  @doc "Reports whether terminal input is still owned by an approval prompt."
+  @spec pending?(Stream.t()) :: boolean()
+  def pending?(%Stream{approval: %Prompt{pending: %Prompt.Pending{}}}) do
+    true
+  end
+
+  def pending?(%Stream{}) do
+    false
+  end
+
+  @doc "Returns whether a terminal outcome must wait for its outstanding input read."
+  @spec retain_pending_input?(term(), Stream.t()) :: boolean()
+  def retain_pending_input?(
+        {:error, %Normalized{kind: :cancellation}},
+        _stream
+      ) do
+    false
+  end
+
+  def retain_pending_input?(_outcome, stream) do
+    pending?(stream)
   end
 
   @doc "Pauses activity before displaying an operation and requesting input."
-  @spec request(Stream.t(), {pid(), reference(), integer(), Draught.Tool.Approval.Request.t()}) ::
+  @spec request(Stream.t(), {pid(), reference(), Draught.Tool.Approval.Request.t()}) ::
           {:ok, Stream.t()} | {:error, Stream.t()}
   def request(stream, operation) do
     case Stream.pause(stream) do
@@ -33,6 +51,12 @@ defmodule Draught.CLI.Task.OneShot.Approval do
       {:ok, prompt} -> {:ok, Stream.start(%{stream | approval: prompt})}
       {:error, prompt} -> {:error, %{stream | approval: prompt}}
     end
+  end
+
+  @doc "Retains terminal input after observing that its requester stopped."
+  @spec requester_stopped(Stream.t()) :: Stream.t()
+  def requester_stopped(%Stream{approval: %Prompt{} = prompt} = stream) do
+    %{stream | approval: Prompt.requester_stopped(prompt)}
   end
 
   @doc "Revokes unread approval input before returning a terminal task result."

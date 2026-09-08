@@ -24,6 +24,17 @@ defmodule Draught.CLI.Task.Named.Resume.Validation do
     |> closed_history()
   end
 
+  def resumable(%Replay{
+        terminal: {:completed, _turn, {:error, _error}},
+        messages: messages
+      }) do
+    recoverable_history(messages)
+  end
+
+  def resumable(%Replay{terminal: {:interrupted, _turn}, messages: messages}) do
+    recoverable_history(messages)
+  end
+
   def resumable(%Replay{}) do
     {:error, :session, Failure.not_resumable()}
   end
@@ -43,6 +54,16 @@ defmodule Draught.CLI.Task.Named.Resume.Validation do
 
   defp closed_history(_messages) do
     {:error, :session, Failure.not_resumable()}
+  end
+
+  defp recoverable_history([]) do
+    :ok
+  end
+
+  defp recoverable_history(messages) do
+    messages
+    |> Enum.reverse()
+    |> closed_history()
   end
 
   defp verify_replay(%Replay{} = replay, %Preparation{} = preparation) do

@@ -83,7 +83,9 @@ In acknowledged streaming mode, provider deltas and tool-call events are deliver
 
 Cancellation terminates the active runner task and emits a normalized `session_cancelled` outcome. The unfinished runner result is discarded. Tool or provider effects completed before cancellation remain committed; the session does not attempt rollback. Queued mutations that have not started are abandoned by the mutation queue.
 
-A whole-turn timeout applies in addition to provider and tool limits. It terminates the same task hierarchy and emits a normalized `session_timeout` outcome. The default is 600,000 ms and the accepted maximum is 3,600,000 ms.
+Every failed or interrupted turn leaves the session process available. Journal replay retains the terminal outcome and restores the conversation to the boundary before that turn, allowing a later prompt to proceed without inheriting a partial provider or tool exchange. This conversation rollback does not undo completed external effects.
+
+A whole-turn timeout applies in addition to provider and tool limits. It terminates the same task hierarchy and emits a normalized `session_timeout` outcome. The default is 600,000 ms, the accepted finite maximum is 3,600,000 ms, and `:infinity` disables this redundant timer. The interactive CLI uses `:infinity` because approval is human-paced; provider, tool, command, output, and iteration limits still bound active execution.
 
 Synchronous lifecycle calls have a separate client timeout. A `session_call_timeout` result means completion is unknown: the session may have accepted the operation and may still complete it. Callers must not retry a potentially mutating operation as though the first call were rejected.
 

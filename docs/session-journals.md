@@ -62,7 +62,7 @@ The replay value contains:
 - the latest turn identifier and terminal outcome;
 - the next journal sequence number.
 
-If the last valid record belongs to an unfinished turn, standalone replay reports it as interrupted. Starting that session appends a normalized `session_interrupted` terminal record before another turn can begin. This keeps later replay deterministic and prevents overlapping active histories.
+If the last valid record belongs to an unfinished turn, standalone replay reports it as interrupted. Starting that session appends a normalized `session_interrupted` terminal record before another turn can begin. Failed and interrupted turns keep their terminal record while replay returns the conversation from immediately before that turn. This keeps later replay deterministic, prevents overlapping active histories, and avoids sending partial tool-call exchanges back to the provider.
 
 Malformed records, incomplete final writes, noncontiguous sequences, invalid state transitions, and unsupported newer versions return a normalized error. Draught does not truncate, repair, replace, or append to corrupt or newer-schema journals automatically.
 

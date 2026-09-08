@@ -76,7 +76,7 @@ The block identifies the tool, target, bounded reason, and risk before showing t
 
 Type `y` or `yes` to approve that operation once. Enter, `n`, and other input deny it. Missing, malformed, deeply nested, or oversized presentations are denied without requesting input; values are never truncated. There is no session-wide grant, and a resumed session never reuses an earlier decision.
 
-Approval has a 25-second deadline within the existing 30-second tool budget. The activity indicator pauses while input is pending. End of input, input failure, requester termination, and expiry fail closed; the turn stops and the CLI must be restarted. Cancellation remains responsive while waiting. Already completed effects are not rolled back.
+Approval has no wall-clock deadline. The activity indicator and tool execution budget pause while input is pending, so the user may inspect the operation before deciding. Provider calls, actual tool execution, command processes, output, and iteration counts remain bounded. End of input, input failure, requester termination, and cancellation fail closed. Already completed effects are not rolled back.
 
 Erlang cannot cancel an outstanding terminal line read. Draught therefore invalidates that input device when a pending read is abandoned, discards any late reply, and refuses further reads from that device in the same VM. A fresh CLI process is required after this failure. Applications that restart the input coordinator must likewise restart the VM before using local interactive input again.
 
@@ -113,7 +113,7 @@ draught --resume review "address the remaining test failure"
 
 Named sessions are stored under the user's state directory, outside the workspace. Each journal preserves the retained canonical conversation required by the provider, including the effective system instruction loaded for the first turn. Streaming deltas are transient and are not journaled; the validated provider result remains authoritative for replay. Resume reuses the recorded system instruction without re-reading `AGENTS.md`. A session is bound to its profile, provider connection, provider adapter, exact negotiated capability set, exact model, web permissions, web adapters, and configured search endpoint when it is created. Resume fails before provider execution if the current selection conflicts with that binding. Omitting `--model` during resume reuses the recorded model. Bindings created before capability identity was introduced are upgraded atomically after their first verified resume.
 
-Only a session whose durable history ends at a successful assistant response can resume automatically. Empty, interrupted, failed, malformed, oversized, unsafe, or concurrently leased session state fails closed. A second create with the same identifier is rejected. Bare `draught --resume ID` enters the prompt loop on a terminal and requires a task argument when standard output is redirected or JSONL is selected.
+A session resumes from its last complete conversation boundary. Successful turns retain their assistant response. Failed or interrupted turns retain their terminal outcome for audit but discard that turn's partial messages from model replay; completed tool effects remain committed and should be inspected before retrying. Empty, malformed, oversized, unsafe, or concurrently leased session state fails closed. A second create with the same identifier is rejected. Bare `draught --resume ID` enters the prompt loop on a terminal and requires a task argument when standard output is redirected or JSONL is selected.
 
 ## Interactive sessions
 
@@ -141,7 +141,7 @@ Session names are display metadata and need not be unique. An ambiguous name mus
 
 The parser reserves direct-command input beginning with `!`, file lookup input beginning with `@`, and the remaining documented slash command names. Those effects return an explicit unavailable result until their policy boundaries are connected.
 
-The prompt loop is text- and terminal-only. It restores its terminal boundary after exit, end of input, or an input failure and prints `Session ID: ID` on ordinary exit. Active-turn keyboard cancellation, fuzzy command and model completion, provider selection, and queued input remain pending.
+The prompt loop is text- and terminal-only. A bounded provider, runner, or tool failure ends only the active turn; the shell reports the failure and accepts another prompt from the last complete durable history. It restores its terminal boundary after exit, end of input, or an input failure and prints `Session ID: ID` on ordinary exit. Active-turn keyboard cancellation, fuzzy command and model completion, provider selection, and queued input remain pending.
 
 ## Doctor
 

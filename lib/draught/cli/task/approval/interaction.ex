@@ -41,7 +41,7 @@ defmodule Draught.CLI.Task.Approval.Interaction do
 
   defp install(true, dependencies, styled?) do
     scope = make_ref()
-    policy = {Interactive, %{owner: self(), scope: scope, timeout_ms: 25_000}}
+    policy = {Interactive, %{owner: self(), scope: scope}}
     task = %{dependencies.task | approval: policy}
     {%{dependencies | task: task}, Prompt.new(scope, dependencies.terminal, styled?)}
   end

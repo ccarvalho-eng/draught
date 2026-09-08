@@ -24,6 +24,7 @@ defmodule Draught.Session.Journal.Replay do
     :next_sequence,
     :provider,
     :terminal,
+    :turn_base_messages,
     :updated_at,
     :usage
   ]
@@ -43,6 +44,7 @@ defmodule Draught.Session.Journal.Replay do
           next_sequence: pos_integer(),
           provider: String.t() | nil,
           terminal: terminal(),
+          turn_base_messages: [Draught.Conversation.Message.t()] | nil,
           updated_at: DateTime.t() | nil,
           usage: Draught.Provider.Usage.t() | nil
         }
@@ -59,6 +61,7 @@ defmodule Draught.Session.Journal.Replay do
       next_sequence: 1,
       provider: nil,
       terminal: :empty,
+      turn_base_messages: nil,
       updated_at: nil,
       usage: nil
     }

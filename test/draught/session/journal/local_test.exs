@@ -2,6 +2,7 @@ defmodule Draught.Session.Journal.LocalTest do
   use ExUnit.Case, async: true
 
   alias Draught.Conversation
+  alias Draught.Error.Normalized
   alias Draught.Provider.Request
   alias Draught.Provider.Response
   alias Draught.Provider.Usage
@@ -114,6 +115,54 @@ defmodule Draught.Session.Journal.LocalTest do
     assert first_call.arguments == %{"path" => "kept-argument"}
 
     assert Enum.at(replayed.messages, 2).result.content == "kept-output"
+  end
+
+  test "failed turns retain their outcome without replaying partial conversation", %{
+    tmp_dir: workspace
+  } do
+    configuration = configuration(workspace, "failed-turn")
+    first_request = request("first attempt")
+    tool_call = call("call-1", %{"path" => "sample.txt"})
+    tool_response = response_with_tool(tool_call)
+    tool_result = result("partial output")
+
+    {:ok, error} =
+      Normalized.new(
+        :policy,
+        "iteration_limit",
+        "Agent run reached the configured iteration limit",
+        retryable: false
+      )
+
+    {:ok, handle, _replay} = Local.open(configuration)
+
+    failed_handle =
+      append_all(handle, [
+        {:turn_started, 1, "provider", first_request},
+        {:provider_result, 1, 1, {:ok, tool_response}},
+        {:tool_result, 1, 1, tool_result},
+        {:turn_terminal, 1, {:error, error}}
+      ])
+
+    assert {:ok, failed_replay} = Local.replay(configuration)
+    assert failed_replay.messages == []
+    assert {:completed, 1, {:error, replayed_error}} = failed_replay.terminal
+    assert replayed_error.code == "iteration_limit"
+
+    second_request = request("try again")
+    final_response = response("done", nil)
+
+    _completed_handle =
+      append_all(failed_handle, [
+        {:turn_started, 2, "provider", second_request},
+        {:provider_result, 2, 1, {:ok, final_response}},
+        {:turn_terminal, 2, {:ok, final_response}}
+      ])
+
+    assert {:ok, resumed_replay} = Local.replay(configuration)
+
+    assert resumed_replay.messages ==
+             Enum.concat(second_request.messages, [final_response.message])
   end
 
   test "retains untrusted provenance when tool output is omitted", %{tmp_dir: workspace} do

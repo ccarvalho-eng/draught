@@ -191,6 +191,7 @@ The catalog boundary preserves these invariants:
 - Rename, archive, restore, and resume revalidate state while holding the same per-session lease.
 - Atomic record updates synchronize both file content and the containing directory before reporting success; a failed directory sync has an explicit unknown-publication outcome.
 - Selecting a session applies its binding to the unchanged base CLI configuration; bindings never leak into later selections.
+- Failed and interrupted turns retain their terminal outcome but restore replay messages to the preceding complete boundary; completed external effects are not rolled back.
 
 The CLI streaming boundary preserves these invariants:
 
@@ -204,7 +205,7 @@ The CLI streaming boundary preserves these invariants:
 
 ### Terminal approval ownership
 
-Approval is an out-of-band interface interaction, not a provider event or durable conversation message. The tool's bounded worker owns the proposed operation; the CLI observer owns the decision prompt while continuing to receive session events and deadlines. The input coordinator owns the outstanding terminal read independently of either worker.
+Approval is an out-of-band interface interaction, not a provider event or durable conversation message. The tool worker owns the proposed operation; the CLI observer owns the decision prompt while continuing to receive session events. The input coordinator owns the outstanding terminal read independently of either worker. Human decision time is excluded from the tool execution budget, while execution before and after the decision remains bounded.
 
 ```mermaid
 sequenceDiagram
@@ -212,24 +213,26 @@ sequenceDiagram
   participant CLI as Session observer
   participant Input as Input coordinator
   participant User as Terminal
-  Tool->>CLI: Scoped request, operation reference, deadline, preview
+  Tool->>Tool: Suspend execution-time budget
+  Tool->>CLI: Scoped request, operation reference, preview
   CLI->>User: Pause indicator and display escaped operation
   CLI->>Input: Request one line asynchronously
   Input->>User: Read one line
-  alt Timely answer and live requester
+  alt Answer and live requester
     User-->>Input: Answer
     Input-->>CLI: Matching input reference
     CLI-->>Tool: Allow once or deny
-    Tool->>Tool: Recheck deadline before accepting decision
-  else Expiry, cancellation, or owner death
-    CLI->>Input: Invalidate pending read
-    CLI-->>Tool: Deny
-    Input->>Input: Refuse device reuse and discard late replies
-    CLI->>CLI: Stop turn and return failure
+    Tool->>Tool: Resume execution-time budget
+  else Requester stops before an answer
+    Tool-->>CLI: Terminal failure
+    CLI->>Input: Retain the outstanding read
+    User-->>Input: Answer or end input
+    Input-->>CLI: Matching input reference
+    CLI->>CLI: Consume as denial and return to chat
   end
 ```
 
-Risk admission precedes this interaction. Fresh invocation and input references prevent stale messages from resolving another operation. The coordinator monitors read owners and devices; losing a read owner invalidates the device, while device termination releases retained state. Because the Erlang I/O protocol has no read cancellation, coordinator restart disables local interactive input for the rest of the VM. Neither approval answers nor sensitive previews are persisted, and explicit application-supplied policies retain precedence.
+Risk admission precedes this interaction. Fresh invocation and input references prevent stale messages from resolving another operation. An approval has no wall-clock deadline: authority remains scoped to the live requester and ends if that requester or its CLI owner stops. The interactive CLI disables its redundant whole-turn timer while preserving provider, tool-execution, command, output, and iteration bounds. The coordinator monitors read owners and devices; abandoning a read after cancellation or I/O failure invalidates the device, while device termination releases retained state. Because the Erlang I/O protocol has no read cancellation, coordinator restart disables local interactive input for the rest of the VM. Neither approval answers nor sensitive previews are persisted, and explicit application-supplied policies retain precedence.
 
 ### Task instruction boundary
 

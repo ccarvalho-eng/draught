@@ -13,6 +13,51 @@ defmodule Draught.Execution.BoundedTaskTest do
            ) == {:ok, :completed}
   end
 
+  test "excludes an explicitly suspended interval from the deadline" do
+    test_process = self()
+
+    result =
+      BoundedTask.run(
+        fn ->
+          BoundedTask.without_timeout(fn ->
+            send(test_process, :approval_started)
+            Process.sleep(25)
+          end)
+
+          {:ok, :completed}
+        end,
+        10,
+        Runtime.provider_timeout(),
+        Runtime.provider_crashed()
+      )
+
+    assert_receive :approval_started
+    assert result == {:ok, :completed}
+  end
+
+  test "resumes charging the remaining budget after suspension" do
+    result =
+      BoundedTask.run(
+        fn ->
+          Process.send_after(self(), :decision, 25)
+
+          BoundedTask.without_timeout(fn ->
+            receive do
+              :decision -> :ok
+            end
+          end)
+
+          Process.sleep(25)
+          {:ok, :completed}
+        end,
+        10,
+        Runtime.provider_timeout(),
+        Runtime.provider_crashed()
+      )
+
+    assert {:error, %{code: "provider_timeout"}} = result
+  end
+
   test "terminates the effect task when its owner exits" do
     test_process = self()
 

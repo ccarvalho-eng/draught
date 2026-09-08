@@ -59,6 +59,10 @@ The included fake is pure and route-based. It provides deterministic offline tes
 
 Web tools are absent from the default registry. Write, execute, and network operations remain subject to the configured risk and approval policies. See the [tool execution guide](docs/tools.md) for schemas, limits, and execution boundaries.
 
+Workspace file tools are implemented in Elixir and require no external utilities. `run_command` uses executables available through its configured path. Draught does not install or bundle ripgrep (`rg`), `fzf`, or `pgcli`.
+
+Terminal rendering uses Owl, provider HTTP requests use Req, and guarded web fetching uses Mint. These libraries are installed by Mix with the project dependencies.
+
 ## Security
 
 Draught treats model output and external content as untrusted. Provider responses do not grant tool permissions; every action remains subject to typed argument validation, capability checks, risk policy, budgets, timeouts, workspace rules, and user approval.

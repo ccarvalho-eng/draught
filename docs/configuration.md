@@ -22,6 +22,8 @@ The project configuration path is `.draught/config.json` in the current working 
 
 Configuration files must be regular files no larger than 65,536 bytes. Symbolic links and other non-regular file types are rejected.
 
+Selecting a model with `/model` in an interactive shell updates the top-level `model` in the user configuration. Draught validates the complete existing file, preserves its other settings, and publishes the replacement atomically with owner-only permissions. A write rejected before publication leaves both the file and shell selection unchanged. If publication succeeds but durability cannot be confirmed, Draught reports the uncertain outcome and leaves the shell selection unchanged; restart before relying on that default. Command-line flags, environment variables, and project configuration still take precedence on later invocations.
+
 ## AGENTS.md guidance
 
 Fresh tasks may include coding guidance from two optional files, in this order:

@@ -122,13 +122,21 @@ defmodule Draught.CLI.UI do
   @doc "Renders a completed interactive model selection."
   @spec model_selected(String.t()) :: iodata()
   def model_selected(selected_model) do
-    ["Selected model ", safe(selected_model), ".\n"]
+    ["Selected model ", safe(selected_model), " and saved it as the user default.\n"]
   end
 
   @doc "Renders a bounded model command failure and safe next action."
   @spec model_error(term()) :: iodata()
   def model_error(%Normalized{} = error) do
     ["Model command failed (", safe(error.code), "): ", safe(error.message), hint(error.hint)]
+  end
+
+  def model_error(:preference_not_saved) do
+    "Model selection was not changed because the user configuration could not be updated.\n"
+  end
+
+  def model_error(:preference_outcome_unknown) do
+    "The user configuration update could not be confirmed. Restart Draught before relying on the selected default.\n"
   end
 
   def model_error(:model_required) do

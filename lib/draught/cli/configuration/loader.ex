@@ -51,7 +51,12 @@ defmodule Draught.CLI.Configuration.Loader do
   defp sources(invocation, cwd, environment, system, system_configuration) do
     with {:ok, defaults} <- Source.from_map(:defaults, @defaults),
          {:ok, user} <-
-           optional_source(:user, user_path(environment), system, system_configuration),
+           optional_source(
+             :user,
+             Draught.CLI.Configuration.User.Path.configuration(environment),
+             system,
+             system_configuration
+           ),
          {:ok, project} <-
            optional_source(:project, project_path(cwd), system, system_configuration),
          {:ok, environment_source} <- environment_source(environment),
@@ -177,18 +182,6 @@ defmodule Draught.CLI.Configuration.Loader do
 
   defp source_result({:error, %Error{}} = result, _kind) do
     result
-  end
-
-  defp user_path(%{"XDG_CONFIG_HOME" => root}) when is_binary(root) and root != "" do
-    Path.join([root, "draught", "config.json"])
-  end
-
-  defp user_path(%{"HOME" => home}) when is_binary(home) and home != "" do
-    Path.join([home, ".config", "draught", "config.json"])
-  end
-
-  defp user_path(_environment) do
-    nil
   end
 
   defp project_path(cwd) do

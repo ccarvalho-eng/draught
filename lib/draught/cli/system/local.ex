@@ -5,6 +5,8 @@ defmodule Draught.CLI.System.Local do
 
   @behaviour Draught.CLI.System.Adapter
 
+  alias Draught.CLI.System.Local.AtomicFile
+
   @impl Draught.CLI.System.Adapter
   def cwd(_configuration) do
     case File.cwd() do
@@ -37,6 +39,12 @@ defmodule Draught.CLI.System.Local do
       {:error, _reason} ->
         {:error, :io}
     end
+  end
+
+  @impl Draught.CLI.System.Adapter
+  def write_file(path, content, _configuration)
+      when is_binary(path) and is_binary(content) do
+    AtomicFile.write(path, content)
   end
 
   @impl Draught.CLI.System.Adapter

@@ -130,7 +130,7 @@ Startup resolves the same configuration as a one-shot task, inspects the compati
 /model 2
 ```
 
-`/model` lists compatible models in provider order. Its optional reference is an exact name or one-based list position. The selection is fixed after the first successful turn; start `/new` before changing models. Ordinary text starts the first durable named turn and subsequent successful turns resume that session. Entering `/` displays the command index. End of input and `/exit` restore the terminal and print `Session ID: ID`.
+`/model` lists compatible models in provider order. Its optional reference is an exact name or one-based list position. The selected model is saved in the user configuration and becomes the default for later launches and fresh sessions opened with `/new`. The selection is fixed after a session establishes durable state; start `/new` before changing models. Ordinary text starts the first durable named turn and subsequent turns resume that session. Entering `/` displays the command index. End of input and `/exit` restore the terminal and print `Session ID: ID`.
 
 Manage persistent sessions without leaving the shell:
 

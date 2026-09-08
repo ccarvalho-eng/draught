@@ -18,6 +18,33 @@ defmodule Draught.CLI.System.LocalTest do
   end
 
   @tag :tmp_dir
+  test "atomically creates and replaces owner-only regular files", %{tmp_dir: directory} do
+    path = Path.join([directory, "draught", "config.json"])
+    parent = Path.dirname(path)
+
+    assert Local.write_file(path, "first", nil) == :ok
+    assert File.read!(path) == "first"
+    assert file_mode(path) == 0o600
+    assert file_mode(parent) == 0o700
+
+    assert Local.write_file(path, "second", nil) == :ok
+    assert File.read!(path) == "second"
+    temporary_pattern = Path.join(parent, ".config-*.tmp")
+    assert Path.wildcard(temporary_pattern) == []
+  end
+
+  @tag :tmp_dir
+  test "rejects unsafe write destinations without changing their targets", %{tmp_dir: directory} do
+    target = Path.join(directory, "target.json")
+    symlink = Path.join(directory, "config.json")
+    File.write!(target, "unchanged")
+    File.ln_s!(target, symlink)
+
+    assert Local.write_file(symlink, "replacement", nil) == {:error, :unsafe_file}
+    assert File.read!(target) == "unchanged"
+  end
+
+  @tag :tmp_dir
   test "checks workspace accessibility without mutation", %{tmp_dir: directory} do
     file = Path.join(directory, "file")
     File.write!(file, "")
@@ -36,5 +63,12 @@ defmodule Draught.CLI.System.LocalTest do
 
     assert match?({:ok, columns} when columns > 0, Local.columns(nil)) or
              Local.columns(nil) == {:error, :unavailable}
+  end
+
+  defp file_mode(path) do
+    path
+    |> File.stat!()
+    |> Map.fetch!(:mode)
+    |> Bitwise.band(0o777)
   end
 end

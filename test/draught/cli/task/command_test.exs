@@ -34,6 +34,11 @@ defmodule Draught.CLI.Task.CommandTest do
     end
 
     @impl Draught.CLI.System.Adapter
+    def write_file(_path, _content, _configuration) do
+      :ok
+    end
+
+    @impl Draught.CLI.System.Adapter
     def workspace(_path, _configuration) do
       :ok
     end

@@ -188,6 +188,14 @@ defmodule Draught.CLI.Session.Binding do
     {:ok, %{configuration | model: binding.model}}
   end
 
+  defp bind_model(
+         true,
+         binding,
+         %Configuration{origins: %{model: :user}} = configuration
+       ) do
+    {:ok, %{configuration | model: binding.model}}
+  end
+
   defp bind_model(true, binding, %Configuration{model: model} = configuration) do
     bind_model_result(model == binding.model, configuration)
   end

@@ -81,6 +81,7 @@ defmodule Draught.CLI.Dependencies do
       cwd: 1,
       environment: 1,
       read_file: 3,
+      write_file: 3,
       workspace: 2,
       write: 3,
       tty?: 2,

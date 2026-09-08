@@ -169,16 +169,16 @@ defmodule Draught.CLI.Interactive.Controller do
   end
 
   defp handle_model_result(
-         {:ok, next_state, view},
+         {:ok, next_state, next_configuration, view},
          _state,
-         configuration,
+         _configuration,
          invocation,
          dependencies
        ) do
     continue(
       {:model_view, view},
       next_state,
-      configuration,
+      next_configuration,
       invocation,
       dependencies
     )
@@ -231,6 +231,39 @@ defmodule Draught.CLI.Interactive.Controller do
       invocation,
       dependencies,
       :stderr
+    )
+  end
+
+  defp handle_session_result(
+         {:error, :provider, reason},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    continue(
+      {:model_error, reason},
+      state,
+      configuration,
+      invocation,
+      dependencies,
+      :stderr
+    )
+  end
+
+  defp handle_session_result(
+         {:error, _category, reason},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    handle_session_result(
+      {:error, reason},
+      state,
+      configuration,
+      invocation,
+      dependencies
     )
   end
 

@@ -96,7 +96,7 @@ defmodule Draught.CLI.UITest do
     assert output =~ "provider:  ollama"
     assert output =~ "directory: /workspace"
     assert output =~ "session:   session-01"
-    assert output =~ "web:       disabled"
+    assert output =~ "web:       fetch disabled, search disabled"
     refute output =~ <<27>>
 
     assert output

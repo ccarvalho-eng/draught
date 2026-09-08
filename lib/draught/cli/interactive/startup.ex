@@ -169,7 +169,8 @@ defmodule Draught.CLI.Interactive.Startup do
       model: model,
       model_catalog: model_catalog,
       workspace: workspace,
-      web: configuration.web
+      web: configuration.web,
+      web_search: configuration.web_search
     ]
 
     case State.new(attributes) do

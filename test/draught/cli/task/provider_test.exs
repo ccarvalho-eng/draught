@@ -89,6 +89,7 @@ defmodule Draught.CLI.Task.ProviderTest do
       credential: Keyword.get(options, :credential),
       headers: %{},
       web: false,
+      web_search: false,
       risk: :ask,
       origins: %{}
     }

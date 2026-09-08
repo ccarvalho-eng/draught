@@ -54,6 +54,7 @@ The built-in profile is equivalent to:
 {
   "profile": "ollama",
   "web": false,
+  "web_search": false,
   "risk": "ask",
   "profiles": {
     "ollama": {
@@ -64,7 +65,7 @@ The built-in profile is equivalent to:
 }
 ```
 
-Recognized top-level keys are `profile`, `model`, `base_url`, `web`, `risk`, and `profiles`. Provider types are `ollama` and `openai-compatible`. Risk values are `deny`, `ask`, and `allow`.
+Recognized top-level keys are `profile`, `model`, `base_url`, `web`, `web_search`, `web_search_url`, `risk`, and `profiles`. Provider types are `ollama` and `openai-compatible`. Risk values are `deny`, `ask`, and `allow`.
 
 ## Task risk modes
 
@@ -76,11 +77,11 @@ Risk mode controls which registered tool risk classes may execute and how effect
 | `ask` | Read operations are allowed. Effectful operations require a one-time decision on a text terminal; redirected or JSONL commands return `approval_required` instead. |
 | `allow` | All risk classes are admitted and available effectful tools may execute without an approval prompt. |
 
-The default is `ask`. When web access is enabled, `allow` permits the guarded fetch capability without a terminal prompt; `ask` requires approval for each request. An approved command still retains the ambient network access of the Draught operating-system process. Use `allow` only when the selected workspace and task may perform writes, run commands, or fetch pages without confirmation. Tool effects completed before a later error, timeout, cancellation, or process interruption remain committed. Anonymous tasks do not roll back those effects and do not retain a task journal. See [Workspace confinement](workspace-confinement.md) for the operating-system boundary.
+The default is `ask`. When page fetching or search is enabled, `allow` permits the guarded capability without a terminal prompt; `ask` requires approval for each request. An approved command still retains the ambient network access of the Draught operating-system process. Use `allow` only when the selected workspace and task may perform writes, run commands, or access the web without confirmation. Tool effects completed before a later error, timeout, cancellation, or process interruption remain committed. Anonymous tasks do not roll back those effects and do not retain a task journal. See [Workspace confinement](workspace-confinement.md) for the operating-system boundary.
 
 Risk mode can be set in user configuration or with `DRAUGHT_RISK`. Project configuration may only narrow it to `deny`; there is no command-line risk flag in this slice.
 
-An effective `web` value of `true` registers the guarded `web_fetch` tool. Search remains a separate library adapter boundary and is not registered by the CLI. `web: false` remains the default.
+An effective `web` value of `true` registers the guarded `web_fetch` tool. An effective `web_search` value of `true` registers `web_search` when `web_search_url` identifies a valid SearXNG-compatible JSON endpoint. Both permissions default to `false` and are independent.
 
 ## User profiles
 
@@ -123,7 +124,9 @@ The CLI recognizes these configuration variables:
 | `DRAUGHT_PROVIDER` | Selects a profile name. It does not define a provider type or a profile. |
 | `DRAUGHT_MODEL` | Selects a model. |
 | `DRAUGHT_BASE_URL` | Overrides the endpoint for a profile that is not credential-bound. |
-| `DRAUGHT_WEB` | Sets web access and must be exactly `true` or `false`. |
+| `DRAUGHT_WEB` | Sets guarded page fetching and must be exactly `true` or `false`. |
+| `DRAUGHT_WEB_SEARCH` | Sets guarded search and must be exactly `true` or `false`. |
+| `DRAUGHT_WEB_SEARCH_URL` | Sets the explicit SearXNG-compatible JSON search endpoint. |
 | `DRAUGHT_RISK` | Sets the risk mode to `deny`, `ask`, or `allow`. |
 | `XDG_CONFIG_HOME` | Locates the user configuration directory when non-empty. |
 | `HOME` | Provides the fallback user configuration directory. |
@@ -135,8 +138,8 @@ Credential variables do not use a fixed Draught name. Each user profile supplies
 The source restrictions are part of configuration validation:
 
 - Built-in defaults and user configuration may define profiles.
-- Project configuration may select a model, disable web access with `"web": false`, and reduce risk authority with `"risk": "deny"`.
-- Project configuration cannot select or define profiles, define endpoints, enable web access, or set risk to `ask` or `allow`.
+- Project configuration may select a model, disable page fetching with `"web": false`, disable search with `"web_search": false`, and reduce risk authority with `"risk": "deny"`.
+- Project configuration cannot select or define profiles, define endpoints, enable page fetching or search, or set risk to `ask` or `allow`.
 - Environment variables and command-line flags may select values but cannot define profiles.
 - A top-level endpoint override is accepted only from the environment or command-line flags and only for a profile that is not credential-bound.
 
@@ -151,6 +154,8 @@ The command-line configuration flags are:
 --model MODEL
 --base-url URL
 --web | --no-web
+--web-search | --no-web-search
+--web-search-url URL
 ```
 
 `--provider` selects a profile. Define that profile in the user configuration before selecting it. See [CLI](cli.md) for the complete option set and [Getting started](getting-started.md) for a local Ollama example.

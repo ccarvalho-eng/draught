@@ -48,11 +48,19 @@ defmodule Draught.CLI.Task.Setup do
     preparation_options =
       options
       |> Keyword.put(:risk, configuration.risk)
-      |> Keyword.put(:web, configuration.web)
+      |> Keyword.put(:web, web(configuration))
 
     case Preparation.new(prompt, selection, workspace, preparation_options) do
       {:ok, preparation} -> {:ok, preparation}
       {:error, error} -> {:error, :execution, error}
     end
+  end
+
+  defp web(configuration) do
+    %{
+      fetch: configuration.web,
+      search: configuration.web_search,
+      search_url: configuration.web_search_url
+    }
   end
 end

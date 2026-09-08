@@ -18,11 +18,11 @@ Draught.Web.Policy.status(policy)
 # => %{fetch: :disabled, search: :enabled}
 ```
 
-The resolver is pure and does not read application environment, files, or process state. Interfaces are responsible for reading configuration sources and passing their values in the documented order. The CLI maps its combined `web` setting to the guarded fetch capability; library consumers may resolve search and fetch independently.
+The resolver is pure and does not read application environment, files, or process state. Interfaces are responsible for reading configuration sources and passing their values in the documented order. The CLI and library consumers resolve search and fetch independently.
 
 An enabled operation also requires an explicit adapter. The included fetch adapter uses guarded HTTP(S) retrieval. The included SearXNG adapter supports a configured JSON endpoint through that same fetch transport. Other search services remain injectable because result schemas, authentication requirements, and usage policies differ.
 
-For CLI tasks, `--web` enables the included `web_fetch` tool and `--no-web` disables it. User configuration and `DRAUGHT_WEB` provide the same combined setting under the documented precedence rules. The default is disabled. Project configuration may disable web access but cannot enable it. Enabling web does not bypass the network risk class or approval policy.
+For CLI tasks, `--web` enables the included `web_fetch` tool and `--web-search` enables `web_search`. Search additionally requires an explicit SearXNG-compatible endpoint from `--web-search-url`, `DRAUGHT_WEB_SEARCH_URL`, or trusted user configuration. `DRAUGHT_WEB` and `DRAUGHT_WEB_SEARCH` provide the corresponding permissions under the documented precedence rules. Both default to disabled. Project configuration may disable either permission but cannot enable one or choose an endpoint. Enabling either operation does not bypass the network risk class or approval policy.
 
 ```elixir
 {:ok, web} =
@@ -79,7 +79,7 @@ A search adapter implements `Draught.Web.Search.Adapter` and returns a list of m
   )
 ```
 
-The endpoint must be an HTTP(S) URL without credentials, fragments, or an existing query string. The adapter adds the bounded query, `format=json`, and moderate safe-search parameters, then delegates the request to the guarded Mint fetch transport. Search responses therefore receive the same address, redirect, content-type, byte, and time validation as page fetching. Returned JSON must contain a `results` list with bounded `title` and `url` strings; missing snippets become empty strings. CLI search configuration is not connected yet.
+The endpoint must be an HTTP(S) URL without credentials, fragments, or an existing query string. The adapter adds the bounded query, `format=json`, and moderate safe-search parameters, then delegates the request to the guarded Mint fetch transport. Search responses therefore receive the same address, redirect, content-type, byte, and time validation as page fetching. Returned JSON must contain a `results` list with bounded `title` and `url` strings; missing snippets become empty strings. Some public SearXNG instances disable JSON responses, so the configured endpoint must expose that response format.
 
 Search adapters receive the effective `Draught.Web.Policy`. Adapter invocation is supervised and bounded by the total operation timeout, and returned values are reconstructed through the result limits. Custom adapter modules and their configuration are trusted application code: they must apply the same isolation principles to their own HTTP client and must not read ambient credentials or proxy settings. Credentials explicitly supplied in trusted adapter configuration remain the host application's responsibility and must not appear in results, errors, events, or logs.
 
@@ -89,7 +89,7 @@ Custom fetch adapters are also trusted application code. The capability boundary
 
 Successful web tools return a canonical `Draught.Tool.Result` with provenance fixed to `origin: :web` and `trust: :untrusted`. Model-visible content is JSON-escaped inside an envelope whose trust label and source fields are created by Draught rather than by the remote page.
 
-Session journals preserve the trust classification and sanitized source URLs even when tool-output retention is disabled. Replayed content remains a tool-role message. It is never reconstructed as a system, developer, or user instruction and cannot restore a web capability.
+Session journals preserve the trust classification and sanitized source URLs even when tool-output retention is disabled. Replayed content remains a tool-role message. It is never reconstructed as a system, developer, or user instruction and cannot restore a web capability. Persistent sessions bind the effective web permissions, adapter identities, and configured search endpoint; resume rejects any drift before provider execution.
 
 Telemetry records only the closed `origin` and `trust` atoms on web tool spans, including failed operations. URLs, queries, result text, response headers, resolved addresses, and adapter configuration are excluded.
 

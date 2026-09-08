@@ -147,7 +147,7 @@ Start the shell with an explicit identifier or resume target when needed:
 
 Prompt-free interactive use requires a terminal and text output. A headless `--session` or `--resume` invocation still requires a task argument. Use one-shot mode and `--output jsonl` for automation.
 
-## 8. Optional page fetching
+## 8. Optional web access
 
 Web access is disabled by default. Enable guarded page fetching for one invocation with:
 
@@ -155,6 +155,12 @@ Web access is disabled by default. Enable guarded page fetching for one invocati
 ./draught "read the Elixir documentation at https://elixir-lang.org" --web
 ```
 
-The model receives `web_fetch` only for enabled tasks. Each request retains the network risk and approval checks, and the fetch transport applies the redirect, address, content, size, and timeout controls documented in [Web access](web-access.md). Web search is not registered by the CLI. Each anonymous task starts without prior conversation state.
+Enable guarded search independently by supplying a SearXNG-compatible JSON endpoint:
+
+```shell
+./draught "find the current Elixir documentation" --web-search --web-search-url https://search.example/search
+```
+
+The model receives only the enabled web tools. Each request retains the network risk and approval checks, and the transport applies the redirect, address, content, size, and timeout controls documented in [Web access](web-access.md). Each anonymous task starts without prior conversation state.
 
 See [CLI](cli.md) for command and exit behavior and [Ollama provider](providers/ollama.md) for discovery details.

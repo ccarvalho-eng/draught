@@ -38,7 +38,21 @@ defmodule Draught.CLI.Command.Specification do
       switch: "--[no-]web",
       type: :boolean,
       value: nil,
-      description: "Enable or disable web access"
+      description: "Enable or disable page fetching"
+    },
+    %{
+      key: :web_search,
+      switch: "--[no-]web-search",
+      type: :boolean,
+      value: nil,
+      description: "Enable or disable web search"
+    },
+    %{
+      key: :web_search_url,
+      switch: "--web-search-url",
+      type: :string,
+      value: "URL",
+      description: "Use a web search endpoint"
     },
     %{
       key: :output,

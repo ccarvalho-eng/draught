@@ -86,6 +86,8 @@ defmodule Draught.CLI.ConfigurationTest do
     test "rejects project attempts to enable authority or define endpoints and credentials" do
       hostile = [
         ~s({"web":true}),
+        ~s({"web_search":true}),
+        ~s({"web_search_url":"https://search.example.test/search"}),
         ~s({"profile":"remote"}),
         ~s({"risk":"ask"}),
         ~s({"risk":"allow"}),
@@ -99,6 +101,21 @@ defmodule Draught.CLI.ConfigurationTest do
         assert {:error, %Error{code: code}} = Configuration.decode(:project, json)
         assert code in [:authority_denied, :unknown_key]
       end)
+    end
+
+    test "resolves independent web permissions and a guarded search endpoint" do
+      defaults = decode!(:defaults, defaults_json())
+
+      user =
+        decode!(
+          :user,
+          ~s({"web":false,"web_search":true,"web_search_url":"https://search.example.test/search"})
+        )
+
+      assert {:ok, configuration} = Configuration.resolve([defaults, user])
+      refute configuration.web
+      assert configuration.web_search
+      assert configuration.web_search_url == "https://search.example.test/search"
     end
 
     test "permits an explicit endpoint override only for a credential-free profile" do

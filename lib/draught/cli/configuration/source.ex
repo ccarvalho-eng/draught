@@ -11,8 +11,18 @@ defmodule Draught.CLI.Configuration.Source do
   alias Draught.CLI.Configuration.Profile
   alias Draught.CLI.Configuration.Value
   alias Draught.Provider.OpenAI.Configuration.Endpoint
+  alias Draught.Web.Search.Transport.Searxng.Configuration
 
-  @allowed_keys MapSet.new(["profile", "model", "base_url", "web", "risk", "profiles"])
+  @allowed_keys MapSet.new([
+                  "profile",
+                  "model",
+                  "base_url",
+                  "web",
+                  "web_search",
+                  "web_search_url",
+                  "risk",
+                  "profiles"
+                ])
   @kinds [:defaults, :user, :project, :environment, :flags]
 
   @enforce_keys [:kind]
@@ -65,21 +75,44 @@ defmodule Draught.CLI.Configuration.Source do
   end
 
   defp settings(attributes, kind) do
+    with {:ok, general} <- general_settings(attributes, kind),
+         {:ok, {web, search, search_url, web_settings}} <- web_settings(attributes, kind),
+         {:ok, risk} <- optional_risk(attributes, kind),
+         :ok <- validate_project_authority(web, search, search_url, risk, kind) do
+      settings =
+        general
+        |> Map.merge(web_settings)
+        |> put_optional(:risk, risk)
+
+      {:ok, settings}
+    end
+  end
+
+  defp general_settings(attributes, kind) do
     with {:ok, profile} <- optional_profile(attributes, kind),
          {:ok, model} <- optional_text(attributes, "model", kind, 256),
-         {:ok, base_url} <- optional_base_url(attributes, kind),
-         {:ok, web} <- optional_boolean(attributes, "web", kind),
-         {:ok, risk} <- optional_risk(attributes, kind),
-         :ok <- validate_project_authority(web, risk, kind) do
-      values =
+         {:ok, base_url} <- optional_base_url(attributes, kind) do
+      settings =
         %{}
         |> put_optional(:profile, profile)
         |> put_optional(:model, model)
         |> put_optional(:base_url, base_url)
-        |> put_optional(:web, web)
-        |> put_optional(:risk, risk)
 
-      {:ok, values}
+      {:ok, settings}
+    end
+  end
+
+  defp web_settings(attributes, kind) do
+    with {:ok, fetch} <- optional_boolean(attributes, "web", kind),
+         {:ok, search} <- optional_boolean(attributes, "web_search", kind),
+         {:ok, search_url} <- optional_search_url(attributes, kind) do
+      settings =
+        %{}
+        |> put_optional(:web, fetch)
+        |> put_optional(:web_search, search)
+        |> put_optional(:web_search_url, search_url)
+
+      {:ok, {fetch, search, search_url, settings}}
     end
   end
 
@@ -137,23 +170,44 @@ defmodule Draught.CLI.Configuration.Source do
     end
   end
 
-  defp validate_project_authority(:absent, :absent, :project) do
+  defp optional_search_url(attributes, :project) do
+    attributes
+    |> Map.has_key?("web_search_url")
+    |> restricted_search_url_result()
+  end
+
+  defp optional_search_url(attributes, kind) do
+    case Map.fetch(attributes, "web_search_url") do
+      {:ok, value} -> validate_search_url(value, kind)
+      :error -> {:ok, :absent}
+    end
+  end
+
+  defp validate_search_url(value, kind) do
+    case Configuration.new(endpoint: value) do
+      {:ok, configuration} ->
+        {:ok, configuration.endpoint}
+
+      {:error, _reason} ->
+        Error.new(
+          kind,
+          [:web_search_url],
+          :invalid_value,
+          "must be a safe HTTP URL without a query"
+        )
+    end
+  end
+
+  defp validate_project_authority(:absent, :absent, :absent, :absent, :project) do
     :ok
   end
 
-  defp validate_project_authority(false, :absent, :project) do
+  defp validate_project_authority(web, search, :absent, risk, :project)
+       when web in [:absent, false] and search in [:absent, false] and risk in [:absent, :deny] do
     :ok
   end
 
-  defp validate_project_authority(:absent, :deny, :project) do
-    :ok
-  end
-
-  defp validate_project_authority(false, :deny, :project) do
-    :ok
-  end
-
-  defp validate_project_authority(_web, _risk, :project) do
+  defp validate_project_authority(_web, _search, _url, _risk, :project) do
     Error.new(
       :project,
       [:authority],
@@ -162,7 +216,7 @@ defmodule Draught.CLI.Configuration.Source do
     )
   end
 
-  defp validate_project_authority(_web, _risk, _kind) do
+  defp validate_project_authority(_web, _search, _url, _risk, _kind) do
     :ok
   end
 
@@ -241,8 +295,23 @@ defmodule Draught.CLI.Configuration.Source do
     )
   end
 
+  defp restricted_search_url_result(false) do
+    {:ok, :absent}
+  end
+
+  defp restricted_search_url_result(true) do
+    Error.new(
+      :project,
+      [:web_search_url],
+      :authority_denied,
+      "project settings cannot select a web search endpoint"
+    )
+  end
+
   defp known_key("profile"), do: :profile
   defp known_key("model"), do: :model
   defp known_key("base_url"), do: :base_url
   defp known_key("web"), do: :web
+  defp known_key("web_search"), do: :web_search
+  defp known_key("web_search_url"), do: :web_search_url
 end

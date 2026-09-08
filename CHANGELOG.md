@@ -22,6 +22,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Interactive compatible-model listing and pre-persistence model selection for fresh sessions.
 - Opt-in guarded page fetching through the CLI web capability.
 - A guarded SearXNG JSON search transport with validated result decoding.
+- Independent CLI search permission and endpoint configuration with persistent-session capability binding.
 
 ### Changed
 

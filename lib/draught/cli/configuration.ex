@@ -10,7 +10,7 @@ defmodule Draught.CLI.Configuration do
   alias Draught.CLI.Configuration.Resolver
   alias Draught.CLI.Configuration.Source
 
-  @enforce_keys [:profile, :provider, :base_url, :web, :risk, :origins]
+  @enforce_keys [:profile, :provider, :base_url, :web, :web_search, :risk, :origins]
   defstruct [
     :profile,
     :provider,
@@ -18,6 +18,8 @@ defmodule Draught.CLI.Configuration do
     :model,
     :credential,
     :web,
+    :web_search,
+    :web_search_url,
     :risk,
     :origins,
     headers: %{}
@@ -33,6 +35,8 @@ defmodule Draught.CLI.Configuration do
           credential: Credential.t() | nil,
           headers: %{optional(String.t()) => String.t()},
           web: boolean(),
+          web_search: boolean(),
+          web_search_url: String.t() | nil,
           risk: risk(),
           origins: %{optional(atom()) => Source.kind()}
         }

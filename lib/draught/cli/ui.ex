@@ -66,8 +66,10 @@ defmodule Draught.CLI.UI do
       model(state.model),
       "\n  Workspace: ",
       safe(state.workspace),
-      "\n  Web: ",
+      "\n  Web fetch: ",
       web(state.web),
+      "\n  Web search: ",
+      web(state.web_search),
       "\n  Activity: ",
       Atom.to_string(state.phase),
       "\n"

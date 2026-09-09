@@ -78,14 +78,19 @@ sequenceDiagram
       Runner->>Sink: terminal success
       Runner-->>Caller: ok response
     else tool-call batch
-      loop calls in declaration order
-        Runner->>Policy: risk and approval checks
-        Policy-->>Runner: allow, deny, or require approval
-        Runner->>Tool: bounded execution when allowed
-        Tool-->>Runner: canonical result
-        Runner->>Sink: tool_result
+      alt first repeated semantic batch
+        Runner->>Sink: duplicate error tool results
+        Runner->>Provider: continue without repeating effects
+      else new batch
+        loop calls in declaration order
+          Runner->>Policy: risk and approval checks
+          Policy-->>Runner: allow, deny, or require approval
+          Runner->>Tool: bounded execution when allowed
+          Tool-->>Runner: canonical result
+          Runner->>Sink: tool_result
+        end
+        Runner->>Provider: continue with ordered tool messages
       end
-      Runner->>Provider: continue with ordered tool messages
     else terminal failure
       Runner->>Sink: terminal error
       Runner-->>Caller: normalized error
@@ -108,7 +113,7 @@ The defaults and accepted maxima are:
 | Tool time | 30,000 ms | 600,000 ms | Produces one recoverable error result when one tool exceeds the limit |
 | Retained output | 1 MiB | 16 MiB | Bounds each canonical provider response, cumulative transient provider stream, and tool result |
 
-The runner terminates with a normalized error when a provider call fails, a provider task terminates, provider time or output is exceeded, the iteration limit is reached, or a semantic tool batch repeats without an allowed verification reset. Duplicate detection compares the ordered tool names and argument maps without provider-generated call identifiers. After a successful registered write or command execution, previously seen read-only batches may run again to verify the resulting workspace. Effectful, mixed, and unknown-tool batches remain guarded for the entire turn; failed operations do not reset history. Risk classes come from the trusted registry, not model-supplied names. Iteration and time limits remain unchanged.
+The runner terminates with a normalized error when a provider call fails, a provider task terminates, provider time or output is exceeded, the iteration limit is reached, or a provider repeats a semantic tool batch after receiving duplicate feedback. Duplicate detection compares the ordered tool names and argument maps without provider-generated call identifiers. The first repetition is not executed: the runner appends one matching error result per call and gives the provider another iteration to reuse the earlier result or change its request. A second repetition of that batch terminates the turn. After a successful registered write or command execution, previously seen read-only batches may run again to verify the resulting workspace. Effectful, mixed, and unknown-tool batches remain guarded for the entire turn; failed operations do not reset history. Risk classes come from the trusted registry, not model-supplied names. Iteration and time limits remain unchanged.
 
 Tool denials, unknown tools, invalid arguments, executor failures, tool timeouts, and oversized tool output are represented as error tool results. They are added to the conversation so the provider may recover in the next iteration. Time spent inside an approval policy is excluded from the tool execution budget; the budget resumes before an allowed operation executes. The runner does not retry provider calls or tool effects; retry policy remains inside the relevant adapter or a higher application layer.
 

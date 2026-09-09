@@ -67,7 +67,7 @@ defmodule Draught.Execution.Runner.StateTest do
     assert List.first(error.violations).code == :invalid_type
   end
 
-  test "stops a repeated semantic tool batch even when call IDs change" do
+  test "rejects one repeated batch as feedback and stops when the provider ignores it" do
     state = initial_state()
     {:continue, first_wait, _request} = Transition.next_request(state)
     first = call("call-1", "read_file", %{"path" => "README.md"})
@@ -76,9 +76,18 @@ defmodule Draught.Execution.Runner.StateTest do
     {:continue, second_wait, _request} = Transition.next_request(ready)
     repeated = call("call-2", "read_file", %{"path" => "README.md"})
 
-    assert {:ok, stopped} =
+    assert {:ok, rejected} =
              Provider.accept(second_wait, {:ok, tool_response([repeated])})
 
+    assert State.pending_tool_action(rejected) == :reject_duplicate
+
+    {:ok, ready_after_feedback} =
+      Transition.accept_tools(rejected, [duplicate_message(repeated)])
+
+    {:continue, third_wait, _request} = Transition.next_request(ready_after_feedback)
+    ignored = call("call-3", "read_file", %{"path" => "README.md"})
+
+    assert {:ok, stopped} = Provider.accept(third_wait, {:ok, tool_response([ignored])})
     assert {:error, error} = State.outcome(stopped)
     assert error.code == "duplicate_tool_batch"
   end
@@ -136,6 +145,23 @@ defmodule Draught.Execution.Runner.StateTest do
         name: call.name,
         content: content,
         status: :success
+      )
+
+    {:ok, message} = Conversation.tool(result)
+    message
+  end
+
+  defp duplicate_message(call) do
+    {:ok, error} =
+      Normalized.new(:policy, "duplicate_tool_call", "Repeated tool call was not executed")
+
+    {:ok, result} =
+      Result.new(
+        call_id: call.id,
+        name: call.name,
+        content: "This exact tool call was already attempted earlier in this turn.",
+        status: :error,
+        error: error
       )
 
     {:ok, message} = Conversation.tool(result)

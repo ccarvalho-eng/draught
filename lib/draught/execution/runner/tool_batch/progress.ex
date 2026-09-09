@@ -27,6 +27,13 @@ defmodule Draught.Execution.Runner.ToolBatch.Progress do
     refresh_reads(seen, registry, changed)
   end
 
+  @doc "Retains only guarded batches that remain present in refreshed execution history."
+  @spec retain(MapSet.t(ToolBatch.key()), MapSet.t(ToolBatch.key())) ::
+          MapSet.t(ToolBatch.key())
+  def retain(guarded, seen) do
+    MapSet.intersection(guarded, seen)
+  end
+
   defp successful_mutation?(%Tool{result: %Result{status: :success, name: name}}, registry) do
     risk?(registry, name, [:write, :execute])
   end

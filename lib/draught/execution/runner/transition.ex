@@ -34,12 +34,16 @@ defmodule Draught.Execution.Runner.Transition do
 
   def accept_tools(%State{status: :waiting_tools} = state, messages, registry) do
     with {:ok, canonical} <- ToolResults.reconcile(state.pending_calls, messages) do
+      seen_batches = Progress.refresh(state.seen_batches, canonical, registry)
+
       {:ok,
        %State{
          state
          | messages: state.messages ++ canonical,
            pending_calls: [],
-           seen_batches: Progress.refresh(state.seen_batches, canonical, registry),
+           pending_tool_action: nil,
+           rejected_batches: Progress.retain(state.rejected_batches, seen_batches),
+           seen_batches: seen_batches,
            status: :ready
        }}
     end
@@ -90,7 +94,7 @@ defmodule Draught.Execution.Runner.Transition do
   end
 
   defp failed(state, error) do
-    %{state | outcome: error, pending_calls: [], status: :failed}
+    %{state | outcome: error, pending_calls: [], pending_tool_action: nil, status: :failed}
   end
 
   defp invalid_transition(operation) do

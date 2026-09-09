@@ -17,9 +17,17 @@ defmodule Draught.Execution.Runner.Step.Tools do
   @spec run(Configuration.t(), State.t()) ::
           {:ok, State.t()} | {:error, Normalized.t() | Error.t()}
   def run(configuration, state) do
-    with {:ok, messages} <-
-           ToolExecution.run(configuration, state.iteration, State.pending_calls(state)) do
+    with {:ok, messages} <- execute(configuration, state) do
       Transition.accept_tools(state, messages, configuration.registry)
+    end
+  end
+
+  defp execute(configuration, state) do
+    calls = State.pending_calls(state)
+
+    case State.pending_tool_action(state) do
+      :execute -> ToolExecution.run(configuration, state.iteration, calls)
+      :reject_duplicate -> ToolExecution.reject_duplicate(configuration, state.iteration, calls)
     end
   end
 end

@@ -55,6 +55,12 @@ defmodule Draught.Tool.Execution.Failure do
     normalized(:policy, "approval_denied", "Tool execution was denied", hint: reason)
   end
 
+  @doc "Builds the policy failure returned when a repeated call is skipped."
+  @spec duplicate_tool_call() :: Normalized.t()
+  def duplicate_tool_call do
+    normalized(:policy, "duplicate_tool_call", "Repeated tool call was not executed")
+  end
+
   defp normalized(kind, code, message, options \\ []) do
     {:ok, error} = Normalized.new(kind, code, message, Keyword.put(options, :retryable, false))
     error

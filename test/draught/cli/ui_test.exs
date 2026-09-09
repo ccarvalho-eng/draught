@@ -179,6 +179,18 @@ defmodule Draught.CLI.UITest do
     refute output =~ "archived"
   end
 
+  test "right-aligns selectable session references" do
+    entries = Enum.map(1..10, &entry("session-#{&1}", :active))
+
+    output =
+      entries
+      |> UI.sessions("other", :active)
+      |> IO.iodata_to_binary()
+
+    assert output =~ "Sessions:\n 1.   session-1"
+    assert output =~ "\n10.   session-10"
+  end
+
   test "renders an unnamed session identifier only once" do
     output =
       "session-01"

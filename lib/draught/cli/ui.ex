@@ -339,17 +339,17 @@ defmodule Draught.CLI.UI do
   end
 
   defp session_lines(entries, current_identifier) do
+    width = reference_width(entries)
+
     entries
     |> Enum.with_index(1)
-    |> Enum.map(fn {entry, position} -> session_line(entry, current_identifier, position) end)
+    |> Enum.map(fn {entry, position} ->
+      session_line(entry, current_identifier, position, width)
+    end)
   end
 
   defp skill_lines(entries) do
-    width =
-      entries
-      |> length()
-      |> Integer.to_string()
-      |> String.length()
+    width = reference_width(entries)
 
     entries
     |> Enum.with_index(1)
@@ -440,9 +440,14 @@ defmodule Draught.CLI.UI do
     ["Skipped ", Integer.to_string(count), " invalid skill entries.\n"]
   end
 
-  defp session_line(entry, current_identifier, position) do
+  defp session_line(entry, current_identifier, position, width) do
+    position =
+      position
+      |> Integer.to_string()
+      |> String.pad_leading(width)
+
     [
-      Integer.to_string(position),
+      position,
       ". ",
       current(entry.id == current_identifier),
       session_identity(entry),
@@ -450,6 +455,13 @@ defmodule Draught.CLI.UI do
       session_details(entry),
       "\n"
     ]
+  end
+
+  defp reference_width(entries) do
+    entries
+    |> length()
+    |> Integer.to_string()
+    |> String.length()
   end
 
   defp session_identity(%Entry{id: id, label: label}) when label != id do

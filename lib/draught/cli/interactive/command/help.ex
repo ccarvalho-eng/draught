@@ -14,6 +14,7 @@ defmodule Draught.CLI.Interactive.Command.Help do
       lines(Catalog.active()),
       "\nInput controls:\n",
       "  Enter           Submit prompt\n",
+      "  Shift+Enter     Insert newline when supported\n",
       "  Ctrl+J          Insert newline\n",
       "  Alt+Enter       Insert newline\n",
       "  Tab             Complete a command\n",

@@ -345,14 +345,20 @@ defmodule Draught.CLI.UI do
   end
 
   defp skill_lines(entries) do
+    width =
+      entries
+      |> length()
+      |> Integer.to_string()
+      |> String.length()
+
     entries
     |> Enum.with_index(1)
     |> Enum.chunk_by(fn {entry, _position} -> entry.origin end)
-    |> Enum.map(&skill_group/1)
+    |> Enum.map(&skill_group(&1, width))
   end
 
-  defp skill_group([{entry, _position} | _rest] = entries) do
-    [skill_origin(entry.origin), ":\n", Enum.map(entries, &skill_line/1)]
+  defp skill_group([{entry, _position} | _rest] = entries, width) do
+    [skill_origin(entry.origin), ":\n", Enum.map(entries, &skill_line(&1, width))]
   end
 
   defp tool_lines(entries) do
@@ -374,9 +380,14 @@ defmodule Draught.CLI.UI do
     ]
   end
 
-  defp skill_line({%{description: description, name: name}, position}) do
+  defp skill_line({%{description: description, name: name}, position}, width) do
+    position =
+      position
+      |> Integer.to_string()
+      |> String.pad_leading(width)
+
     [
-      Integer.to_string(position),
+      position,
       ". ",
       safe(name),
       "  ",

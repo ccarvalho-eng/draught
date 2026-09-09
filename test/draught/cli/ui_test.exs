@@ -223,6 +223,26 @@ defmodule Draught.CLI.UITest do
              "Built-in skills:\n1. elixir-phoenix-elixir-idioms  Apply Elixir idioms\n"
   end
 
+  test "right-aligns selectable skill references" do
+    metadata =
+      Enum.map(1..10, fn position ->
+        %Metadata{
+          description: "Skill description",
+          name: "skill-#{position}",
+          origin: :builtin
+        }
+      end)
+
+    output =
+      metadata
+      |> Catalog.new(0)
+      |> UI.skills()
+      |> IO.iodata_to_binary()
+
+    assert output =~ "Built-in skills:\n 1. skill-1"
+    assert output =~ "\n10. skill-10"
+  end
+
   test "renders a compact index for the split skill catalogs" do
     output = IO.iodata_to_binary(UI.skill_index())
 

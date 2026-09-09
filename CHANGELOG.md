@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.1.0-beta.2 - 2026-09-08
+
+### Added
+
+- Persistent interactive model selection in the user configuration, with atomic owner-only publication and existing-session binding preservation.
+- Tab completion for slash commands and compatible model names already loaded by `/model`.
+
+### Changed
+
+- Human approval waits no longer consume the active tool or interactive-turn execution budget and have no wall-clock deadline.
+- Interactive parsing, help output, and terminal completion now share one command catalog.
+
+### Fixed
+
+- Provider failures, tool denials, iteration limits, and other bounded turn failures return control to the interactive prompt instead of closing the session.
+- Failed or interrupted turns replay from the last complete conversation boundary without retaining partial model messages.
+
 ## 0.1.0-beta.1 - 2026-09-08
 
 ### Added

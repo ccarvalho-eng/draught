@@ -51,9 +51,9 @@ The native executable includes its Erlang runtime; Elixir and Erlang/OTP are not
 
 [Draught](https://www.merriam-webster.com/dictionary/draught), pronounced "draft", can mean a drink or a dose of medicine, suggesting a measured approach to assistance. The name also echoes "draft": a starting point to examine, revise, and develop into your own solution. Assistance contributes to the work; it does not make the result final or replace your judgment.
 
-### Access without a paid model subscription
+### Local control and privacy
 
-Subscription fees and metered APIs can put coding assistance out of reach. Draught aims to make agentic work accessible to developers who cannot afford premium tools, using freely available models on their own machines through Ollama. Local inference avoids per-request API charges, but requires suitable hardware and a model whose license permits the intended use. Provider-agnostic interfaces leave that choice with the user.
+Running a model locally can keep prompts, source code, and model responses on the user's machine instead of sending them to a hosted inference service. Draught supports that workflow through Ollama while keeping the provider boundary open for other deployments. Privacy still depends on the selected provider and enabled tools: web access and remote integrations can transmit data outside the machine, so those capabilities remain explicit.
 
 ### An OTP foundation for agents
 

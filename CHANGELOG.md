@@ -8,11 +8,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
-- Bounded workspace and user `SKILL.md` discovery with explicit `/skills` listing and `/skill NAME` invocation through the existing agent-turn authority boundaries.
+- Bounded workspace and user `SKILL.md` discovery with explicit `/skills` listing and `/skill REF` invocation through the existing agent-turn authority boundaries.
+- An interactive `/clear` command that clears the terminal without changing session state.
 
 ### Changed
 
 - Interactive sessions can be named before their first turn, and session lists show one identity using an explicit name, the latest successful user-message preview, or the immutable ID in that order.
+- Interactive skills can be selected by list number or exact name, with exact names taking precedence.
 
 ## 0.1.0-beta.3 - 2026-09-08
 

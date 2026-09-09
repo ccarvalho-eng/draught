@@ -57,6 +57,12 @@ defmodule Draught.CLI.UI do
     Owl.tool_label(styled?)
   end
 
+  @doc "Returns the terminal control sequence that clears the screen and homes the cursor."
+  @spec clear() :: String.t()
+  def clear do
+    "\e[2J\e[H"
+  end
+
   @doc "Renders a bounded input failure without reflecting rejected input."
   @spec input_error(atom()) :: iodata()
   def input_error(:argument_required) do

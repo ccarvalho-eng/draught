@@ -11,6 +11,7 @@ defmodule Draught.CLI.Interactive.InputTest do
 
   test "parses commands without forwarding them as prompts" do
     assert Input.parse("/help") == {:ok, {:command, :help, nil}}
+    assert Input.parse("/clear") == {:ok, {:command, :clear, nil}}
     assert Input.parse("/status") == {:ok, {:command, :status, nil}}
     assert Input.parse("/exit") == {:ok, {:command, :exit, nil}}
 
@@ -41,6 +42,7 @@ defmodule Draught.CLI.Interactive.InputTest do
     assert Input.parse("/rename") == {:error, :argument_required}
     assert Input.parse("/skill") == {:error, :argument_required}
     assert Input.parse("/exit now") == {:error, :unexpected_argument}
+    assert Input.parse("/clear now") == {:error, :unexpected_argument}
     assert Input.parse(:invalid) == {:error, :invalid_input}
   end
 

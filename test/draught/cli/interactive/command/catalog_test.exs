@@ -6,6 +6,7 @@ defmodule Draught.CLI.Interactive.Command.CatalogTest do
   test "keeps active and reserved command metadata in one catalog" do
     assert Enum.map(Catalog.active(), & &1.name) == [
              :help,
+             :clear,
              :status,
              :doctor,
              :sessions,
@@ -35,6 +36,7 @@ defmodule Draught.CLI.Interactive.Command.CatalogTest do
     assert %{argument: :optional, name: :model} = Catalog.find("model")
     assert %{argument: :required, name: :rename} = Catalog.find("rename")
     assert %{argument: :required, name: :skill} = Catalog.find("skill")
+    assert %{argument: :none, name: :clear} = Catalog.find("clear")
     assert %{argument: :none, name: :help} = Catalog.find("help")
     assert Catalog.find("unknown") == nil
   end

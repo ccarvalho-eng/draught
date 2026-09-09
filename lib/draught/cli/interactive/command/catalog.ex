@@ -17,6 +17,13 @@ defmodule Draught.CLI.Interactive.Command.Catalog do
       description: "Show commands and input forms"
     },
     %Entry{
+      name: :clear,
+      usage: "/clear",
+      argument: :none,
+      availability: :active,
+      description: "Clear the terminal"
+    },
+    %Entry{
       name: :status,
       usage: "/status",
       argument: :none,
@@ -88,10 +95,10 @@ defmodule Draught.CLI.Interactive.Command.Catalog do
     },
     %Entry{
       name: :skill,
-      usage: "/skill NAME",
+      usage: "/skill REF",
       argument: :required,
       availability: :active,
-      description: "Apply a skill to the next agent turn"
+      description: "Apply a skill by number or exact name"
     },
     %Entry{
       name: :exit,

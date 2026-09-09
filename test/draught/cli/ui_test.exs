@@ -158,6 +158,10 @@ defmodule Draught.CLI.UITest do
     assert exit == "Session ID: session-01\n"
   end
 
+  test "renders the terminal clear and home sequence" do
+    assert UI.clear() == "\e[2J\e[H"
+  end
+
   test "numbers only the sessions visible in the requested view" do
     entries = [
       entry("active-one", :active),

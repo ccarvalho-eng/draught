@@ -340,7 +340,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
       Normalized.new(:protocol, "provider_failed", "Provider failed", retryable: false)
 
     input({:ok, "/skills\n"})
-    input({:ok, "/skill review\n"})
+    input({:ok, "/skill 1\n"})
     input({:ok, "/status\n"})
     input({:ok, "/exit\n"})
 
@@ -361,6 +361,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
     assert output =~ "Using skill review."
     assert output =~ "Session status"
     assert_receive :skills_listed
+    assert_receive {:skill_loaded, "1"}
     assert_receive {:skill_loaded, "review"}
     assert_receive {:recovery_request, messages}
 
@@ -383,6 +384,20 @@ defmodule Draught.CLI.Interactive.CommandTest do
 
     assert output =~ "Skill was not found. Run /skills"
     assert output =~ "Session status"
+    assert_receive :interactive_terminal_restored
+  end
+
+  test "clears the terminal without changing or closing the session" do
+    input({:ok, "/clear\n"})
+    input({:ok, "/status\n"})
+    input({:ok, "/exit\n"})
+
+    assert CLI.run([], dependencies()) == 0
+    output = receive_output()
+
+    assert output =~ "\e[2J\e[H"
+    assert output =~ "Session status"
+    assert output =~ "Session ID: 00000000-0000-4000-8000-000000000001"
     assert_receive :interactive_terminal_restored
   end
 

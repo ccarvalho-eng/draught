@@ -13,6 +13,7 @@ defmodule Draught.CLI.Interactive.Input do
 
   @type command ::
           :archive
+          | :clear
           | :compact
           | :context
           | :details

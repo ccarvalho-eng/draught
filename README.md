@@ -13,7 +13,7 @@ Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. R
 
 ## Installation
 
-Download the archive for the current operating system and architecture from the `v0.1.0-beta.5` release. The available targets are:
+Download the archive for the current operating system and architecture from the `v0.1.0-beta.6` release. The available targets are:
 
 | System | Architecture | Target |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ Download the archive for the current operating system and architecture from the 
 Set `TARGET` to the matching value, then verify and install the archive:
 
 ```shell
-VERSION=0.1.0-beta.5
+VERSION=0.1.0-beta.6
 TARGET=macos_arm64
 BASE_URL="https://github.com/ccarvalho-eng/draught/releases/download/v${VERSION}"
 ARCHIVE="draught-${TARGET}.tar.gz"
@@ -46,6 +46,8 @@ install -m 755 "draught_${TARGET}" "$HOME/.local/bin/draught"
 ```
 
 The native executable includes its Erlang runtime; Elixir and Erlang/OTP are not required. Add `$HOME/.local/bin` to `PATH` to invoke the command as `draught`. See [Getting started](docs/getting-started.md) for Ollama and model setup, and [Distribution](docs/distribution.md) for source builds, upgrades, and uninstalling.
+
+Native beta archives currently use line-oriented interactive input because of an [upstream Burrito terminal issue](https://github.com/burrito-elixir/burrito/issues/234). Build or install the escript when cursor editing, command completion, multiline shortcuts, or bracketed paste is required. Draught tracks adoption of the upstream fix in [#143](https://github.com/ccarvalho-eng/draught/issues/143).
 
 ## Motivation
 

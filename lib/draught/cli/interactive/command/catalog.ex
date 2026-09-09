@@ -31,6 +31,13 @@ defmodule Draught.CLI.Interactive.Command.Catalog do
       description: "Show the active session configuration"
     },
     %Entry{
+      name: :permissions,
+      usage: "/permissions",
+      argument: :none,
+      availability: :active,
+      description: "Show workspace and tool authority"
+    },
+    %Entry{
       name: :doctor,
       usage: "/doctor",
       argument: :none,
@@ -87,6 +94,13 @@ defmodule Draught.CLI.Interactive.Command.Catalog do
       description: "List or select a model by number or exact name"
     },
     %Entry{
+      name: :tools,
+      usage: "/tools",
+      argument: :none,
+      availability: :active,
+      description: "Show available tools and risk classes"
+    },
+    %Entry{
       name: :skills,
       usage: "/skills",
       argument: :none,
@@ -116,13 +130,6 @@ defmodule Draught.CLI.Interactive.Command.Catalog do
       argument: :optional,
       availability: :reserved,
       description: "Inspect or select a provider"
-    },
-    %Entry{
-      name: :permissions,
-      usage: "/permissions",
-      argument: :none,
-      availability: :reserved,
-      description: "Inspect the approval policy"
     },
     %Entry{
       name: :web,
@@ -158,13 +165,6 @@ defmodule Draught.CLI.Interactive.Command.Catalog do
       argument: :none,
       availability: :reserved,
       description: "Review workspace changes"
-    },
-    %Entry{
-      name: :tools,
-      usage: "/tools",
-      argument: :none,
-      availability: :reserved,
-      description: "Show available tools and risk classes"
     },
     %Entry{
       name: :details,

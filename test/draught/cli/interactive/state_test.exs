@@ -116,6 +116,20 @@ defmodule Draught.CLI.Interactive.StateTest do
     assert State.display_models(state, [""]) == {:error, :invalid_model_catalog}
   end
 
+  test "retains only a bounded canonical skill completion catalog" do
+    assert {:ok, displayed} =
+             State.display_skills(state(), ["review-changes", "testing"])
+
+    assert displayed.skill_catalog == ["review-changes", "testing"]
+    assert State.display_skills(state(), ["Review"]) == {:error, :invalid_skill_catalog}
+
+    assert State.display_skills(state(), ["testing", "testing"]) ==
+             {:error, :invalid_skill_catalog}
+
+    oversized = Enum.map(1..257, &("skill-" <> Integer.to_string(&1)))
+    assert State.display_skills(state(), oversized) == {:error, :invalid_skill_catalog}
+  end
+
   defp state do
     {:ok, state} =
       State.new(

@@ -11,6 +11,7 @@ defmodule Draught.CLI.Task.Setup do
   alias Draught.CLI.Task.Dependencies
   alias Draught.CLI.Task.Preparation
   alias Draught.CLI.Task.Provider
+  alias Draught.CLI.Task.Web.Setting
 
   @doc "Prepares one task while retaining categorized setup failures."
   @spec prepare(String.t(), Configuration.t(), String.t(), Dependencies.t(), keyword()) ::
@@ -48,19 +49,11 @@ defmodule Draught.CLI.Task.Setup do
     preparation_options =
       options
       |> Keyword.put(:risk, configuration.risk)
-      |> Keyword.put(:web, web(configuration))
+      |> Keyword.put(:web, Setting.from_configuration(configuration))
 
     case Preparation.new(prompt, selection, workspace, preparation_options) do
       {:ok, preparation} -> {:ok, preparation}
       {:error, error} -> {:error, :execution, error}
     end
-  end
-
-  defp web(configuration) do
-    %{
-      fetch: configuration.web,
-      search: configuration.web_search,
-      search_url: configuration.web_search_url
-    }
   end
 end

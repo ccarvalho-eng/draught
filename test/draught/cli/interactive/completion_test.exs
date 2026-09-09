@@ -27,6 +27,18 @@ defmodule Draught.CLI.Interactive.CompletionTest do
              {:yes, ~c"n3-coder:30b", []}
   end
 
+  test "completes skill names from metadata already listed by the shell" do
+    {:ok, interactive_state} =
+      State.display_skills(state(), ["review-changes", "review-tests", "testing"])
+
+    completion_context = Context.from_state(interactive_state)
+
+    assert expand("/skill test", completion_context) == {:yes, ~c"ing", []}
+
+    assert expand("/skill review-", completion_context) ==
+             {:yes, [], [~c"review-changes", ~c"review-tests"]}
+  end
+
   test "does not complete prompts, unknown commands, or other arguments" do
     completion_context = context()
 
@@ -42,6 +54,7 @@ defmodule Draught.CLI.Interactive.CompletionTest do
     completion = Context.from_state(interactive_state)
 
     assert completion.models == ["qwen3-coder:30b", "deepseek-r1:latest"]
+    assert completion.skills == []
     assert "/help" in completion.commands
     assert "/provider" in completion.commands
   end

@@ -8,6 +8,7 @@ defmodule Draught.CLI.Interactive.Command.CatalogTest do
              :help,
              :clear,
              :status,
+             :permissions,
              :doctor,
              :sessions,
              :resume,
@@ -16,6 +17,7 @@ defmodule Draught.CLI.Interactive.Command.CatalogTest do
              :archive,
              :restore,
              :model,
+             :tools,
              :skills,
              :skill,
              :exit
@@ -23,13 +25,11 @@ defmodule Draught.CLI.Interactive.Command.CatalogTest do
 
     assert Enum.map(Catalog.reserved(), & &1.name) == [
              :provider,
-             :permissions,
              :web,
              :context,
              :compact,
              :diff,
              :review,
-             :tools,
              :details
            ]
 

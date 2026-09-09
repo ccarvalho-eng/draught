@@ -9,17 +9,13 @@ defmodule Draught.CLI.Interactive.Controller do
   alias Draught.CLI.Command.ExitStatus
   alias Draught.CLI.Command.Invocation
   alias Draught.CLI.Dependencies
-  alias Draught.CLI.Interactive.Model
-  alias Draught.CLI.Interactive.Session
+  alias Draught.CLI.Interactive.Command.Dispatch
   alias Draught.CLI.Interactive.Session.Doctor
   alias Draught.CLI.Interactive.Session.Terminal
-  alias Draught.CLI.Interactive.Skill.Command
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.Interactive.Turn
 
   @internal_status ExitStatus.value(:internal)
-  @session_commands [:archive, :new, :rename, :restore, :resume, :sessions]
-  @skill_commands [:skill, :skills]
   @success_status ExitStatus.value(:success)
 
   @doc "Opens the prompt loop and restores its terminal boundary before returning."
@@ -87,52 +83,18 @@ defmodule Draught.CLI.Interactive.Controller do
   end
 
   defp handle(
-         {:ok, {:command, :model, argument}},
-         state,
-         configuration,
-         invocation,
-         dependencies
-       ) do
-    argument
-    |> Model.Command.run(state, configuration, dependencies)
-    |> handle_model_result(state, configuration, invocation, dependencies)
-  end
-
-  defp handle(
          {:ok, {:command, command, argument}},
          state,
          configuration,
          invocation,
          dependencies
        )
-       when command in @session_commands do
+       when is_atom(command) do
     command
-    |> Session.Command.run(argument, state, configuration, invocation, dependencies)
-    |> handle_session_result(state, configuration, invocation, dependencies)
-  end
-
-  defp handle(
-         {:ok, {:command, command, argument}},
-         state,
-         configuration,
-         invocation,
-         dependencies
-       )
-       when command in @skill_commands do
-    command
-    |> Command.run(argument, state, dependencies)
-    |> handle_skill_result(state, configuration, invocation, dependencies)
-  end
-
-  defp handle(
-         {:ok, {:command, command, _argument}},
-         state,
-         configuration,
-         invocation,
-         dependencies
-       ) do
-    continue(
-      {:unavailable_command, command},
+    |> Dispatch.supported?()
+    |> handle_dispatched_command(
+      command,
+      argument,
       state,
       configuration,
       invocation,
@@ -154,6 +116,60 @@ defmodule Draught.CLI.Interactive.Controller do
       dependencies,
       :stderr
     )
+  end
+
+  defp handle_dispatched_command(
+         true,
+         command,
+         argument,
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    command
+    |> Dispatch.run(argument, state, configuration, invocation, dependencies)
+    |> handle_command_result(state, configuration, invocation, dependencies)
+  end
+
+  defp handle_dispatched_command(
+         false,
+         command,
+         _argument,
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    continue(
+      {:unavailable_command, command},
+      state,
+      configuration,
+      invocation,
+      dependencies
+    )
+  end
+
+  defp handle_command_result(
+         {kind, result},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    case kind do
+      :inspection ->
+        handle_inspection_result(result, state, configuration, invocation, dependencies)
+
+      :model ->
+        handle_model_result(result, state, configuration, invocation, dependencies)
+
+      :session ->
+        handle_session_result(result, state, configuration, invocation, dependencies)
+
+      :skill ->
+        handle_skill_result(result, state, configuration, invocation, dependencies)
+    end
   end
 
   defp run_turn(prompt, state, configuration, invocation, dependencies) do
@@ -292,7 +308,15 @@ defmodule Draught.CLI.Interactive.Controller do
          invocation,
          dependencies
        ) do
-    continue({:skills, catalog}, state, configuration, invocation, dependencies)
+    names = Enum.map(catalog.entries, & &1.name)
+
+    case State.display_skills(state, names) do
+      {:ok, next_state} ->
+        continue({:skills, catalog}, next_state, configuration, invocation, dependencies)
+
+      {:error, reason} ->
+        handle_skill_result({:error, reason}, state, configuration, invocation, dependencies)
+    end
   end
 
   defp handle_skill_result(
@@ -317,6 +341,33 @@ defmodule Draught.CLI.Interactive.Controller do
        ) do
     continue(
       {:skill_error, reason},
+      state,
+      configuration,
+      invocation,
+      dependencies,
+      :stderr
+    )
+  end
+
+  defp handle_inspection_result(
+         {:ok, view},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    continue({:inspection, view}, state, configuration, invocation, dependencies)
+  end
+
+  defp handle_inspection_result(
+         {:error, _reason},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    continue(
+      :inspection_error,
       state,
       configuration,
       invocation,

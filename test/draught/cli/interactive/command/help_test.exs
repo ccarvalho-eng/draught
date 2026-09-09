@@ -9,10 +9,12 @@ defmodule Draught.CLI.Interactive.Command.HelpTest do
 
     assert output =~ "Available commands:"
     assert output =~ "/status"
+    assert output =~ "/permissions"
     assert output =~ "/clear"
     assert output =~ "/sessions"
     assert output =~ "/skills"
     assert output =~ "/skill REF"
+    assert output =~ "/tools"
     assert output =~ "Unavailable commands:"
     assert output =~ "/provider"
     assert output =~ "Unavailable input forms:"

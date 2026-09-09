@@ -56,6 +56,10 @@ defmodule Draught.CLI.Interactive.Controller do
     continue(:help, state, configuration, invocation, dependencies)
   end
 
+  defp handle({:ok, {:command, :clear, nil}}, state, configuration, invocation, dependencies) do
+    continue(:clear, state, configuration, invocation, dependencies)
+  end
+
   defp handle({:ok, {:command, :palette, nil}}, state, configuration, invocation, dependencies) do
     continue(:help, state, configuration, invocation, dependencies)
   end

@@ -47,10 +47,10 @@ Inside an interactive session:
 
 ```text
 /skills
-/skill safe-migrations
+/skill 1
 ```
 
-`/skills` reads a bounded file prefix and displays only names, descriptions, and source scopes; it neither returns nor frames complete instruction bodies. `/skill NAME` resolves the same precedence order, reads that one complete file, and starts an ordinary agent turn with the selected instructions. The turn uses the active model and session and follows the same streaming, approval, tool, journal, cancellation, and failure behavior as typed task text.
+`/skills` reads a bounded file prefix and displays only names, descriptions, and source scopes; it neither returns nor frames complete instruction bodies. `/skill REF` accepts a one-based list position or exact name, resolves the same precedence order, reads that one complete file, and starts an ordinary agent turn with the selected instructions. Exact names take precedence when a skill has a numeric name. The turn uses the active model and session and follows the same streaming, approval, tool, journal, cancellation, and failure behavior as typed task text.
 
 Skill invocation is explicit in this release. Draught does not infer a skill from a prompt, recursively scan directories, watch for filesystem changes, fetch skills from the network, or load referenced files automatically.
 

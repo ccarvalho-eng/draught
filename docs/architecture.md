@@ -290,7 +290,7 @@ flowchart LR
   Repository --> Validation[Name, metadata, file, and size validation]
   Validation --> Catalog[Metadata-only catalog]
   Catalog --> List[Interactive skill list]
-  Catalog --> Selection[Exact skill selection]
+  Catalog --> Selection[Exact name or position selection]
   Selection --> Body[Bounded instruction load]
   Body --> Frame[Guidance framing]
   Frame --> Turn[Ordinary named-session turn]

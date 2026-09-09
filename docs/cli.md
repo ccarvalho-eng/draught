@@ -124,11 +124,12 @@ The available commands are:
 | Command | Behavior |
 | --- | --- |
 | `/help` or `/` | Displays the command index. |
+| `/clear` | Clears the terminal without changing the active session. |
 | `/status` | Displays the current immutable ID, display name, provider, model, workspace, web state, and activity. |
 | `/doctor` | Runs the read-only diagnostic command and returns to the prompt. |
 | `/model [reference]` | Lists compatible models or selects one by list number or exact name. |
 | `/skills` | Lists bounded skill metadata from workspace and user roots. |
-| `/skill NAME` | Loads one explicitly selected skill and applies it through the ordinary agent-turn path. |
+| `/skill REF` | Loads one explicitly selected skill by list number or exact name and applies it through the ordinary agent-turn path. |
 | `/sessions` | Lists bounded active, archived, and unavailable records for the current workspace. |
 | `/resume [reference]` | Selects an active session by list number, exact ID, or unique display name. With no argument, lists active sessions. |
 | `/new [ID]` | Starts a fresh unpersisted session using the current base configuration. A generated UUID is used when the ID is omitted. |
@@ -143,7 +144,7 @@ Session names are display metadata and need not be unique. Use a row number or i
 
 The `/help` index labels planned commands and input forms as not available yet. The parser reserves direct-command input beginning with `!`, file lookup input beginning with `@`, and the remaining documented slash command names. Those effects return an explicit unavailable result until their policy boundaries are connected.
 
-Skill discovery is documented in [Skills](skills.md). Listing exposes only metadata; selecting `/skill NAME` loads and frames the complete instructions for one explicit turn. Skill contents cannot change the task's tool, approval, web, confinement, provider, or runtime authority.
+Skill discovery is documented in [Skills](skills.md). Listing exposes only metadata; selecting `/skill REF` loads and frames the complete instructions for one explicit turn. Exact names take precedence over one-based list positions. Skill contents cannot change the task's tool, approval, web, confinement, provider, or runtime authority.
 
 The prompt loop is text- and terminal-only. A bounded provider, runner, or tool failure ends only the active turn; the shell reports the failure and accepts another prompt from the last complete durable history. It restores its terminal boundary after exit, end of input, or an input failure and prints `Session ID: ID` on ordinary exit. Tab completes slash-command prefixes. After `/model` loads the compatible inventory, Tab also completes an exact model-name prefix. Completion reads only the current in-memory catalog and performs no network or filesystem work. Active-turn keyboard cancellation, fuzzy selection, provider selection, and queued input remain pending.
 

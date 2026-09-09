@@ -19,7 +19,8 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
   @type parsed_input :: {:ok, Input.action()} | {:error, Input.error()}
   @type model_view :: {:models, [String.t()], String.t() | nil} | {:selected, String.t()}
   @type view ::
-          :help
+          :clear
+          | :help
           | :terminal_error
           | {:input_error, atom()}
           | {:model_error, term()}
@@ -128,6 +129,10 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
 
   defp render(:help) do
     Help.render()
+  end
+
+  defp render(:clear) do
+    UI.clear()
   end
 
   defp render(:terminal_error) do

@@ -75,7 +75,14 @@ jobs:
 
       - name: Install Linux build dependency
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install --yes xz-utils
+        run: |
+          if ! command -v xz >/dev/null 2>&1; then
+            sudo apt-get update \
+              -o Acquire::Retries=3 \
+              -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/ubuntu.sources \
+              -o Dir::Etc::sourceparts=-
+            sudo apt-get install --yes xz-utils
+          fi
 
       - name: Install macOS build dependency
         if: runner.os == 'macOS'

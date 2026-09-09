@@ -1,20 +1,20 @@
 defmodule Draught.CLI.Interactive.Command.Help do
   @moduledoc """
-  Renders the interactive command catalog and reserved input forms.
+  Renders available and planned interactive commands and input forms.
   """
 
   alias Draught.CLI.Interactive.Command.Catalog
   alias Draught.CLI.Interactive.Command.Catalog.Entry
 
-  @doc "Renders the active and reserved interactive command index."
+  @doc "Renders the command index with explicit availability labels."
   @spec render() :: iodata()
   def render do
     [
-      "Available commands:\n",
+      "Available now:\n",
       lines(Catalog.active()),
-      "\nReserved commands:\n",
+      "\nPlanned commands (not available yet):\n",
       lines(Catalog.reserved()),
-      "\nInput forms:\n",
+      "\nPlanned input forms (not available yet):\n",
       "  @QUERY         Reserved for workspace file selection\n",
       "  !COMMAND       Reserved for confined direct commands\n"
     ]

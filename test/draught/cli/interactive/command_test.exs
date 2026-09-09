@@ -286,7 +286,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
     assert plain_output =~ ">_ Draught"
     assert plain_output =~ "model:     qwen3"
     assert plain_output =~ "Session status"
-    assert plain_output =~ "Available commands:"
+    assert plain_output =~ "Available now:"
     assert plain_output =~ "Session ID: 00000000-0000-4000-8000-000000000001"
     assert_receive :interactive_terminal_restored
   end

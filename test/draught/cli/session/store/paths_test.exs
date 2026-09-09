@@ -19,6 +19,7 @@ defmodule Draught.CLI.Session.Store.PathsTest do
     assert paths.session == Path.join([paths.workspace, "sessions", "review"])
     assert paths.marker == Path.join(paths.session, ".draught-session")
     assert paths.metadata == Path.join(paths.session, "metadata.json")
+    assert paths.preview == Path.join(paths.session, "preview.json")
     assert byte_size(paths.key) == 64
     refute paths.session =~ workspace
   end

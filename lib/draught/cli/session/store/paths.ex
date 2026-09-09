@@ -14,6 +14,7 @@ defmodule Draught.CLI.Session.Store.Paths do
     :key,
     :marker,
     :metadata,
+    :preview,
     :root,
     :session,
     :workspace
@@ -25,6 +26,7 @@ defmodule Draught.CLI.Session.Store.Paths do
     :key,
     :marker,
     :metadata,
+    :preview,
     :root,
     :session,
     :workspace
@@ -37,6 +39,7 @@ defmodule Draught.CLI.Session.Store.Paths do
           key: String.t(),
           marker: String.t(),
           metadata: String.t(),
+          preview: String.t(),
           root: String.t(),
           session: String.t(),
           workspace: String.t()
@@ -76,6 +79,7 @@ defmodule Draught.CLI.Session.Store.Paths do
        key: key,
        marker: Path.join(session, ".draught-session"),
        metadata: Path.join(session, "metadata.json"),
+       preview: Path.join(session, "preview.json"),
        root: scope.root,
        session: session,
        workspace: scope.workspace

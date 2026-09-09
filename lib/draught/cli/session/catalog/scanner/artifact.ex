@@ -13,7 +13,7 @@ defmodule Draught.CLI.Session.Catalog.Scanner.Artifact do
 
   @maximum_bytes 4_096
   @mode 0o600
-  @name ~r/\A\.(?:binding|metadata)-[A-Za-z0-9_-]{16}\.tmp\z/
+  @name ~r/\A\.(?:binding|metadata|preview)-[A-Za-z0-9_-]{16}\.tmp\z/
 
   @doc "Accepts one bounded owner-only atomic-write artifact."
   @spec validate(String.t(), String.t()) :: :ok | {:error, term()}

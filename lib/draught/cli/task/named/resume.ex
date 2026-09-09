@@ -6,6 +6,7 @@ defmodule Draught.CLI.Task.Named.Resume do
   alias Draught.CLI.Task.Named.History
   alias Draught.CLI.Task.Named.Input
   alias Draught.CLI.Task.Named.Lease
+  alias Draught.CLI.Task.Named.Preview.Recorder
   alias Draught.CLI.Task.Named.Resume.BindingState
   alias Draught.CLI.Task.Named.Resume.Validation
   alias Draught.CLI.Task.OneShot
@@ -41,7 +42,9 @@ defmodule Draught.CLI.Task.Named.Resume do
            ),
          :ok <- Validation.verify(binding.value, replay, preparation),
          :ok <- BindingState.upgrade(binding, preparation, store) do
-      OneShot.run_observed(input.identifier, preparation, stream)
+      input.identifier
+      |> OneShot.run_observed(preparation, stream)
+      |> Recorder.record(store.paths, input.prompt)
     else
       {:error, _category, _error} = result -> {result, stream}
     end

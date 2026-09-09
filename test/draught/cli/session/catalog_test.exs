@@ -4,6 +4,7 @@ defmodule Draught.CLI.Session.CatalogTest do
   alias Draught.CLI.Session.Binding
   alias Draught.CLI.Session.Catalog
   alias Draught.CLI.Session.Catalog.Local
+  alias Draught.CLI.Session.Catalog.Preview
   alias Draught.CLI.Session.Catalog.Scanner.Artifact
   alias Draught.CLI.Session.Store
   alias Draught.CLI.Session.Store.Scope
@@ -24,6 +25,17 @@ defmodule Draught.CLI.Session.CatalogTest do
     assert entry.archive == :active
     assert entry.provider == "ollama"
     assert entry.model == "qwen3"
+    assert entry.preview == nil
+  end
+
+  test "projects the latest bounded prompt without replaying the journal", %{tmp_dir: root} do
+    {workspace, environment} = context(root)
+    paths = create_session(workspace, environment, "session-01", "qwen3")
+    assert {:ok, preview} = Preview.new("session-01", "  Inspect\n\e[31mthe   parser  ")
+    assert :ok = Preview.Local.put(paths, preview)
+
+    assert {:ok, [entry]} = Catalog.list(adapter(), workspace, environment)
+    assert entry.preview == "Inspect the parser"
   end
 
   test "renames, archives, rejects resume, and restores under the session lease", %{tmp_dir: root} do
@@ -137,6 +149,12 @@ defmodule Draught.CLI.Session.CatalogTest do
     File.chmod!(artifact, 0o644)
     assert {:error, error} = Catalog.list(adapter(), workspace, environment)
     assert error.code == "session_storage_unsafe"
+
+    File.rm!(artifact)
+    preview_artifact = Path.join(scope.sessions, ".preview-AAAAAAAAAAAAAAAA.tmp")
+    File.write!(preview_artifact, "partial")
+    File.chmod!(preview_artifact, 0o600)
+    assert {:ok, [%{id: "session-01"}]} = Catalog.list(adapter(), workspace, environment)
   end
 
   test "fetches and archives a known ID when the complete catalog exceeds its limit", %{

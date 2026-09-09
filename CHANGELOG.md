@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.1.0-beta.4 - 2026-09-09
+
 ### Added
 
 - Bounded workspace and user `SKILL.md` discovery with explicit `/skills` listing and `/skill REF` invocation through the existing agent-turn authority boundaries.

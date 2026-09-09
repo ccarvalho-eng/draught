@@ -76,6 +76,10 @@ defmodule Draught.Execution.Runner.ToolBatch.ProgressTest do
     assert Progress.refresh(context.seen, messages, nil) == context.seen
   end
 
+  test "retains duplicate guards only while their execution history remains present", context do
+    assert Progress.retain(context.seen, context.retained) == context.retained
+  end
+
   defp message(name, status) do
     {:ok, result} =
       Result.new(

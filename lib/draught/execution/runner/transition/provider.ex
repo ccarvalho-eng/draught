@@ -41,19 +41,34 @@ defmodule Draught.Execution.Runner.Transition.Provider do
 
   defp accept_response(%State{} = state, %Response{message: %{tool_calls: calls}} = response) do
     key = ToolBatch.key(calls)
-    accept_batch(MapSet.member?(state.seen_batches, key), state, response, calls, key)
+    seen? = MapSet.member?(state.seen_batches, key)
+    rejected? = MapSet.member?(state.rejected_batches, key)
+    accept_batch(seen?, rejected?, state, response, calls, key)
   end
 
-  defp accept_batch(true, state, _response, _calls, _key) do
+  defp accept_batch(true, true, state, _response, _calls, _key) do
     {:ok, fail(state, Failure.duplicate_tool_batch())}
   end
 
-  defp accept_batch(false, %State{} = state, response, calls, key) do
+  defp accept_batch(true, false, %State{} = state, response, calls, key) do
     {:ok,
      %State{
        state
        | messages: Enum.concat(state.messages, [response.message]),
          pending_calls: calls,
+         pending_tool_action: :reject_duplicate,
+         rejected_batches: MapSet.put(state.rejected_batches, key),
+         status: :waiting_tools
+     }}
+  end
+
+  defp accept_batch(false, _rejected, %State{} = state, response, calls, key) do
+    {:ok,
+     %State{
+       state
+       | messages: Enum.concat(state.messages, [response.message]),
+         pending_calls: calls,
+         pending_tool_action: :execute,
          seen_batches: MapSet.put(state.seen_batches, key),
          status: :waiting_tools
      }}
@@ -80,7 +95,7 @@ defmodule Draught.Execution.Runner.Transition.Provider do
   end
 
   defp fail(state, error) do
-    %{state | outcome: error, pending_calls: [], status: :failed}
+    %{state | outcome: error, pending_calls: [], pending_tool_action: nil, status: :failed}
   end
 
   defp invalid_transition do

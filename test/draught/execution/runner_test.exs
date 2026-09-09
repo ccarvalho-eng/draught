@@ -292,7 +292,7 @@ defmodule Draught.Execution.RunnerTest do
     assert run(provider, registry, workspace, first_request, limits: limits) == {:ok, final}
   end
 
-  test "stops a repeated semantic tool batch", %{tmp_dir: workspace} do
+  test "returns a repeated semantic tool batch as recoverable feedback", %{tmp_dir: workspace} do
     registry = registry([echo_definition()])
     user = user("work")
     first_request = request([user], registry)
@@ -303,15 +303,47 @@ defmodule Draught.Execution.RunnerTest do
     repeated = call("call-2", "echo", %{"value" => "same"})
     repeated_tools = tool_response([repeated])
 
+    feedback =
+      error_result(
+        repeated,
+        :policy,
+        "duplicate_tool_call",
+        "Repeated tool call was not executed",
+        "This exact tool call was already attempted earlier in this turn. " <>
+          "Reuse its result or change the request."
+      )
+
+    third_request =
+      request(
+        [
+          user,
+          first_tools.message,
+          tool_message(first_result),
+          repeated_tools.message,
+          tool_message(feedback)
+        ],
+        registry
+      )
+
+    final = response("used the existing result")
+
     provider =
       fake([
         route(first_request, {:ok, first_tools}),
-        route(second_request, {:ok, repeated_tools})
+        route(second_request, {:ok, repeated_tools}),
+        route(third_request, {:ok, final})
       ])
 
-    assert {:error, error} = run(provider, registry, workspace, first_request)
+    assert run(provider, registry, workspace, first_request) == {:ok, final}
 
-    assert error.code == "duplicate_tool_batch"
+    assert receive_events(6) == [
+             {:provider_result, 1, {:ok, first_tools}},
+             {:tool_result, 1, first_result},
+             {:provider_result, 2, {:ok, repeated_tools}},
+             {:tool_result, 2, feedback},
+             {:provider_result, 3, {:ok, final}},
+             {:terminal, {:ok, final}}
+           ]
   end
 
   test "reads the same file again to verify a successful approved edit", %{tmp_dir: workspace} do
@@ -536,14 +568,14 @@ defmodule Draught.Execution.RunnerTest do
     result
   end
 
-  defp error_result(call, kind, code, message) do
+  defp error_result(call, kind, code, message, content \\ "") do
     {:ok, error} = Normalized.new(kind, code, message, retryable: false)
 
     {:ok, result} =
       Result.new(
         call_id: call.id,
         name: call.name,
-        content: "",
+        content: content,
         status: :error,
         error: error
       )

@@ -1,9 +1,10 @@
 defmodule Draught.Execution.Runner.ToolExecution do
   @moduledoc """
-  Executes one ordered batch of tool calls for the runner.
+  Handles one ordered batch of tool calls for the runner.
 
-  Calls run sequentially under the configured timeout. Each canonical result
-  is emitted before its corresponding conversation message is returned.
+  New calls run sequentially under the configured timeout. Repeated calls can
+  be rejected without effects. Each canonical result is emitted before its
+  corresponding conversation message is returned.
   """
 
   alias Draught.Error.Normalized
@@ -26,8 +27,27 @@ defmodule Draught.Execution.Runner.ToolExecution do
     |> reverse()
   end
 
+  @doc "Rejects one repeated batch without executing effects and publishes matching results."
+  @spec reject_duplicate(Configuration.t(), pos_integer(), [Call.t()]) ::
+          {:ok, [Draught.Conversation.Message.Tool.t()]} | {:error, Normalized.t()}
+  def reject_duplicate(%Configuration{} = configuration, iteration, calls) do
+    calls
+    |> Enum.reduce_while({:ok, []}, fn call, {:ok, messages} ->
+      reject_step(configuration, iteration, call, messages)
+    end)
+    |> reverse()
+  end
+
   defp execute_step(configuration, iteration, call, messages) do
-    with {:ok, result, message} <- execute(configuration, call),
+    publish(execute(configuration, call), configuration, iteration, messages)
+  end
+
+  defp reject_step(configuration, iteration, call, messages) do
+    publish(Outcome.duplicate(call), configuration, iteration, messages)
+  end
+
+  defp publish(outcome, configuration, iteration, messages) do
+    with {:ok, result, message} <- outcome,
          :ok <- Sink.emit(configuration.sink, {:tool_result, iteration, result}) do
       {:cont, {:ok, [message | messages]}}
     else

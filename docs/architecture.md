@@ -323,7 +323,8 @@ stateDiagram-v2
   Ready --> Failed: iteration limit reached
   WaitingProvider --> Completed: final response
   WaitingProvider --> WaitingTools: new tool-call batch
-  WaitingProvider --> Failed: provider failure or repeated batch
+  WaitingProvider --> WaitingTools: first repeated batch, reject effects
+  WaitingProvider --> Failed: provider failure or repeated batch after feedback
   WaitingTools --> Ready: one ordered result per call
   Completed --> [*]
   Failed --> [*]

@@ -18,6 +18,8 @@ defmodule Draught.Execution.Runner.State do
     :messages,
     :outcome,
     :pending_calls,
+    :pending_tool_action,
+    :rejected_batches,
     :request,
     :seen_batches,
     :status
@@ -28,12 +30,15 @@ defmodule Draught.Execution.Runner.State do
     :messages,
     :outcome,
     :pending_calls,
+    :pending_tool_action,
+    :rejected_batches,
     :request,
     :seen_batches,
     :status
   ]
 
   @type status :: :completed | :failed | :ready | :waiting_provider | :waiting_tools
+  @type pending_tool_action :: :execute | :reject_duplicate | nil
   @type outcome :: Response.t() | Normalized.t() | nil
   @type t :: %__MODULE__{
           iteration: non_neg_integer(),
@@ -41,6 +46,8 @@ defmodule Draught.Execution.Runner.State do
           messages: [Draught.Conversation.Message.t()],
           outcome: outcome(),
           pending_calls: [Call.t()],
+          pending_tool_action: pending_tool_action(),
+          rejected_batches: MapSet.t([{String.t(), map()}]),
           request: Request.t(),
           seen_batches: MapSet.t([{String.t(), map()}]),
           status: status()
@@ -58,6 +65,8 @@ defmodule Draught.Execution.Runner.State do
          messages: canonical_request.messages,
          outcome: nil,
          pending_calls: [],
+         pending_tool_action: nil,
+         rejected_batches: MapSet.new(),
          request: canonical_request,
          seen_batches: MapSet.new(),
          status: :ready
@@ -69,6 +78,12 @@ defmodule Draught.Execution.Runner.State do
   @spec pending_calls(t()) :: [Call.t()]
   def pending_calls(%__MODULE__{pending_calls: calls}) do
     calls
+  end
+
+  @doc "Returns the effect or rejection action for the pending tool batch."
+  @spec pending_tool_action(t()) :: pending_tool_action()
+  def pending_tool_action(%__MODULE__{pending_tool_action: action}) do
+    action
   end
 
   @doc "Returns the current terminal outcome or `:running`."

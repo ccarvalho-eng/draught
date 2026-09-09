@@ -27,6 +27,7 @@ defmodule Draught.CLI.Task.Named.Input do
     :identifier,
     :operation,
     :prompt,
+    :session_label,
     :system_prompt,
     :workspace
   ]
@@ -38,6 +39,7 @@ defmodule Draught.CLI.Task.Named.Input do
           identifier: String.t(),
           operation: :create | :resume,
           prompt: String.t(),
+          session_label: String.t() | nil,
           system_prompt: String.t(),
           workspace: String.t()
         }
@@ -80,5 +82,16 @@ defmodule Draught.CLI.Task.Named.Input do
   def put_system_prompt(%__MODULE__{operation: :create} = input, system_prompt)
       when is_binary(system_prompt) do
     %{input | system_prompt: system_prompt}
+  end
+
+  @doc "Associates an optional validated display name with a fresh session."
+  @spec put_session_label(t(), String.t() | nil) :: t()
+  def put_session_label(%__MODULE__{operation: :create} = input, nil) do
+    input
+  end
+
+  def put_session_label(%__MODULE__{operation: :create} = input, session_label)
+      when is_binary(session_label) do
+    %{input | session_label: session_label}
   end
 end

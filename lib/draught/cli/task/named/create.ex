@@ -3,8 +3,7 @@ defmodule Draught.CLI.Task.Named.Create do
   Creates a bound named session and executes its first durable task turn.
   """
 
-  alias Draught.CLI.Session.Binding
-  alias Draught.CLI.Session.Binding.Local
+  alias Draught.CLI.Task.Named.Create.Initialization
   alias Draught.CLI.Task.Named.History
   alias Draught.CLI.Task.Named.Input
   alias Draught.CLI.Task.Named.Lease
@@ -36,9 +35,7 @@ defmodule Draught.CLI.Task.Named.Create do
   end
 
   defp initialize(input, preparation, store, stream) do
-    binding = Binding.new(input.configuration, preparation)
-
-    case Local.create(store.paths, binding) do
+    case Initialization.persist(input, preparation, store) do
       :ok -> execute(input, preparation, store, stream)
       {:error, error} -> {Lease.abort(store, error), stream}
     end

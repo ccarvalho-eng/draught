@@ -221,7 +221,7 @@ defmodule Draught.CLI.UI do
   end
 
   def session_error(:session_not_persisted) do
-    "Complete the first turn before renaming or archiving this session.\n"
+    "Complete the first turn before archiving this session.\n"
   end
 
   def session_error(_reason) do
@@ -331,16 +331,16 @@ defmodule Draught.CLI.UI do
     ]
   end
 
-  defp session_identity(%Entry{id: id, label: id, preview: nil}) do
+  defp session_identity(%Entry{id: id, label: label}) when label != id do
+    safe(label)
+  end
+
+  defp session_identity(%Entry{preview: preview}) when is_binary(preview) do
+    safe(preview)
+  end
+
+  defp session_identity(%Entry{id: id}) do
     safe(id)
-  end
-
-  defp session_identity(%Entry{id: id, label: id, preview: preview}) do
-    [safe(id), "  ", safe(preview)]
-  end
-
-  defp session_identity(%Entry{id: id, label: label}) do
-    [safe(label), "  ", safe(id)]
   end
 
   defp current(true) do

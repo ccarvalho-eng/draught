@@ -578,6 +578,74 @@ defmodule Draught.CLI.Interactive.CommandTest do
   end
 
   @tag :tmp_dir
+  test "persists a session name selected before the first turn", %{
+    tmp_dir: temporary_directory
+  } do
+    identifier = "00000000-0000-4000-8000-000000000001"
+    input({:ok, "/rename Review session\n"})
+    input({:ok, "create durable history\n"})
+    input({:ok, "/sessions\n"})
+    input({:ok, "/exit\n"})
+
+    dependencies = dependencies(cwd: temporary_directory, state: temporary_directory)
+
+    assert CLI.run([], dependencies) == 0
+    output = plain(receive_output())
+    assert output =~ "Session renamed to Review session."
+    assert output =~ "1. * Review session  ollama/qwen3"
+    refute output =~ "Complete the first turn before renaming"
+    assert output =~ "Session ID: #{identifier}"
+    assert_receive :interactive_terminal_restored
+
+    assert {:ok, [entry]} =
+             Catalog.list(
+               {Local, nil},
+               temporary_directory,
+               environment(state: temporary_directory)
+             )
+
+    assert entry.id == identifier
+    assert entry.label == "Review session"
+    assert entry.preview == "create durable history"
+  end
+
+  @tag :tmp_dir
+  test "retains a fresh session name when the first provider turn fails", %{
+    tmp_dir: temporary_directory
+  } do
+    {:ok, failure} =
+      Normalized.new(:protocol, "provider_failed", "Provider failed", retryable: false)
+
+    input({:ok, "/rename Failed review\n"})
+    input({:ok, "fail after initialization\n"})
+    input({:ok, "/sessions\n"})
+    input({:ok, "/exit\n"})
+
+    dependencies =
+      dependencies(
+        cwd: temporary_directory,
+        provider_response: {:error, failure},
+        state: temporary_directory
+      )
+
+    assert CLI.run([], dependencies) == 0
+    output = plain(receive_output())
+    assert output =~ "Task failed (provider_failed)"
+    assert output =~ "1. * Failed review  ollama/qwen3"
+    assert_receive :interactive_terminal_restored
+
+    assert {:ok, [entry]} =
+             Catalog.list(
+               {Local, nil},
+               temporary_directory,
+               environment(state: temporary_directory)
+             )
+
+    assert entry.label == "Failed review"
+    assert entry.preview == nil
+  end
+
+  @tag :tmp_dir
   test "manages session labels, archive state, restore, and selection inside the shell", %{
     tmp_dir: temporary_directory
   } do
@@ -844,8 +912,8 @@ defmodule Draught.CLI.Interactive.CommandTest do
     assert CLI.run(["--resume", first], dependencies) == 0
     output = plain(receive_output())
     assert output =~ "model:     qwen3"
-    assert output =~ "1. * #{first}"
-    assert output =~ "2.   #{second}"
+    assert output =~ "1. * create first  ollama/qwen3"
+    assert output =~ "2.   create second  ollama/deepseek-r1"
     assert output =~ "Selected session #{second}."
     assert output =~ "Model: deepseek-r1"
     assert output =~ "Session ID: #{second}"

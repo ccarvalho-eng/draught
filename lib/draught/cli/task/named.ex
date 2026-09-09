@@ -8,6 +8,11 @@ defmodule Draught.CLI.Task.Named do
   alias Draught.CLI.Task.Named.Resume
   alias Draught.CLI.Task.Stream
 
+  @type create_options :: %{
+          required(:session_label) => String.t() | nil,
+          required(:system_prompt) => String.t()
+        }
+
   @doc "Executes one create or resume turn while holding the named session lease."
   @spec run(
           Draught.CLI.Session.Store.mode(),
@@ -118,7 +123,7 @@ defmodule Draught.CLI.Task.Named do
           map(),
           Draught.CLI.Task.Dependencies.t(),
           Stream.t(),
-          String.t()
+          create_options()
         ) :: {Draught.CLI.Task.result(), Stream.t()}
   def create_observed(
         identifier,
@@ -128,7 +133,7 @@ defmodule Draught.CLI.Task.Named do
         environment,
         dependencies,
         stream,
-        system_prompt
+        %{system_prompt: system_prompt, session_label: session_label}
       )
       when is_binary(system_prompt) do
     input =
@@ -142,6 +147,7 @@ defmodule Draught.CLI.Task.Named do
         dependencies
       )
       |> Input.put_system_prompt(system_prompt)
+      |> Input.put_session_label(session_label)
 
     execute(input, stream, :stream)
   end

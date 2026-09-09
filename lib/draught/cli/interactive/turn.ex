@@ -41,7 +41,8 @@ defmodule Draught.CLI.Interactive.Turn do
         model: state.model,
         prompt: prompt,
         resume: nil,
-        session: nil
+        session: nil,
+        session_label: session_label(state)
     }
 
     session_invocation(selected, state)
@@ -53,6 +54,19 @@ defmodule Draught.CLI.Interactive.Turn do
 
   defp session_invocation(invocation, %State{persisted?: false} = state) do
     %{invocation | session: state.session_id}
+  end
+
+  defp session_label(%State{
+         persisted?: false,
+         session_id: identifier,
+         session_label: label
+       })
+       when label != identifier do
+    label
+  end
+
+  defp session_label(%State{}) do
+    nil
   end
 
   defp persisted?(status, state, dependencies) do

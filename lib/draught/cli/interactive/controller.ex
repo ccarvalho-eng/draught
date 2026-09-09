@@ -302,6 +302,16 @@ defmodule Draught.CLI.Interactive.Controller do
   end
 
   defp handle_skill_result(
+         {:ok, :index},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    continue(:skill_index, state, configuration, invocation, dependencies)
+  end
+
+  defp handle_skill_result(
          {:ok, {:catalog, catalog}},
          state,
          configuration,

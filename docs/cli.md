@@ -130,7 +130,9 @@ The available commands are:
 | `/doctor` | Runs the read-only diagnostic command and returns to the prompt. |
 | `/model [reference]` | Lists compatible models or selects one by list number or exact name. |
 | `/tools` | Lists enabled built-in tools with descriptions and risk classes, plus optional web-tool state. |
-| `/skills` | Lists bounded skill metadata from workspace and user roots. |
+| `/skills` | Shows the available skill catalogs. |
+| `/custom-skills` | Lists bounded skill metadata from workspace and user roots. |
+| `/builtin-skills` | Lists the packaged built-in skill catalog. |
 | `/skill REF [ARGUMENTS]` | Loads one explicitly selected skill by list number or exact name, supplies optional arguments, and applies it through the ordinary agent-turn path. |
 | `/sessions` | Lists bounded active, archived, and unavailable records for the current workspace. |
 | `/resume [reference]` | Selects an active session by list number, exact ID, or unique display name. With no argument, lists active sessions. |
@@ -148,7 +150,7 @@ The `/help` index labels planned commands and input forms as not available yet. 
 
 Skill discovery is documented in [Skills](skills.md). Listing exposes only metadata; selecting `/skill REF` loads and frames the complete instructions for one explicit turn. Exact names take precedence over one-based list positions. Skill contents cannot change the task's tool, approval, web, confinement, provider, or runtime authority.
 
-The prompt loop is text- and terminal-only. A bounded provider, runner, or tool failure ends only the active turn; the shell reports the failure and accepts another prompt from the last complete durable history. Raw terminal mode is scoped to one idle prompt and is restored before task execution, approval input, exit, end of input, cancellation, or input failure. Terminals without compatible raw-mode support retain the bounded cooked line reader. Ordinary exit prints `Session ID: ID`. Tab completes slash-command prefixes. After `/model` or `/skills` loads its corresponding bounded inventory, Tab also completes exact model or skill-name prefixes. Completion reads only the current in-memory catalog and performs no network or filesystem work. Active-turn keyboard cancellation, fuzzy selection, provider selection, and queued input remain pending.
+The prompt loop is text- and terminal-only. A bounded provider, runner, or tool failure ends only the active turn; the shell reports the failure and accepts another prompt from the last complete durable history. Raw terminal mode is scoped to one idle prompt and is restored before task execution, approval input, exit, end of input, cancellation, or input failure. Terminals without compatible raw-mode support retain the bounded cooked line reader. Ordinary exit prints `Session ID: ID`. Tab completes slash-command prefixes. After `/model`, `/custom-skills`, or `/builtin-skills` loads its corresponding bounded inventory, Tab also completes exact model or skill-name prefixes. Completion reads only the current in-memory catalog and performs no network or filesystem work. Active-turn keyboard cancellation, fuzzy selection, provider selection, and queued input remain pending.
 
 ## Doctor
 

@@ -3,7 +3,7 @@ defmodule Draught.Skill.BuiltinCatalogTest do
 
   alias Draught.Skill.Definition
   alias Draught.Skill.Prompt
-  alias Draught.Skill.Repository.Local
+  alias Draught.Skill.Repository.Builtin
 
   @catalog Application.app_dir(:draught, "priv/builtin_skills/catalog")
 
@@ -40,15 +40,13 @@ defmodule Draught.Skill.BuiltinCatalogTest do
   end
 
   test "loads and frames every built-in skill with its bounded references" do
-    configuration = %{builtin_root: @catalog}
-
-    assert {:ok, catalog} = Local.list("/workspace", %{}, configuration)
+    assert {:ok, catalog} = Builtin.list("/workspace", %{}, nil)
     assert Enum.count(catalog.entries) == 48
     assert Enum.all?(catalog.entries, &(&1.origin == :builtin))
 
     Enum.each(catalog.entries, fn metadata ->
       assert {:ok, definition} =
-               Local.fetch(metadata.name, "/workspace", %{}, configuration)
+               Builtin.fetch(metadata.name, "/workspace", %{}, nil)
 
       assert {:ok, prompt} = Prompt.render(definition, "focused request")
       assert prompt =~ ~s("arguments":"focused request")

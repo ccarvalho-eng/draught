@@ -28,19 +28,51 @@ defmodule Draught.CLI.Interactive.Skill.CommandTest do
     end
   end
 
-  test "lists bounded metadata without fetching instruction bodies" do
+  test "renders an index without reading the repository" do
+    dependencies = dependencies([])
+
+    assert Command.run(:skills, nil, state(), dependencies) == {:ok, :index}
+    refute_receive :skill_list
+  end
+
+  test "lists bounded custom metadata without fetching instruction bodies" do
     metadata = %Metadata{
       description: "Review changes",
       name: "review",
       origin: :workspace_draught
     }
 
-    dependencies = dependencies(list: {:ok, Catalog.new([metadata], 1)})
+    builtin = %Metadata{
+      description: "Apply Elixir idioms",
+      name: "elixir-idioms",
+      origin: :builtin
+    }
 
-    assert Command.run(:skills, nil, state(), dependencies) ==
+    dependencies = dependencies(list: {:ok, Catalog.new([metadata, builtin], 1)})
+
+    assert Command.run(:"custom-skills", nil, state(), dependencies) ==
              {:ok, {:catalog, Catalog.new([metadata], 1)}}
 
     refute_receive {:skill_fetch, _name}
+  end
+
+  test "lists only built-in metadata" do
+    custom = %Metadata{
+      description: "Review changes",
+      name: "review",
+      origin: :workspace_draught
+    }
+
+    builtin = %Metadata{
+      description: "Apply Elixir idioms",
+      name: "elixir-idioms",
+      origin: :builtin
+    }
+
+    dependencies = dependencies(list: {:ok, Catalog.new([custom, builtin], 0)})
+
+    assert Command.run(:"builtin-skills", nil, state(), dependencies) ==
+             {:ok, {:catalog, Catalog.new([builtin], 0)}}
   end
 
   test "loads and frames only the explicitly selected skill" do
@@ -104,6 +136,29 @@ defmodule Draught.CLI.Interactive.Skill.CommandTest do
     assert_receive {:skill_fetch, "2"}
     assert_receive :skill_list
     assert_receive {:skill_fetch, "testing"}
+  end
+
+  test "selects positions from the most recently displayed scoped catalog" do
+    builtin = definition("builtin-review", "Review with built-in guidance")
+
+    dependencies =
+      dependencies(fetch: %{"builtin-review" => {:ok, builtin}})
+
+    {:ok, state} = State.display_skills(state(), ["builtin-review"])
+
+    assert {:ok, {:invoke, "builtin-review", _prompt}} =
+             Command.run(:skill, "1", state, dependencies)
+
+    refute_receive :skill_list
+    assert_receive {:skill_fetch, "builtin-review"}
+  end
+
+  test "does not fall back to the combined catalog after displaying an empty scope" do
+    dependencies = dependencies(fetch: %{})
+    {:ok, state} = State.display_skills(state(), [])
+
+    assert Command.run(:skill, "1", state, dependencies) == {:error, :not_found}
+    refute_receive :skill_list
   end
 
   test "prefers an exact numeric skill name over the matching position" do

@@ -16,10 +16,11 @@ defmodule Draught.CLI.Dependencies.Defaults do
   end
 
   @doc "Returns the local skill repository with the packaged built-in catalog."
-  @spec skill_repository() :: {module(), %{required(:builtin_root) => String.t()}}
+  @spec skill_repository() ::
+          {module(), %{required(:builtin_repository) => {module(), term()}}}
   def skill_repository do
-    root = Application.app_dir(:draught, "priv/builtin_skills/catalog")
-    {Draught.Skill.Repository.Local, %{builtin_root: root}}
+    configuration = %{builtin_repository: {Draught.Skill.Repository.Builtin, nil}}
+    {Draught.Skill.Repository.Local, configuration}
   end
 
   @doc "Returns the local CLI system adapter."

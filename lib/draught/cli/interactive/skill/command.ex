@@ -10,19 +10,31 @@ defmodule Draught.CLI.Interactive.Skill.Command do
   alias Draught.CLI.Interactive.Skill.Invocation
   alias Draught.CLI.Interactive.Skill.Reference
   alias Draught.CLI.Interactive.State
+  alias Draught.Skill.Catalog
   alias Draught.Skill.Name
   alias Draught.Skill.Prompt
 
   @type result ::
           {:ok, {:catalog, Draught.Skill.Catalog.t()}}
+          | {:ok, :index}
           | {:ok, {:invoke, String.t(), String.t()}}
           | {:error, atom()}
 
   @doc "Lists skills or prepares one explicit invocation without running a provider."
-  @spec run(:skill | :skills, String.t() | nil, State.t(), Dependencies.t()) :: result()
-  def run(:skills, nil, %State{} = state, %Dependencies{} = dependencies) do
+  @spec run(
+          :"builtin-skills" | :"custom-skills" | :skill | :skills,
+          String.t() | nil,
+          State.t(),
+          Dependencies.t()
+        ) :: result()
+  def run(:skills, nil, %State{}, %Dependencies{}) do
+    {:ok, :index}
+  end
+
+  def run(scope, nil, %State{} = state, %Dependencies{} = dependencies)
+      when scope in [:"builtin-skills", :"custom-skills"] do
     case list(state, dependencies) do
-      {:ok, catalog} -> {:ok, {:catalog, catalog}}
+      {:ok, catalog} -> {:ok, {:catalog, scope(catalog, scope)}}
       {:error, reason} -> {:error, reason}
     end
   end
@@ -53,8 +65,7 @@ defmodule Draught.CLI.Interactive.Skill.Command do
 
   defp invocation({:error, :not_found}, reference, arguments, state, dependencies) do
     with {:ok, position} <- Reference.position(reference),
-         {:ok, catalog} <- list(state, dependencies),
-         {:ok, name} <- Reference.name(position, catalog),
+         {:ok, name} <- position_name(position, state, dependencies),
          {:ok, definition} <- fetch(name, state, dependencies) do
       render_invocation(definition, name, arguments)
     end
@@ -68,6 +79,29 @@ defmodule Draught.CLI.Interactive.Skill.Command do
     case Prompt.render(definition, arguments) do
       {:ok, prompt} -> {:ok, {:invoke, name, prompt}}
       {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp scope(%Catalog{} = catalog, :"builtin-skills") do
+    entries = Enum.filter(catalog.entries, &(&1.origin == :builtin))
+    Catalog.new(entries, catalog.rejected)
+  end
+
+  defp scope(%Catalog{} = catalog, :"custom-skills") do
+    entries = Enum.reject(catalog.entries, &(&1.origin == :builtin))
+    Catalog.new(entries, catalog.rejected)
+  end
+
+  defp position_name(position, state, dependencies) do
+    case State.displayed_skills(state) do
+      {:ok, names} -> Reference.name(position, names)
+      {:error, :skill_list_required} -> catalog_position_name(position, state, dependencies)
+    end
+  end
+
+  defp catalog_position_name(position, state, dependencies) do
+    with {:ok, catalog} <- list(state, dependencies) do
+      Reference.name(position, catalog)
     end
   end
 

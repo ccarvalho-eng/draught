@@ -2,7 +2,7 @@
 
 Draught skills are reusable, instruction-only Markdown documents. They use a directory-based `SKILL.md` format and run through the ordinary provider-neutral agent turn. A skill does not register code, tools, providers, or commands.
 
-Draught includes 48 built-in Elixir and Phoenix skills covering planning, implementation, review, testing, OTP, Ecto, LiveView, operations, documentation, and related workflows. Run `/skills` to inspect the effective catalog and its source scopes.
+Draught includes 48 built-in Elixir and Phoenix skills covering planning, implementation, review, testing, OTP, Ecto, LiveView, operations, documentation, and related workflows. Run `/skills` to see the available catalog commands, `/custom-skills` for workspace and user skills, or `/builtin-skills` for the packaged catalog.
 
 ## Create a skill
 
@@ -38,7 +38,7 @@ Draught scans one directory level in this order:
 2. `<workspace>/.agents/skills`
 3. `$XDG_CONFIG_HOME/draught/skills`, falling back to `$HOME/.config/draught/skills`
 4. `$AGENTS_HOME/skills`, falling back to `$HOME/.agents/skills`
-5. The packaged built-in catalog
+5. The built-in catalog embedded in the application
 
 The first valid definition of a name wins. This lets workspace-specific guidance override shared user and built-in guidance without merging instruction bodies. Duplicate lower-precedence definitions remain inactive.
 
@@ -50,12 +50,14 @@ Inside an interactive session:
 
 ```text
 /skills
+/custom-skills
+/builtin-skills
 /skill 1 lib/my_app/accounts.ex
 ```
 
-`/skills` reads a bounded file prefix and displays only names, descriptions, and source scopes; it neither returns nor frames complete instruction bodies. The resulting canonical names are retained as metadata-only completion state, so Tab can complete `/skill NAME` without another filesystem read. `/skill REF [ARGUMENTS]` accepts a one-based list position or exact name, resolves the same precedence order, reads that one complete file, and starts an ordinary agent turn with the selected instructions and optional arguments. Exact names take precedence when a skill has a numeric name. The turn uses the active model and session and follows the same streaming, approval, tool, journal, cancellation, and failure behavior as typed task text.
+`/skills` displays a compact index. `/custom-skills` reads bounded metadata from workspace and user roots, while `/builtin-skills` reads immutable metadata embedded when Draught is compiled. Both catalogs display short descriptions without returning or framing complete instruction bodies. The resulting canonical names are retained as metadata-only completion state, so Tab can complete `/skill NAME` without another filesystem read. `/skill REF [ARGUMENTS]` accepts a one-based position from the most recently listed catalog or an exact name, reads that one complete definition, and starts an ordinary agent turn with the selected instructions and optional arguments. Exact names take precedence when a skill has a numeric name. The turn uses the active model and session and follows the same streaming, approval, tool, journal, cancellation, and failure behavior as typed task text.
 
-When a built-in skill is selected, Draught appends its direct Markdown references in deterministic filename order. Reference loading is limited to 16 files, 24,576 bytes per file, and 60,000 bytes for the complete entry plus references. The final framed prompt remains subject to the 65,536-byte skill prompt limit. User and workspace skill references are not loaded automatically.
+Built-in definitions and their direct Markdown references are validated and embedded during compilation, so packaged executables do not depend on private files being available through an operating-system path. When a built-in skill is selected, Draught appends its direct references in deterministic filename order. Reference loading is limited to 16 files, 24,576 bytes per file, and 60,000 bytes for the complete entry plus references. The final framed prompt remains subject to the 65,536-byte skill prompt limit. User and workspace skill references are not loaded automatically.
 
 Skill invocation is explicit in this release. Draught does not infer a skill from a prompt, recursively scan directories, watch for filesystem changes, fetch skills from the network, or load referenced files automatically.
 

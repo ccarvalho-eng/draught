@@ -9,9 +9,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Added
 
 - Read-only `/tools` and `/permissions` views for the active built-in catalog, risk admission, approval behavior, workspace, and web capabilities.
-- Tab completion for canonical skill names retained after an explicit `/skills` listing.
+- Tab completion for canonical skill names retained after an explicit skill-catalog listing.
 - A packaged catalog of 48 Elixir and Phoenix skills with bounded reference material, lowest-precedence overrides, and optional invocation arguments.
 - A bounded interactive prompt editor with cursor navigation, multiline input, bracketed paste, and command completion.
+
+### Changed
+
+- Skill discovery is separated into compact `/custom-skills` and `/builtin-skills` catalogs, with bounded descriptions and stable selection from the most recently displayed catalog.
+
+### Fixed
+
+- Built-in skills are embedded in executable code so escript and native distributions can discover them without private-file extraction.
 
 ## 0.1.0-beta.4 - 2026-09-09
 

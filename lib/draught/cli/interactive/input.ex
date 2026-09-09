@@ -13,9 +13,11 @@ defmodule Draught.CLI.Interactive.Input do
 
   @type command ::
           :archive
+          | :"builtin-skills"
           | :clear
           | :compact
           | :context
+          | :"custom-skills"
           | :details
           | :diff
           | :doctor

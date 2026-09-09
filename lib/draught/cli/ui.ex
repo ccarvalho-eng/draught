@@ -12,6 +12,8 @@ defmodule Draught.CLI.UI do
   alias Draught.CLI.UI.SafeLine
   alias Draught.Error.Normalized
 
+  @skill_description_bytes 44
+
   @doc "Renders the initial bounded session card for a known terminal width."
   @spec banner(State.t(), pos_integer(), boolean()) :: iodata()
   def banner(%State{} = state, width, styled?)
@@ -197,7 +199,18 @@ defmodule Draught.CLI.UI do
   end
 
   def skills(%{entries: entries, rejected: rejected}) do
-    ["Skills:\n", skill_lines(entries), rejected_skills(rejected)]
+    [skill_lines(entries), rejected_skills(rejected)]
+  end
+
+  @doc "Renders the compact index for the separate custom and built-in skill catalogs."
+  @spec skill_index() :: iodata()
+  def skill_index do
+    [
+      "Skill catalogs:\n",
+      "  /custom-skills   Workspace and user skills\n",
+      "  /builtin-skills  Packaged skills\n",
+      "  /skill REF       Apply from the last listed catalog\n"
+    ]
   end
 
   @doc "Renders the selected skill before its ordinary agent turn starts."
@@ -334,7 +347,12 @@ defmodule Draught.CLI.UI do
   defp skill_lines(entries) do
     entries
     |> Enum.with_index(1)
-    |> Enum.map(fn {entry, position} -> skill_line(entry, position) end)
+    |> Enum.chunk_by(fn {entry, _position} -> entry.origin end)
+    |> Enum.map(&skill_group/1)
+  end
+
+  defp skill_group([{entry, _position} | _rest] = entries) do
+    [skill_origin(entry.origin), ":\n", Enum.map(entries, &skill_line/1)]
   end
 
   defp tool_lines(entries) do
@@ -356,37 +374,51 @@ defmodule Draught.CLI.UI do
     ]
   end
 
-  defp skill_line(%{description: description, name: name, origin: origin}, position) do
+  defp skill_line({%{description: description, name: name}, position}) do
     [
       Integer.to_string(position),
       ". ",
       safe(name),
       "  ",
-      safe(description),
-      "  (",
-      skill_origin(origin),
-      ")\n"
+      skill_description(description),
+      "\n"
     ]
   end
 
   defp skill_origin(:workspace_draught) do
-    "workspace"
+    "Workspace skills"
   end
 
   defp skill_origin(:workspace_agents) do
-    "workspace shared"
+    "Workspace shared skills"
   end
 
   defp skill_origin(:user_draught) do
-    "user"
+    "User skills"
   end
 
   defp skill_origin(:user_agents) do
-    "user shared"
+    "User shared skills"
   end
 
   defp skill_origin(:builtin) do
-    "built in"
+    "Built-in skills"
+  end
+
+  defp skill_description(description) do
+    description
+    |> SafeLine.text(2_048)
+    |> bounded_skill_description()
+  end
+
+  defp bounded_skill_description(description)
+       when byte_size(description) <= @skill_description_bytes do
+    description
+  end
+
+  defp bounded_skill_description(description) do
+    prefix = SafeLine.text(description, @skill_description_bytes - 3)
+    prefix <> "..."
   end
 
   defp rejected_skills(0) do

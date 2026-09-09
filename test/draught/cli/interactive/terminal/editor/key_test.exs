@@ -16,6 +16,8 @@ defmodule Draught.CLI.Interactive.Terminal.Editor.KeyTest do
   test "decodes navigation, editing, and newline keys" do
     assert read(["\e", "[", "D"]) == :left
     assert read(["\e", "[", "3", "~"]) == :delete
+    assert read(["\e", "[", "1", "3", ";", "2", "u"]) == :newline
+    assert read(["\e", "[", "2", "7", ";", "2", ";", "1", "3", "~"]) == :newline
     assert read(["\e", "\r"]) == :newline
     assert read(["\n"]) == :newline
     assert read(["\r"]) == :submit

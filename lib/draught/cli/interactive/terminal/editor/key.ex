@@ -7,7 +7,7 @@ defmodule Draught.CLI.Interactive.Terminal.Editor.Key do
   """
 
   @paste_end "\e[201~"
-  @maximum_escape_characters 8
+  @maximum_escape_characters 12
 
   @type event ::
           :backspace
@@ -177,6 +177,10 @@ defmodule Draught.CLI.Interactive.Terminal.Editor.Key do
 
   defp escape_key("[3~") do
     :delete
+  end
+
+  defp escape_key(sequence) when sequence in ["[13;2u", "[27;2;13~"] do
+    :newline
   end
 
   defp escape_key(_sequence) do

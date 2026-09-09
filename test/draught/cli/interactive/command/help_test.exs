@@ -15,6 +15,7 @@ defmodule Draught.CLI.Interactive.Command.HelpTest do
     assert output =~ "/skills"
     assert output =~ "/skill REF"
     assert output =~ "/tools"
+    assert output =~ "Shift+Enter     Insert newline when supported"
     assert output =~ "Unavailable commands:"
     assert output =~ "/provider"
     assert output =~ "Unavailable input forms:"

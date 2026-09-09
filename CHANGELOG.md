@@ -18,10 +18,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - Skill discovery is separated into compact `/custom-skills` and `/builtin-skills` catalogs, with bounded descriptions and stable selection from the most recently displayed catalog.
+- Interactive multiline input recognizes Shift+Enter when the terminal reports modified keys, with Ctrl+J and Alt+Enter retained as portable fallbacks.
 
 ### Fixed
 
 - Built-in skills are embedded in executable code so escript and native distributions can discover them without private-file extraction.
+- Native Linux builds avoid unrelated runner package repositories when installing their archive dependency.
 
 ## 0.1.0-beta.4 - 2026-09-09
 

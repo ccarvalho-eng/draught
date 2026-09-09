@@ -76,7 +76,7 @@ defmodule Draught.CLI.Task.Command.Execution do
           environment(dependencies.system),
           dependencies.task,
           stream,
-          system_prompt
+          %{system_prompt: system_prompt, session_label: invocation.session_label}
         )
 
       {:error, error} ->

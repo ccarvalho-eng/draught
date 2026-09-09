@@ -119,8 +119,8 @@ defmodule Draught.CLI.Interactive.Session.Command do
     end
   end
 
-  defp rename(%State{persisted?: false}, _label, _dependencies) do
-    {:error, :session_not_persisted}
+  defp rename(%State{persisted?: false} = state, label, _dependencies) do
+    State.rename(state, label)
   end
 
   defp rename(%State{persisted?: true} = state, label, dependencies) do

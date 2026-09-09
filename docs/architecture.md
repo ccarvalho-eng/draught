@@ -174,6 +174,10 @@ flowchart LR
   Mutation --> Lease[Exclusive session lease]
   Lease --> Marker
   Lease --> Metadata
+  Fresh[Fresh named turn] --> CreateLease[Exclusive create lease]
+  CreateLease --> Binding
+  CreateLease --> Metadata
+  CreateLease --> Journal
   Resume[Named resume] --> Lease
   Lease --> Active{Metadata active?}
   Active -->|yes| Journal
@@ -188,6 +192,7 @@ The catalog boundary preserves these invariants:
 
 - Session IDs are immutable and remain the directory, replay, and lease identity.
 - Display names and archive state are versioned metadata, not directory names or filesystem timestamps.
+- A display name selected for a fresh session is published under its create lease before provider execution; a confirmed publication failure aborts the uninitialized session.
 - Missing metadata means a legacy active session; malformed or unsafe metadata fails closed.
 - The preview is a bounded derived projection of the latest successful user message; it never replaces journal replay as conversation authority.
 - Preview updates occur after a successful terminal journal record under the session lease. Missing, stale, or unpublished previews do not change task outcomes.

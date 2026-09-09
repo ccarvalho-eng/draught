@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Bounded workspace and user `SKILL.md` discovery with explicit `/skills` listing and `/skill NAME` invocation through the existing agent-turn authority boundaries.
 
+### Changed
+
+- Interactive sessions can be named before their first turn, and session lists show one identity using an explicit name, the latest successful user-message preview, or the immutable ID in that order.
+
 ## 0.1.0-beta.3 - 2026-09-08
 
 ### Added

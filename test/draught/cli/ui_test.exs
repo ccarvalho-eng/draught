@@ -210,11 +210,10 @@ defmodule Draught.CLI.UITest do
       |> UI.sessions("other", :active)
       |> IO.iodata_to_binary()
 
-    assert output ==
-             "Sessions:\n1.   session-01  Inspect the failing parser  ollama/qwen3\n"
+    assert output == "Sessions:\n1.   Inspect the failing parser  ollama/qwen3\n"
   end
 
-  test "keeps an explicit session name ahead of its immutable identifier" do
+  test "uses an explicit session name instead of its preview and identifier" do
     entry = %{entry("session-01", :active) | label: "Parser review", preview: "Ignored preview"}
 
     output =
@@ -222,7 +221,7 @@ defmodule Draught.CLI.UITest do
       |> UI.sessions("other", :active)
       |> IO.iodata_to_binary()
 
-    assert output == "Sessions:\n1.   Parser review  session-01  ollama/qwen3\n"
+    assert output == "Sessions:\n1.   Parser review  ollama/qwen3\n"
   end
 
   defp state do

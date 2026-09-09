@@ -59,7 +59,7 @@ Running a model locally can keep prompts, source code, and model responses on th
 
 The architectural inspiration is the actor model and [OTP supervision](https://www.erlang.org/doc/system/sup_princ.html): keep conversation state separate from the work performed on its behalf. Sessions own their lifecycle; model requests and tool calls execute in isolated, supervised tasks with explicit timeouts and cancellation. Pure functions define state transitions and permission policies. This separation provides failure boundaries without making the model responsible for runtime safety. Restarting a process is not permission to repeat an edit or command. See [Architecture](docs/architecture.md) for the supervision and execution contracts.
 
-Draught was also informed by [DSH](https://github.com/Oeditus/dsh) and its exploration of an actor-driven harness in Elixir. Thanks to Oeditus for publishing the project and its design discussion openly.
+Draught was also informed by [Yoke](https://github.com/Oeditus/yoke), formerly DSH, and its exploration of an actor-driven harness in Elixir. Thanks to Oeditus for publishing the project and its design discussion openly.
 
 ### An opportunity to stay engaged
 

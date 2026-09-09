@@ -10,11 +10,11 @@ defmodule Draught.CLI.Interactive.Command.Help do
   @spec render() :: iodata()
   def render do
     [
-      "Available now:\n",
+      "Available commands:\n",
       lines(Catalog.active()),
-      "\nPlanned commands (not available yet):\n",
+      "\nUnavailable commands:\n",
       lines(Catalog.reserved()),
-      "\nPlanned input forms (not available yet):\n",
+      "\nUnavailable input forms:\n",
       "  @QUERY         Reserved for workspace file selection\n",
       "  !COMMAND       Reserved for confined direct commands\n"
     ]

@@ -5,6 +5,7 @@
 - [Getting started](getting-started.md)
 - [CLI](cli.md)
 - [Configuration](configuration.md)
+- [Skills](skills.md)
 
 ## Design and runtime
 

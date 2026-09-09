@@ -80,6 +80,20 @@ defmodule Draught.CLI.Interactive.Command.Catalog do
       description: "List or select a model by number or exact name"
     },
     %Entry{
+      name: :skills,
+      usage: "/skills",
+      argument: :none,
+      availability: :active,
+      description: "List reusable instruction skills"
+    },
+    %Entry{
+      name: :skill,
+      usage: "/skill NAME",
+      argument: :required,
+      availability: :active,
+      description: "Apply a skill to the next agent turn"
+    },
+    %Entry{
       name: :exit,
       usage: "/exit",
       argument: :none,

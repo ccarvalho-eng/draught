@@ -21,6 +21,11 @@ defmodule Draught.CLI.Interactive.InputTest do
     assert Input.parse("/new") == {:ok, {:command, :new, nil}}
     assert Input.parse("/model") == {:ok, {:command, :model, nil}}
     assert Input.parse("/model 2") == {:ok, {:command, :model, "2"}}
+    assert Input.parse("/skills") == {:ok, {:command, :skills, nil}}
+
+    assert Input.parse("/skill safe-review") ==
+             {:ok, {:command, :skill, "safe-review"}}
+
     assert Input.parse("/resume") == {:ok, {:command, :resume, nil}}
     assert Input.parse("/restore") == {:ok, {:command, :restore, nil}}
     assert Input.parse("/") == {:ok, {:command, :palette, nil}}
@@ -34,6 +39,7 @@ defmodule Draught.CLI.Interactive.InputTest do
   test "rejects unknown commands, missing arguments, and invalid input" do
     assert Input.parse("/unknown") == {:error, :unknown_command}
     assert Input.parse("/rename") == {:error, :argument_required}
+    assert Input.parse("/skill") == {:error, :argument_required}
     assert Input.parse("/exit now") == {:error, :unexpected_argument}
     assert Input.parse(:invalid) == {:error, :invalid_input}
   end

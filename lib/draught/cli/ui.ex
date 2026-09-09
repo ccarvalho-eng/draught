@@ -131,6 +131,44 @@ defmodule Draught.CLI.UI do
     "Model command could not be completed.\n"
   end
 
+  @doc "Renders discovered skill metadata without loading instruction bodies."
+  @spec skills(%{required(:entries) => [map()], required(:rejected) => non_neg_integer()}) ::
+          iodata()
+  def skills(%{entries: [], rejected: rejected}) do
+    [
+      "No skills found. Add .draught/skills/NAME/SKILL.md or .agents/skills/NAME/SKILL.md.\n",
+      rejected_skills(rejected)
+    ]
+  end
+
+  def skills(%{entries: entries, rejected: rejected}) do
+    ["Skills:\n", skill_lines(entries), rejected_skills(rejected)]
+  end
+
+  @doc "Renders the selected skill before its ordinary agent turn starts."
+  @spec skill_selected(String.t()) :: iodata()
+  def skill_selected(name) when is_binary(name) do
+    ["Using skill ", safe(name), ".\n"]
+  end
+
+  @doc "Renders a bounded skill discovery or selection failure."
+  @spec skill_error(atom()) :: iodata()
+  def skill_error(:invalid_name) do
+    "Skill names must use lower-case letters, digits, and single hyphens.\n"
+  end
+
+  def skill_error(:not_found) do
+    "Skill was not found. Run /skills to inspect available skills.\n"
+  end
+
+  def skill_error(:too_large) do
+    "Skill instructions are too large for one agent turn.\n"
+  end
+
+  def skill_error(_reason) do
+    "Skills are unavailable. Check the configured skill directories.\n"
+  end
+
   @doc "Renders bounded catalog entries with explicit current and availability state."
   @spec sessions([Entry.t()], String.t(), :active | :all | :archived) :: iodata()
   def sessions(entries, current_identifier, filter) do
@@ -236,6 +274,49 @@ defmodule Draught.CLI.UI do
     entries
     |> Enum.with_index(1)
     |> Enum.map(fn {entry, position} -> session_line(entry, current_identifier, position) end)
+  end
+
+  defp skill_lines(entries) do
+    entries
+    |> Enum.with_index(1)
+    |> Enum.map(fn {entry, position} -> skill_line(entry, position) end)
+  end
+
+  defp skill_line(%{description: description, name: name, origin: origin}, position) do
+    [
+      Integer.to_string(position),
+      ". ",
+      safe(name),
+      "  ",
+      safe(description),
+      "  (",
+      skill_origin(origin),
+      ")\n"
+    ]
+  end
+
+  defp skill_origin(:workspace_draught) do
+    "workspace"
+  end
+
+  defp skill_origin(:workspace_agents) do
+    "workspace shared"
+  end
+
+  defp skill_origin(:user_draught) do
+    "user"
+  end
+
+  defp skill_origin(:user_agents) do
+    "user shared"
+  end
+
+  defp rejected_skills(0) do
+    []
+  end
+
+  defp rejected_skills(count) do
+    ["Skipped ", Integer.to_string(count), " invalid skill entries.\n"]
   end
 
   defp session_line(entry, current_identifier, position) do

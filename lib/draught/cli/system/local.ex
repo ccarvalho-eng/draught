@@ -6,6 +6,7 @@ defmodule Draught.CLI.System.Local do
   @behaviour Draught.CLI.System.Adapter
 
   alias Draught.CLI.System.Local.AtomicFile
+  alias Draught.Filesystem.OpenFile
 
   @impl Draught.CLI.System.Adapter
   def cwd(_configuration) do
@@ -89,7 +90,7 @@ defmodule Draught.CLI.System.Local do
   defp bounded_read(path, maximum_bytes, stat) do
     result =
       File.open(path, [:read, :binary], fn file ->
-        with :ok <- same_file(file, stat) do
+        with :ok <- OpenFile.verify(file, stat) do
           file
           |> IO.binread(maximum_bytes + 1)
           |> bounded_read_result(maximum_bytes)
@@ -135,29 +136,5 @@ defmodule Draught.CLI.System.Local do
 
   defp device(:stderr) do
     :stderr
-  end
-
-  defp same_file(file, stat) do
-    case :file.read_file_info(file) do
-      {:ok,
-       {:file_info, _size, :regular, _access, _atime, _mtime, _ctime, _mode, _links, major_device,
-        minor_device, inode, _uid, _gid}} ->
-        same_identity =
-          stat.major_device == major_device and stat.minor_device == minor_device and
-            stat.inode == inode
-
-        same_file_result(same_identity)
-
-      _result ->
-        {:error, :unsafe_file}
-    end
-  end
-
-  defp same_file_result(true) do
-    :ok
-  end
-
-  defp same_file_result(false) do
-    {:error, :unsafe_file}
   end
 end

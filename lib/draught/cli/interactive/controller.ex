@@ -8,21 +8,22 @@ defmodule Draught.CLI.Interactive.Controller do
 
   alias Draught.CLI.Command.ExitStatus
   alias Draught.CLI.Command.Invocation
-  alias Draught.CLI.Configuration
   alias Draught.CLI.Dependencies
   alias Draught.CLI.Interactive.Model
   alias Draught.CLI.Interactive.Session
   alias Draught.CLI.Interactive.Session.Doctor
   alias Draught.CLI.Interactive.Session.Terminal
+  alias Draught.CLI.Interactive.Skill.Command
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.Interactive.Turn
 
   @internal_status ExitStatus.value(:internal)
   @session_commands [:archive, :new, :rename, :restore, :resume, :sessions]
+  @skill_commands [:skill, :skills]
   @success_status ExitStatus.value(:success)
 
   @doc "Opens the prompt loop and restores its terminal boundary before returning."
-  @spec open(State.t(), Configuration.t(), Invocation.t(), Dependencies.t()) ::
+  @spec open(State.t(), map(), Invocation.t(), Dependencies.t()) ::
           non_neg_integer()
   def open(state, configuration, invocation, dependencies) do
     case Terminal.banner(state, invocation, dependencies) do
@@ -104,6 +105,19 @@ defmodule Draught.CLI.Interactive.Controller do
     command
     |> Session.Command.run(argument, state, configuration, invocation, dependencies)
     |> handle_session_result(state, configuration, invocation, dependencies)
+  end
+
+  defp handle(
+         {:ok, {:command, command, argument}},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       )
+       when command in @skill_commands do
+    command
+    |> Command.run(argument, state, dependencies)
+    |> handle_skill_result(state, configuration, invocation, dependencies)
   end
 
   defp handle(
@@ -264,6 +278,46 @@ defmodule Draught.CLI.Interactive.Controller do
       configuration,
       invocation,
       dependencies
+    )
+  end
+
+  defp handle_skill_result(
+         {:ok, {:catalog, catalog}},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    continue({:skills, catalog}, state, configuration, invocation, dependencies)
+  end
+
+  defp handle_skill_result(
+         {:ok, {:invoke, name, prompt}},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    case Terminal.emit({:skill_selected, name}, :stdout, :success, dependencies) do
+      0 -> run_turn(prompt, state, configuration, invocation, dependencies)
+      status -> status
+    end
+  end
+
+  defp handle_skill_result(
+         {:error, reason},
+         state,
+         configuration,
+         invocation,
+         dependencies
+       ) do
+    continue(
+      {:skill_error, reason},
+      state,
+      configuration,
+      invocation,
+      dependencies,
+      :stderr
     )
   end
 

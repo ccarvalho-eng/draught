@@ -126,6 +126,7 @@ defmodule Draught.MixProject do
         "docs/getting-started.md",
         "docs/cli.md",
         "docs/configuration.md",
+        "docs/skills.md",
         "docs/distribution.md",
         "docs/architecture.md",
         "docs/conversation-interchange.md",
@@ -146,6 +147,7 @@ defmodule Draught.MixProject do
           "docs/getting-started.md",
           "docs/cli.md",
           "docs/configuration.md",
+          "docs/skills.md",
           "docs/distribution.md"
         ],
         Guides: [

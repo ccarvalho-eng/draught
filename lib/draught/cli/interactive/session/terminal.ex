@@ -27,6 +27,9 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
           | {:session_closed, String.t()}
           | {:session_error, term()}
           | {:session_view, Command.view(), State.t()}
+          | {:skill_error, atom()}
+          | {:skill_selected, String.t()}
+          | {:skills, map()}
           | {:status, State.t()}
           | {:unavailable_command, atom()}
 
@@ -153,6 +156,18 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
 
   defp render({:session_error, reason}) do
     UI.session_error(reason)
+  end
+
+  defp render({:skills, catalog}) do
+    UI.skills(catalog)
+  end
+
+  defp render({:skill_selected, name}) do
+    UI.skill_selected(name)
+  end
+
+  defp render({:skill_error, reason}) do
+    UI.skill_error(reason)
   end
 
   defp render({:session_view, {:sessions, entries, filter}, state}) do

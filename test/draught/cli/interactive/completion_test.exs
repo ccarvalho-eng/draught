@@ -10,6 +10,7 @@ defmodule Draught.CLI.Interactive.CompletionTest do
 
     assert expand("/he", completion_context) == {:yes, ~c"lp", []}
     assert expand("/do", completion_context) == {:yes, ~c"ctor", []}
+    assert expand("/skills", completion_context) == {:yes, [], []}
   end
 
   test "returns bounded choices for ambiguous commands" do

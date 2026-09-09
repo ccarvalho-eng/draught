@@ -3,18 +3,19 @@ defmodule Draught.CLI.Dependencies do
   Holds explicit effect adapters used at the CLI boundary.
   """
 
+  alias Draught.CLI.Dependencies.Defaults
   alias Draught.CLI.Task.Dependencies
-  alias Draught.Provider.Ollama.Discovery.HTTP.Req
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
 
-  @enforce_keys [:catalog, :discovery_http, :system, :task, :terminal]
-  defstruct [:catalog, :discovery_http, :system, :task, :terminal]
+  @enforce_keys [:catalog, :discovery_http, :skill_repository, :system, :task, :terminal]
+  defstruct [:catalog, :discovery_http, :skill_repository, :system, :task, :terminal]
 
   @type system :: {module(), term()}
   @type t :: %__MODULE__{
           catalog: {module(), term()},
           discovery_http: module(),
+          skill_repository: {module(), term()},
           system: system(),
           task: Dependencies.t(),
           terminal: system()
@@ -23,7 +24,7 @@ defmodule Draught.CLI.Dependencies do
   @doc "Builds and validates CLI effect dependencies."
   @spec new(map() | keyword()) :: Error.result(t())
   def new(attributes \\ %{}) do
-    keys = [:catalog, :discovery_http, :system, :task, :terminal]
+    keys = [:catalog, :discovery_http, :skill_repository, :system, :task, :terminal]
 
     with {:ok, normalized} <- Attributes.normalize(attributes, keys) do
       build(normalized)
@@ -38,13 +39,15 @@ defmodule Draught.CLI.Dependencies do
   end
 
   defp build_remaining(attributes, catalog, system) do
-    with {:ok, terminal} <- configured_terminal(attributes),
+    with {:ok, skill_repository} <- configured_skill_repository(attributes),
+         {:ok, terminal} <- configured_terminal(attributes),
          {:ok, discovery_http} <- configured_discovery_http(attributes),
          {:ok, task} <- task(attributes, discovery_http) do
       {:ok,
        %__MODULE__{
          catalog: catalog,
          discovery_http: discovery_http,
+         skill_repository: skill_repository,
          system: system,
          task: task,
          terminal: terminal
@@ -54,25 +57,31 @@ defmodule Draught.CLI.Dependencies do
 
   defp configured_catalog(attributes) do
     attributes
-    |> Map.get(:catalog, {Draught.CLI.Session.Catalog.Local, nil})
+    |> Map.get(:catalog, Defaults.catalog())
     |> catalog()
   end
 
   defp configured_system(attributes) do
     attributes
-    |> Map.get(:system, {Draught.CLI.System.Local, nil})
+    |> Map.get(:system, Defaults.system())
     |> system()
   end
 
   defp configured_terminal(attributes) do
     attributes
-    |> Map.get(:terminal, {Draught.CLI.Interactive.Terminal.Local, nil})
+    |> Map.get(:terminal, Defaults.terminal())
     |> terminal()
+  end
+
+  defp configured_skill_repository(attributes) do
+    attributes
+    |> Map.get(:skill_repository, Defaults.skill_repository())
+    |> skill_repository()
   end
 
   defp configured_discovery_http(attributes) do
     attributes
-    |> Map.get(:discovery_http, Req)
+    |> Map.get(:discovery_http, Defaults.discovery_http())
     |> discovery_http()
   end
 
@@ -124,6 +133,16 @@ defmodule Draught.CLI.Dependencies do
     Error.single([:discovery_http], :invalid_value, "must implement Ollama discovery HTTP")
   end
 
+  defp skill_repository({module, _configuration} = adapter) when is_atom(module) do
+    module
+    |> implements?(list: 3, fetch: 4)
+    |> skill_repository_result(adapter)
+  end
+
+  defp skill_repository(_adapter) do
+    invalid_skill_repository()
+  end
+
   defp terminal({module, configuration} = adapter) when is_atom(module) do
     module
     |> implements?(interactive?: 1, read_line: 1, restore: 1)
@@ -159,6 +178,22 @@ defmodule Draught.CLI.Dependencies do
 
   defp discovery_http_result(false, _module) do
     Error.single([:discovery_http], :invalid_value, "must implement Ollama discovery HTTP")
+  end
+
+  defp skill_repository_result(true, adapter) do
+    {:ok, adapter}
+  end
+
+  defp skill_repository_result(false, _adapter) do
+    invalid_skill_repository()
+  end
+
+  defp invalid_skill_repository do
+    Error.single(
+      [:skill_repository],
+      :invalid_value,
+      "must implement the skill repository boundary"
+    )
   end
 
   defp catalog_result(true, adapter) do

@@ -6,6 +6,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.1.0-beta.3 - 2026-09-08
+
+### Added
+
+- Bounded session-list previews derived from the latest successful user message, without replaying journals during catalog discovery.
+
+### Changed
+
+- Interactive help now distinguishes available commands from planned commands and input forms that are not available yet.
+
+### Fixed
+
+- The runner now returns one structured feedback batch when a model repeats identical tool calls, allowing it to reuse the earlier result or change its request before the duplicate guard terminates the turn.
+
 ## 0.1.0-beta.2 - 2026-09-08
 
 ### Added

@@ -13,7 +13,7 @@ Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. R
 
 ## Installation
 
-Download the archive for the current operating system and architecture from the `v0.1.0-beta.4` release. The available targets are:
+Download the archive for the current operating system and architecture from the `v0.1.0-beta.5` release. The available targets are:
 
 | System | Architecture | Target |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ Download the archive for the current operating system and architecture from the 
 Set `TARGET` to the matching value, then verify and install the archive:
 
 ```shell
-VERSION=0.1.0-beta.4
+VERSION=0.1.0-beta.5
 TARGET=macos_arm64
 BASE_URL="https://github.com/ccarvalho-eng/draught/releases/download/v${VERSION}"
 ARCHIVE="draught-${TARGET}.tar.gz"
@@ -59,7 +59,7 @@ Running a model locally can keep prompts, source code, and model responses on th
 
 The architectural inspiration is the actor model and [OTP supervision](https://www.erlang.org/doc/system/sup_princ.html): keep conversation state separate from the work performed on its behalf. Sessions own their lifecycle; model requests and tool calls execute in isolated, supervised tasks with explicit timeouts and cancellation. Pure functions define state transitions and permission policies. This separation provides failure boundaries without making the model responsible for runtime safety. Restarting a process is not permission to repeat an edit or command. See [Architecture](docs/architecture.md) for the supervision and execution contracts.
 
-Draught was also informed by [DSH](https://github.com/Oeditus/dsh) and its exploration of an actor-driven harness in Elixir. Thanks to Oeditus for publishing the project and its design discussion openly.
+Draught was also informed by [Yoke](https://github.com/Oeditus/yoke), formerly DSH, and its exploration of an actor-driven harness in Elixir. Thanks to Oeditus for publishing the project and its design discussion openly.
 
 ### An opportunity to stay engaged
 

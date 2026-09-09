@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.1.0-beta.5 - 2026-09-09
+
 ### Added
 
 - Read-only `/tools` and `/permissions` views for the active built-in catalog, risk admission, approval behavior, workspace, and web capabilities.

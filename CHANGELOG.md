@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.1.0-beta.6 - 2026-09-09
+
+### Changed
+
+- Session catalogs right-align numeric references when the visible list contains ten or more entries, matching skill-catalog selection.
+
+### Known limitations
+
+- Native archives built with Burrito 1.6.0 fall back to line-oriented interactive input. Use the escript distribution for cursor editing, command completion, multiline shortcuts, and bracketed paste until [#143](https://github.com/ccarvalho-eng/draught/issues/143) is resolved.
+
 ## 0.1.0-beta.5 - 2026-09-09
 
 ### Added

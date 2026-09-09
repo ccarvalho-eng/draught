@@ -16,7 +16,7 @@ Choose the target that matches the current system:
 Set `TARGET` to that value and download the versioned archive and checksum:
 
 ```sh
-VERSION=0.1.0-beta.5
+VERSION=0.1.0-beta.6
 TARGET=macos_arm64
 BASE_URL="https://github.com/ccarvalho-eng/draught/releases/download/v${VERSION}"
 ARCHIVE="draught-${TARGET}.tar.gz"
@@ -48,6 +48,8 @@ draught --version
 ```
 
 Add the PATH export to the shell startup file if `$HOME/.local/bin` is not already present. Continue with [Getting started](getting-started.md) to configure Ollama and select a model.
+
+The native beta archives currently fall back to line-oriented interactive input because Burrito 1.6.0 does not preserve raw terminal detection for the embedded BEAM process. Ordinary prompts and slash commands remain available. Use the escript distribution for cursor editing, command completion, multiline shortcuts, and bracketed paste until [Draught #143](https://github.com/ccarvalho-eng/draught/issues/143) adopts the upstream fix.
 
 ## Build requirements
 

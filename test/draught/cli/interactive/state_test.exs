@@ -117,10 +117,17 @@ defmodule Draught.CLI.Interactive.StateTest do
   end
 
   test "retains only a bounded canonical skill completion catalog" do
+    assert State.displayed_skills(state()) == {:error, :skill_list_required}
+
     assert {:ok, displayed} =
              State.display_skills(state(), ["review-changes", "testing"])
 
     assert displayed.skill_catalog == ["review-changes", "testing"]
+    assert State.displayed_skills(displayed) == {:ok, ["review-changes", "testing"]}
+
+    assert {:ok, empty} = State.display_skills(state(), [])
+    assert State.displayed_skills(empty) == {:ok, []}
+
     assert State.display_skills(state(), ["Review"]) == {:error, :invalid_skill_catalog}
 
     assert State.display_skills(state(), ["testing", "testing"]) ==

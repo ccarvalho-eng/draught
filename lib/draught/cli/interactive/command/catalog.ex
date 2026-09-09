@@ -105,7 +105,21 @@ defmodule Draught.CLI.Interactive.Command.Catalog do
       usage: "/skills",
       argument: :none,
       availability: :active,
-      description: "List reusable instruction skills"
+      description: "Show skill catalogs"
+    },
+    %Entry{
+      name: :"custom-skills",
+      usage: "/custom-skills",
+      argument: :none,
+      availability: :active,
+      description: "List workspace and user skills"
+    },
+    %Entry{
+      name: :"builtin-skills",
+      usage: "/builtin-skills",
+      argument: :none,
+      availability: :active,
+      description: "List packaged skills"
     },
     %Entry{
       name: :skill,

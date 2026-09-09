@@ -368,7 +368,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
     {:ok, failure} =
       Normalized.new(:protocol, "provider_failed", "Provider failed", retryable: false)
 
-    input({:ok, "/skills\n"})
+    input({:ok, "/custom-skills\n"})
     input({:ok, "/skill 1\n"})
     input({:ok, "/status\n"})
     input({:ok, "/exit\n"})
@@ -384,7 +384,7 @@ defmodule Draught.CLI.Interactive.CommandTest do
     assert CLI.run([], dependencies) == 0
     output = plain(receive_output())
 
-    assert output =~ "Skills:"
+    assert output =~ "Workspace skills:"
     assert output =~ "review"
     assert output =~ "Review changes"
     assert output =~ "Using skill review."

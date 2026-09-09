@@ -8,10 +8,10 @@ defmodule Draught.CLI.DependenciesTest do
     assert {:ok, %Dependencies{} = dependencies} = Dependencies.new()
     assert {Draught.CLI.System.Local, nil} = dependencies.system
 
-    assert {Draught.Skill.Repository.Local, %{builtin_root: builtin_root}} =
+    assert {Draught.Skill.Repository.Local,
+            %{builtin_repository: {Draught.Skill.Repository.Builtin, nil}}} =
              dependencies.skill_repository
 
-    assert builtin_root == Application.app_dir(:draught, "priv/builtin_skills/catalog")
     assert dependencies.discovery_http == Draught.Provider.Ollama.Discovery.HTTP.Req
   end
 

@@ -1,7 +1,39 @@
 defmodule Draught.Skill.Repository.LocalTest do
   use ExUnit.Case, async: true
 
+  alias Draught.Skill.Catalog
+  alias Draught.Skill.Definition
+  alias Draught.Skill.Metadata
   alias Draught.Skill.Repository.Local
+
+  defmodule Builtin do
+    @moduledoc false
+
+    @metadata %Metadata{name: "testing", description: "Built-in testing", origin: :builtin}
+
+    @spec list(String.t(), map(), term()) :: {:ok, Catalog.t()}
+    def list(_workspace, _environment, _configuration) do
+      {:ok, Catalog.new([@metadata], 0)}
+    end
+
+    @spec fetch(String.t(), String.t(), map(), term()) ::
+            {:ok, Definition.t()} | {:error, :not_found}
+    def fetch("testing", _workspace, _environment, _configuration) do
+      {:ok,
+       %Definition{
+         name: "testing",
+         description: "Built-in testing",
+         instructions: "Run focused tests",
+         origin: :builtin
+       }}
+    end
+
+    @spec fetch(String.t(), String.t(), map(), term()) ::
+            {:ok, Definition.t()} | {:error, :not_found}
+    def fetch(_name, _workspace, _environment, _configuration) do
+      {:error, :not_found}
+    end
+  end
 
   @tag :tmp_dir
   test "discovers bounded metadata with deterministic root precedence", %{tmp_dir: root} do
@@ -139,6 +171,28 @@ defmodule Draught.Skill.Repository.LocalTest do
 
     assert testing_with_reference.instructions =~ "Bundled reference: references/verification.md"
     assert testing_with_reference.instructions =~ "Check the result."
+  end
+
+  @tag :tmp_dir
+  test "delegates to an embedded built-in repository after local roots", %{tmp_dir: root} do
+    workspace = Path.join(root, "workspace")
+
+    write_skill(
+      Path.join([workspace, ".draught", "skills"]),
+      "review",
+      "Workspace review",
+      "Workspace instructions"
+    )
+
+    configuration = %{builtin_repository: {Builtin, nil}}
+
+    assert {:ok, catalog} = Local.list(workspace, %{}, configuration)
+
+    assert Enum.map(catalog.entries, &{&1.name, &1.origin}) ==
+             [{"review", :workspace_draught}, {"testing", :builtin}]
+
+    assert {:ok, testing} = Local.fetch("testing", workspace, %{}, configuration)
+    assert testing.instructions == "Run focused tests"
   end
 
   defp write_skill(root, name, description, instructions) do

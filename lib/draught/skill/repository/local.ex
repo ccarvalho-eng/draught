@@ -29,15 +29,17 @@ defmodule Draught.Skill.Repository.Local do
   @impl Draught.Skill.Repository.Adapter
   def list(workspace, environment, configuration)
       when is_binary(workspace) and is_map(environment) do
-    {entries, rejected} =
+    {local_entries, local_rejected} =
       workspace
       |> Roots.list(environment, configuration)
       |> Enum.reduce({[], 0}, &scan_root/2)
 
-    catalog =
-      entries
+    {entries, rejected} =
+      local_entries
       |> Enum.reverse()
-      |> Catalog.new(rejected)
+      |> append_builtin(local_rejected, workspace, environment, configuration)
+
+    catalog = Catalog.new(entries, rejected)
 
     {:ok, catalog}
   end
@@ -50,10 +52,12 @@ defmodule Draught.Skill.Repository.Local do
   def fetch(name, workspace, environment, configuration)
       when is_binary(workspace) and is_map(environment) do
     with {:ok, validated_name} <- Name.validate(name) do
-      workspace
-      |> Roots.list(environment, configuration)
-      |> Enum.find_value(&load(&1, validated_name))
-      |> fetch_result()
+      definition =
+        workspace
+        |> Roots.list(environment, configuration)
+        |> Enum.find_value(&load(&1, validated_name))
+
+      fetch_result(definition, validated_name, workspace, environment, configuration)
     end
   end
 
@@ -119,11 +123,49 @@ defmodule Draught.Skill.Repository.Local do
     end
   end
 
-  defp fetch_result(nil) do
+  defp append_builtin(
+         entries,
+         rejected,
+         workspace,
+         environment,
+         %{builtin_repository: {repository, configuration}}
+       )
+       when is_atom(repository) do
+    case repository.list(workspace, environment, configuration) do
+      {:ok, %Catalog{} = catalog} ->
+        {entries ++ catalog.entries, rejected + catalog.rejected}
+
+      {:error, _reason} ->
+        {entries, rejected + 1}
+    end
+  end
+
+  defp append_builtin(entries, rejected, _workspace, _environment, _configuration) do
+    {entries, rejected}
+  end
+
+  defp fetch_result(
+         nil,
+         name,
+         workspace,
+         environment,
+         %{builtin_repository: {repository, configuration}}
+       )
+       when is_atom(repository) do
+    repository.fetch(name, workspace, environment, configuration)
+  end
+
+  defp fetch_result(nil, _name, _workspace, _environment, _configuration) do
     {:error, :not_found}
   end
 
-  defp fetch_result(%Definition{} = definition) do
+  defp fetch_result(
+         %Definition{} = definition,
+         _name,
+         _workspace,
+         _environment,
+         _configuration
+       ) do
     {:ok, definition}
   end
 

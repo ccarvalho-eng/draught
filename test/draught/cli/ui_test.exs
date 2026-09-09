@@ -203,10 +203,10 @@ defmodule Draught.CLI.UITest do
       |> IO.iodata_to_binary()
 
     assert output ==
-             "Skills:\n1. review  Review changes  (workspace shared)\nSkipped 2 invalid skill entries.\n"
+             "Workspace shared skills:\n1. review  Review changes\nSkipped 2 invalid skill entries.\n"
   end
 
-  test "labels built-in skill metadata" do
+  test "groups built-in skills without repeating their origin" do
     metadata = %Metadata{
       description: "Apply Elixir idioms",
       name: "elixir-phoenix-elixir-idioms",
@@ -219,7 +219,33 @@ defmodule Draught.CLI.UITest do
       |> UI.skills()
       |> IO.iodata_to_binary()
 
-    assert output =~ "(built in)"
+    assert output ==
+             "Built-in skills:\n1. elixir-phoenix-elixir-idioms  Apply Elixir idioms\n"
+  end
+
+  test "renders a compact index for the split skill catalogs" do
+    output = IO.iodata_to_binary(UI.skill_index())
+
+    assert output =~ "/custom-skills"
+    assert output =~ "/builtin-skills"
+    assert output =~ "last listed catalog"
+  end
+
+  test "bounds long skill descriptions for compact catalog output" do
+    metadata = %Metadata{
+      description: String.duplicate("a", 80),
+      name: "review",
+      origin: :workspace_draught
+    }
+
+    output =
+      [metadata]
+      |> Catalog.new(0)
+      |> UI.skills()
+      |> IO.iodata_to_binary()
+
+    assert output =~ String.duplicate("a", 41) <> "..."
+    refute output =~ String.duplicate("a", 42)
   end
 
   test "renders tool metadata and explicit web capability state" do

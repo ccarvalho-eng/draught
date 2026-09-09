@@ -34,6 +34,7 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
           | {:skill_error, atom()}
           | {:skill_selected, String.t()}
           | {:skills, map()}
+          | :skill_index
           | {:status, State.t()}
           | {:unavailable_command, atom()}
 
@@ -180,6 +181,10 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
 
   defp render({:skills, catalog}) do
     UI.skills(catalog)
+  end
+
+  defp render(:skill_index) do
+    UI.skill_index()
   end
 
   defp render({:skill_selected, name}) do

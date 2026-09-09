@@ -29,7 +29,8 @@ defmodule Draught.CLI.Interactive.State do
     model_catalog_displayed?: false,
     persisted?: false,
     phase: :idle,
-    skill_catalog: []
+    skill_catalog: [],
+    skill_catalog_displayed?: false
   ]
 
   @type phase :: :idle | :running | :awaiting_approval | :stopping | :stopped
@@ -46,6 +47,7 @@ defmodule Draught.CLI.Interactive.State do
           session_id: String.t(),
           session_label: String.t(),
           skill_catalog: [String.t()],
+          skill_catalog_displayed?: boolean(),
           web: boolean(),
           web_search: boolean(),
           workspace: String.t()
@@ -248,18 +250,43 @@ defmodule Draught.CLI.Interactive.State do
   @spec display_skills(t(), term()) :: {:ok, t()} | {:error, :invalid_skill_catalog}
   def display_skills(%__MODULE__{} = state, names) do
     case SkillCatalog.validate(names) do
-      {:ok, validated} -> {:ok, %{state | skill_catalog: validated}}
-      {:error, :invalid_skill_catalog} = error -> error
+      {:ok, validated} ->
+        {:ok, %{state | skill_catalog: validated, skill_catalog_displayed?: true}}
+
+      {:error, :invalid_skill_catalog} = error ->
+        error
     end
+  end
+
+  @doc "Returns the skill names most recently shown by the shell."
+  @spec displayed_skills(t()) :: {:ok, [String.t()]} | {:error, :skill_list_required}
+  def displayed_skills(%__MODULE__{
+        skill_catalog: names,
+        skill_catalog_displayed?: true
+      }) do
+    {:ok, names}
+  end
+
+  def displayed_skills(%__MODULE__{}) do
+    {:error, :skill_list_required}
   end
 
   @doc "Selects a prepared idle session without carrying transient turn state."
   @spec select(t(), t()) :: {:ok, t()} | {:error, :busy}
   def select(
-        %__MODULE__{phase: :idle, skill_catalog: skill_catalog},
+        %__MODULE__{
+          phase: :idle,
+          skill_catalog: skill_catalog,
+          skill_catalog_displayed?: skill_catalog_displayed?
+        },
         %__MODULE__{phase: :idle} = selected
       ) do
-    {:ok, %{selected | skill_catalog: skill_catalog}}
+    {:ok,
+     %{
+       selected
+       | skill_catalog: skill_catalog,
+         skill_catalog_displayed?: skill_catalog_displayed?
+     }}
   end
 
   def select(%__MODULE__{}, %__MODULE__{}) do

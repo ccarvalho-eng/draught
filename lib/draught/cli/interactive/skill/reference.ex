@@ -25,12 +25,20 @@ defmodule Draught.CLI.Interactive.Skill.Reference do
     {:error, :not_found}
   end
 
-  @doc "Resolves a validated one-based position to a skill name."
+  @doc "Resolves a validated one-based position against catalog metadata or retained names."
   @spec name(pos_integer(), Catalog.t()) :: {:ok, String.t()} | {:error, :not_found}
   def name(position, %Catalog{entries: entries}) when is_integer(position) and position > 0 do
     case Enum.fetch(entries, position - 1) do
       {:ok, %Metadata{name: name}} -> {:ok, name}
       :error -> {:error, :not_found}
+    end
+  end
+
+  @spec name(pos_integer(), [String.t()]) :: {:ok, String.t()} | {:error, :not_found}
+  def name(position, names) when is_integer(position) and position > 0 and is_list(names) do
+    case Enum.fetch(names, position - 1) do
+      {:ok, name} when is_binary(name) -> {:ok, name}
+      _invalid -> {:error, :not_found}
     end
   end
 

@@ -17,7 +17,7 @@ defmodule Draught.CLI.Interactive.Command.Dispatch do
 
   @inspection_commands [:permissions, :tools]
   @session_commands [:archive, :new, :rename, :restore, :resume, :sessions]
-  @skill_commands [:skill, :skills]
+  @skill_commands [:"builtin-skills", :"custom-skills", :skill, :skills]
 
   @type kind :: :inspection | :model | :session | :skill
   @type result :: {kind(), term()}

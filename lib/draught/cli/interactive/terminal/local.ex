@@ -1,10 +1,10 @@
 defmodule Draught.CLI.Interactive.Terminal.Local do
   @moduledoc """
-  Implements interactive line input against the local standard input device.
+  Implements interactive input against the local standard input device.
 
-  Draught currently remains in the terminal's normal line mode, so restoration
-  is intentionally idempotent. The callback remains explicit for future raw
-  keyboard input without weakening shutdown guarantees.
+  Idle chat prompts use the bounded raw editor when OTP exposes a compatible
+  terminal. Unsupported terminals fall back to the supervised cooked reader.
+  Approval and other synchronous prompts always remain on the cooked path.
 
   Synchronous prompts and asynchronous approvals share one input coordinator.
   Abandoning a pending read disables that device for the remaining VM lifetime;
@@ -15,6 +15,7 @@ defmodule Draught.CLI.Interactive.Terminal.Local do
 
   alias Draught.CLI.Interactive.Completion
   alias Draught.CLI.Interactive.Completion.Context
+  alias Draught.CLI.Interactive.Terminal.Editor
   alias Draught.CLI.Interactive.Terminal.Input
 
   @impl Draught.CLI.Interactive.Terminal.Adapter
@@ -34,7 +35,18 @@ defmodule Draught.CLI.Interactive.Terminal.Local do
   end
 
   @impl Draught.CLI.Interactive.Terminal.Adapter
-  def read_line(%Context{} = context, _configuration) do
+  def read_line(%Context{} = context, configuration) do
+    read_editable(context, configuration)
+  end
+
+  defp read_editable(context, configuration) do
+    case Editor.read(context, editor_driver(configuration)) do
+      {:error, :unsupported} -> read_cooked(context)
+      result -> result
+    end
+  end
+
+  defp read_cooked(context) do
     device = Process.group_leader()
     configure_completion(device, Completion.function(context))
 
@@ -43,6 +55,14 @@ defmodule Draught.CLI.Interactive.Terminal.Local do
     after
       configure_completion(device, &Completion.none/1)
     end
+  end
+
+  defp editor_driver(%{editor_driver: {module, configuration}}) when is_atom(module) do
+    {module, configuration}
+  end
+
+  defp editor_driver(configuration) do
+    {Draught.CLI.Interactive.Terminal.Editor.Driver.Local, configuration}
   end
 
   @impl Draught.CLI.Interactive.Terminal.Adapter

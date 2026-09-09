@@ -1,6 +1,6 @@
 defmodule Draught.CLI.Interactive.Terminal.Adapter do
   @moduledoc """
-  Defines line input and restoration effects for an interactive terminal.
+  Defines prompt input and restoration effects for an interactive terminal.
 
   Output remains on the existing CLI system boundary. Keeping input separate
   permits deterministic shell tests and prevents terminal libraries from
@@ -18,7 +18,7 @@ defmodule Draught.CLI.Interactive.Terminal.Adapter do
   @doc "Reads one terminal input record while preserving EOF and interruption."
   @callback read_line(configuration()) :: input_result()
 
-  @doc "Reads one shell line with a bounded, effect-free completion snapshot."
+  @doc "Reads one editable prompt with a bounded, effect-free completion snapshot."
   @callback read_line(Context.t(), configuration()) :: input_result()
 
   @doc "Starts a correlated read delivered as a draught_terminal_input message."

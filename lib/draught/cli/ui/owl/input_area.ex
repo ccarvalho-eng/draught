@@ -1,11 +1,11 @@
 defmodule Draught.CLI.UI.Owl.InputArea do
   @moduledoc """
-  Renders a bounded input frame for ordinary terminal line editing.
+  Renders the bounded frame surrounding the interactive prompt editor.
 
   The top rail keeps active model and workspace context beside help discovery.
   The rails close at both corners while the input line remains open on the
-  right so wrapped text needs no cursor repositioning. Styling is reset before
-  the terminal echoes any user text.
+  right so multiline content can wrap inside the editor-owned region. Styling
+  is reset before the editor renders user text.
   """
 
   alias Elixir.Owl.Data

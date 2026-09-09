@@ -12,6 +12,11 @@ defmodule Draught.CLI.Interactive.Command.Help do
     [
       "Available commands:\n",
       lines(Catalog.active()),
+      "\nInput controls:\n",
+      "  Enter           Submit prompt\n",
+      "  Ctrl+J          Insert newline\n",
+      "  Alt+Enter       Insert newline\n",
+      "  Tab             Complete a command\n",
       "\nUnavailable commands:\n",
       lines(Catalog.reserved()),
       "\nUnavailable input forms:\n",

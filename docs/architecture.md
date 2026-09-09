@@ -116,6 +116,10 @@ flowchart LR
   Named --> Session
   Router --> Interactive[Interactive controller]
   Resolver --> Interactive
+  Interactive --> Editor[Idle prompt editor]
+  Editor --> EditorCore[Pure buffer, key, and screen transitions]
+  Editor --> RawDriver[Raw terminal driver]
+  Editor -. unsupported .-> CookedInput[Supervised cooked reader]
   Interactive --> Input[Bounded interactive parser]
   Interactive --> Selection
   Interactive --> Snapshot[Resolved execution snapshot]
@@ -142,11 +146,20 @@ flowchart LR
   Projector --> Render
   Render --> System[System output adapter]
   Interactive --> Render
-  Interactive --> Terminal[Terminal input and restoration adapter]
+  Interactive --> Terminal[Approval input and restoration adapter]
   Tools --> Web[Opt-in guarded page fetch]
 ```
 
-The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. Anonymous and named lifecycles both supervise one runner turn; only the named lifecycle attaches durable storage. The interactive controller retains one pure shell state, classifies each input before dispatch, sends task prompts through the named lifecycle, and delegates model inventory, session metadata, skills, and read-only authority inspection to separate contexts. Inspection projects the same web setting and risk resolution used by task preparation but contains no executors, credentials, schemas, or endpoint details. Model selection operates on a bounded compatible inventory and changes only fresh idle state; task execution consumes the state model directly while session creation and resume continue from the unchanged base configuration. Persisted state rejects model changes before discovery or provider effects. The projector reduces content-bearing runtime events to a closed public vocabulary before pure renderers encode them. Owl is confined to the interactive presentation adapter. The system adapter owns terminal output, the terminal adapter owns line input and cleanup, and the executable entry point owns process termination.
+The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. Anonymous and named lifecycles both supervise one runner turn; only the named lifecycle attaches durable storage. The interactive controller retains one pure shell state, classifies each input before dispatch, sends task prompts through the named lifecycle, and delegates model inventory, session metadata, skills, and read-only authority inspection to separate contexts. Inspection projects the same web setting and risk resolution used by task preparation but contains no executors, credentials, schemas, or endpoint details. Model selection operates on a bounded compatible inventory and changes only fresh idle state; task execution consumes the state model directly while session creation and resume continue from the unchanged base configuration. Persisted state rejects model changes before discovery or provider effects. The idle editor decodes terminal keys into pure bounded buffer transitions and renders only the editable prompt region. Raw terminal effects remain behind an adapter and fall back to the supervised cooked reader when unsupported. Raw mode ends before the parsed input reaches command or task dispatch, so approvals continue to own a separate cooked-input boundary. The projector reduces content-bearing runtime events to a closed public vocabulary before pure renderers encode them. Owl is confined to the interactive presentation adapter. The system adapter owns terminal output, the terminal adapter owns input and cleanup, and the executable entry point owns process termination.
+
+The interactive input boundary preserves these invariants:
+
+- Raw mode exists only while an idle prompt is being edited and is restored through an unconditional cleanup boundary.
+- Command and task dispatch, provider execution, tool execution, and approval input never run inside the editor's raw-mode scope.
+- Buffer mutations are grapheme-aware, byte-bounded, and atomic; an oversized insertion or paste retains none of its rejected content.
+- Escape decoding and bracketed-paste retention are bounded independently of provider or workspace input.
+- Redraws are derived from pure buffer state and the detected terminal width and clear only the owned editable region.
+- Unsupported raw terminals use the existing supervised cooked reader without changing command parsing or completion semantics.
 
 ### CLI session catalog boundary
 

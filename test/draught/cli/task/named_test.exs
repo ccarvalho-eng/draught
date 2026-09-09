@@ -2,6 +2,7 @@ defmodule Draught.CLI.Task.NamedTest do
   use ExUnit.Case, async: true
 
   alias Draught.CLI.Configuration
+  alias Draught.CLI.Session.Catalog.Preview
   alias Draught.CLI.Session.Store.Paths
   alias Draught.CLI.Task.Dependencies
   alias Draught.CLI.Task.Named
@@ -114,6 +115,7 @@ defmodule Draught.CLI.Task.NamedTest do
              Enum.reverse(resumed_request.messages)
 
     assert {:ok, paths} = Paths.new(workspace, "review", environment)
+    assert {:ok, %Preview{text: "Continue"}} = Preview.Local.read(paths)
 
     workspace_state = Path.join(workspace, ".draught")
     refute File.exists?(workspace_state)

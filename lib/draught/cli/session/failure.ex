@@ -95,6 +95,16 @@ defmodule Draught.CLI.Session.Failure do
     )
   end
 
+  @doc "Builds a failure for malformed or unsafe derived session preview state."
+  @spec invalid_preview() :: Normalized.t()
+  def invalid_preview do
+    error(
+      "session_preview_invalid",
+      "The session preview is invalid",
+      "Inspect the session state before continuing"
+    )
+  end
+
   @doc "Builds a failure when an archived session is selected for resume."
   @spec archived() :: Normalized.t()
   def archived do

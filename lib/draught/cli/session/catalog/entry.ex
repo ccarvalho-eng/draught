@@ -10,8 +10,17 @@ defmodule Draught.CLI.Session.Catalog.Entry do
   alias Draught.CLI.Session.Catalog.Display
   alias Draught.CLI.Session.Catalog.Metadata
 
-  @enforce_keys [:archive, :availability, :id, :label, :model, :profile, :provider]
-  defstruct [:archive, :availability, :id, :label, :model, :profile, :provider]
+  @enforce_keys [
+    :archive,
+    :availability,
+    :id,
+    :label,
+    :model,
+    :preview,
+    :profile,
+    :provider
+  ]
+  defstruct [:archive, :availability, :id, :label, :model, :preview, :profile, :provider]
 
   @type archive :: :active | :unknown | {:archived, DateTime.t()}
   @type availability :: :available | :unavailable
@@ -21,6 +30,7 @@ defmodule Draught.CLI.Session.Catalog.Entry do
           id: String.t(),
           label: String.t(),
           model: String.t() | nil,
+          preview: String.t() | nil,
           profile: String.t() | nil,
           provider: String.t() | nil
         }
@@ -28,8 +38,16 @@ defmodule Draught.CLI.Session.Catalog.Entry do
   @doc "Builds an available entry from validated binding and metadata records."
   @spec available(String.t(), Binding.t(), Metadata.t()) :: {:ok, t()} | {:error, :unsafe}
   def available(id, %Binding{} = binding, %Metadata{} = metadata) do
+    available(id, binding, metadata, nil)
+  end
+
+  @doc "Builds an available entry with an optional validated latest-message preview."
+  @spec available(String.t(), Binding.t(), Metadata.t(), String.t() | nil) ::
+          {:ok, t()} | {:error, :unsafe}
+  def available(id, %Binding{} = binding, %Metadata{} = metadata, preview) do
     with {:ok, label} <- Display.validate(metadata.label || id),
          {:ok, model} <- Display.validate(binding.model),
+         {:ok, safe_preview} <- optional_preview(preview),
          {:ok, profile} <- Display.validate(binding.profile),
          {:ok, provider} <- Display.validate(binding.provider) do
       {:ok,
@@ -39,6 +57,7 @@ defmodule Draught.CLI.Session.Catalog.Entry do
          id: id,
          label: label,
          model: model,
+         preview: safe_preview,
          profile: profile,
          provider: provider
        }}
@@ -54,6 +73,7 @@ defmodule Draught.CLI.Session.Catalog.Entry do
       id: id,
       label: id,
       model: nil,
+      preview: nil,
       profile: nil,
       provider: nil
     }
@@ -65,5 +85,13 @@ defmodule Draught.CLI.Session.Catalog.Entry do
 
   defp archive(%DateTime{} = timestamp) do
     {:archived, timestamp}
+  end
+
+  defp optional_preview(nil) do
+    {:ok, nil}
+  end
+
+  defp optional_preview(preview) do
+    Display.validate(preview)
   end
 end

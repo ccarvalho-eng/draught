@@ -8,6 +8,7 @@ defmodule Draught.CLI.Task.Named.Create do
   alias Draught.CLI.Task.Named.History
   alias Draught.CLI.Task.Named.Input
   alias Draught.CLI.Task.Named.Lease
+  alias Draught.CLI.Task.Named.Preview.Recorder
   alias Draught.CLI.Task.OneShot
   alias Draught.CLI.Task.Setup
 
@@ -38,17 +39,18 @@ defmodule Draught.CLI.Task.Named.Create do
     binding = Binding.new(input.configuration, preparation)
 
     case Local.create(store.paths, binding) do
-      :ok -> execute(input.identifier, preparation, store, stream)
+      :ok -> execute(input, preparation, store, stream)
       {:error, error} -> {Lease.abort(store, error), stream}
     end
   end
 
-  defp execute(identifier, preparation, store, stream) do
-    case History.journal(identifier, store) do
+  defp execute(input, preparation, store, stream) do
+    case History.journal(input.identifier, store) do
       {:ok, journal} ->
         preparation
         |> History.attach(journal)
-        |> then(&OneShot.run_observed(identifier, &1, stream))
+        |> then(&OneShot.run_observed(input.identifier, &1, stream))
+        |> Recorder.record(store.paths, input.prompt)
 
       {:error, _category, _error} = result ->
         {result, stream}

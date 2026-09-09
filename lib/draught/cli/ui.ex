@@ -243,13 +243,23 @@ defmodule Draught.CLI.UI do
       Integer.to_string(position),
       ". ",
       current(entry.id == current_identifier),
-      safe(entry.label),
-      "  ",
-      safe(entry.id),
+      session_identity(entry),
       "  ",
       session_details(entry),
       "\n"
     ]
+  end
+
+  defp session_identity(%Entry{id: id, label: id, preview: nil}) do
+    safe(id)
+  end
+
+  defp session_identity(%Entry{id: id, label: id, preview: preview}) do
+    [safe(id), "  ", safe(preview)]
+  end
+
+  defp session_identity(%Entry{id: id, label: label}) do
+    [safe(label), "  ", safe(id)]
   end
 
   defp current(true) do

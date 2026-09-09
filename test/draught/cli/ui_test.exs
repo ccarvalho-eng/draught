@@ -173,6 +173,39 @@ defmodule Draught.CLI.UITest do
     refute output =~ "archived"
   end
 
+  test "renders an unnamed session identifier only once" do
+    output =
+      "session-01"
+      |> entry(:active)
+      |> then(&UI.sessions([&1], "other", :active))
+      |> IO.iodata_to_binary()
+
+    assert output == "Sessions:\n1.   session-01  ollama/qwen3\n"
+  end
+
+  test "renders a bounded preview for an unnamed session" do
+    entry = %{entry("session-01", :active) | preview: "Inspect the failing parser"}
+
+    output =
+      [entry]
+      |> UI.sessions("other", :active)
+      |> IO.iodata_to_binary()
+
+    assert output ==
+             "Sessions:\n1.   session-01  Inspect the failing parser  ollama/qwen3\n"
+  end
+
+  test "keeps an explicit session name ahead of its immutable identifier" do
+    entry = %{entry("session-01", :active) | label: "Parser review", preview: "Ignored preview"}
+
+    output =
+      [entry]
+      |> UI.sessions("other", :active)
+      |> IO.iodata_to_binary()
+
+    assert output == "Sessions:\n1.   Parser review  session-01  ollama/qwen3\n"
+  end
+
   defp state do
     {:ok, state} =
       State.new(
@@ -205,6 +238,7 @@ defmodule Draught.CLI.UITest do
       id: identifier,
       label: identifier,
       model: "qwen3",
+      preview: nil,
       profile: "ollama",
       provider: "ollama"
     }

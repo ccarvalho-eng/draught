@@ -164,10 +164,12 @@ flowchart LR
   Scanner --> Marker[Session marker validation]
   Scanner --> Binding[Bounded provider binding]
   Scanner --> Metadata[Bounded versioned metadata]
+  Scanner --> Preview[Bounded derived prompt preview]
   Scanner -. does not read .-> Journal[Append-only journal]
   Direct --> Marker
   Direct --> Binding
   Direct --> Metadata
+  Direct --> Preview
 
   Mutation --> Lease[Exclusive session lease]
   Lease --> Marker
@@ -176,6 +178,10 @@ flowchart LR
   Lease --> Active{Metadata active?}
   Active -->|yes| Journal
   Active -->|no| Rejected[Normalized session error]
+  Journal --> Terminal{Successful terminal outcome?}
+  Terminal -->|yes| PreviewWrite[Atomic best-effort preview update]
+  PreviewWrite --> Preview
+  Terminal -->|no| Preserve[Preserve previous preview]
 ```
 
 The catalog boundary preserves these invariants:
@@ -183,6 +189,8 @@ The catalog boundary preserves these invariants:
 - Session IDs are immutable and remain the directory, replay, and lease identity.
 - Display names and archive state are versioned metadata, not directory names or filesystem timestamps.
 - Missing metadata means a legacy active session; malformed or unsafe metadata fails closed.
+- The preview is a bounded derived projection of the latest successful user message; it never replaces journal replay as conversation authority.
+- Preview updates occur after a successful terminal journal record under the session lease. Missing, stale, or unpublished previews do not change task outcomes.
 - Every existing application-owned catalog directory is owner-only and must not be a symbolic link.
 - Catalog discovery is read-only, bounded to 256 directory entries, and never replays journals.
 - Directory enumeration is isolated in a supervised task with fixed heap, deadline, entry-count, and returned-data limits.

@@ -15,10 +15,11 @@ defmodule Draught.CLI.Dependencies.Defaults do
     Draught.Provider.Ollama.Discovery.HTTP.Req
   end
 
-  @doc "Returns the local skill repository adapter."
-  @spec skill_repository() :: {module(), nil}
+  @doc "Returns the local skill repository with the packaged built-in catalog."
+  @spec skill_repository() :: {module(), %{required(:builtin_root) => String.t()}}
   def skill_repository do
-    {Draught.Skill.Repository.Local, nil}
+    root = Application.app_dir(:draught, "priv/builtin_skills/catalog")
+    {Draught.Skill.Repository.Local, %{builtin_root: root}}
   end
 
   @doc "Returns the local CLI system adapter."

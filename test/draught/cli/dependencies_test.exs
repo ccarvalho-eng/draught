@@ -7,7 +7,11 @@ defmodule Draught.CLI.DependenciesTest do
   test "builds the local production boundaries by default" do
     assert {:ok, %Dependencies{} = dependencies} = Dependencies.new()
     assert {Draught.CLI.System.Local, nil} = dependencies.system
-    assert {Draught.Skill.Repository.Local, nil} = dependencies.skill_repository
+
+    assert {Draught.Skill.Repository.Local, %{builtin_root: builtin_root}} =
+             dependencies.skill_repository
+
+    assert builtin_root == Application.app_dir(:draught, "priv/builtin_skills/catalog")
     assert dependencies.discovery_http == Draught.Provider.Ollama.Discovery.HTTP.Req
   end
 

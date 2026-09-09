@@ -53,7 +53,7 @@ defmodule Draught.MixProject do
     [
       licenses: ["Apache-2.0"],
       files:
-        ~w(lib docs .formatter.exs mix.exs mix.lock README* CHANGELOG* LICENSE* CONTRIBUTING* SECURITY*),
+        ~w(lib docs priv/builtin_skills .formatter.exs mix.exs mix.lock README* CHANGELOG* LICENSE* CONTRIBUTING* SECURITY*),
       links: %{
         "Changelog" => "#{@source_url}/blob/main/CHANGELOG.md",
         "GitHub" => @source_url

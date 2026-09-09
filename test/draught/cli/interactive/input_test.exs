@@ -27,6 +27,9 @@ defmodule Draught.CLI.Interactive.InputTest do
     assert Input.parse("/skill safe-review") ==
              {:ok, {:command, :skill, "safe-review"}}
 
+    assert Input.parse("/skill safe-review lib/draught.ex") ==
+             {:ok, {:command, :skill, "safe-review lib/draught.ex"}}
+
     assert Input.parse("/resume") == {:ok, {:command, :resume, nil}}
     assert Input.parse("/restore") == {:ok, {:command, :restore, nil}}
     assert Input.parse("/") == {:ok, {:command, :palette, nil}}

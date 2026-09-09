@@ -385,6 +385,10 @@ defmodule Draught.CLI.UI do
     "user shared"
   end
 
+  defp skill_origin(:builtin) do
+    "built in"
+  end
+
   defp rejected_skills(0) do
     []
   end

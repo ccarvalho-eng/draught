@@ -131,7 +131,7 @@ The available commands are:
 | `/model [reference]` | Lists compatible models or selects one by list number or exact name. |
 | `/tools` | Lists enabled built-in tools with descriptions and risk classes, plus optional web-tool state. |
 | `/skills` | Lists bounded skill metadata from workspace and user roots. |
-| `/skill REF` | Loads one explicitly selected skill by list number or exact name and applies it through the ordinary agent-turn path. |
+| `/skill REF [ARGUMENTS]` | Loads one explicitly selected skill by list number or exact name, supplies optional arguments, and applies it through the ordinary agent-turn path. |
 | `/sessions` | Lists bounded active, archived, and unavailable records for the current workspace. |
 | `/resume [reference]` | Selects an active session by list number, exact ID, or unique display name. With no argument, lists active sessions. |
 | `/new [ID]` | Starts a fresh unpersisted session using the current base configuration. A generated UUID is used when the ID is omitted. |

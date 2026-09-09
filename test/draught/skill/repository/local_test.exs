@@ -103,6 +103,44 @@ defmodule Draught.Skill.Repository.LocalTest do
     assert Local.fetch("large-skill", workspace, %{}, nil) == {:error, :not_found}
   end
 
+  @tag :tmp_dir
+  test "loads built-ins last and includes their bounded Markdown references", %{tmp_dir: root} do
+    workspace = Path.join(root, "workspace")
+    builtins = Path.join(root, "builtins")
+
+    write_skill(builtins, "review", "Built-in review", "Built-in instructions")
+    write_reference(builtins, "review", "checklist.md", "Inspect the complete diff.")
+    write_skill(builtins, "testing", "Built-in testing", "Run focused tests")
+
+    write_skill(
+      Path.join([workspace, ".draught", "skills"]),
+      "review",
+      "Workspace review",
+      "Workspace instructions"
+    )
+
+    configuration = %{builtin_root: builtins}
+
+    assert {:ok, catalog} = Local.list(workspace, %{}, configuration)
+
+    assert Enum.map(catalog.entries, &{&1.name, &1.origin}) ==
+             [{"review", :workspace_draught}, {"testing", :builtin}]
+
+    assert {:ok, review} = Local.fetch("review", workspace, %{}, configuration)
+    assert review.instructions == "Workspace instructions"
+
+    assert {:ok, testing} = Local.fetch("testing", workspace, %{}, configuration)
+    assert testing.instructions == "Run focused tests"
+
+    write_reference(builtins, "testing", "verification.md", "Check the result.")
+
+    assert {:ok, testing_with_reference} =
+             Local.fetch("testing", workspace, %{}, configuration)
+
+    assert testing_with_reference.instructions =~ "Bundled reference: references/verification.md"
+    assert testing_with_reference.instructions =~ "Check the result."
+  end
+
   defp write_skill(root, name, description, instructions) do
     directory = Path.join(root, name)
     File.mkdir_p!(directory)
@@ -110,6 +148,15 @@ defmodule Draught.Skill.Repository.LocalTest do
     directory
     |> Path.join("SKILL.md")
     |> File.write!(skill(name, description, instructions))
+  end
+
+  defp write_reference(root, name, filename, content) do
+    references = Path.join([root, name, "references"])
+    File.mkdir_p!(references)
+
+    references
+    |> Path.join(filename)
+    |> File.write!(content)
   end
 
   defp skill(name, description, instructions) do

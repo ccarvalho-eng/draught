@@ -60,6 +60,23 @@ defmodule Draught.CLI.Interactive.Skill.CommandTest do
     assert_receive {:skill_fetch, "review"}
   end
 
+  test "passes bounded trailing arguments to the selected skill" do
+    definition = %Definition{
+      description: "Review changes",
+      instructions: "Inspect $ARGUMENTS.",
+      name: "review",
+      origin: :builtin
+    }
+
+    dependencies = dependencies(fetch: {:ok, definition})
+
+    assert {:ok, {:invoke, "review", prompt}} =
+             Command.run(:skill, "review lib/draught.ex", state(), dependencies)
+
+    assert prompt =~ ~s("arguments":"lib/draught.ex")
+    assert_receive {:skill_fetch, "review"}
+  end
+
   test "returns recoverable errors for unavailable skills" do
     dependencies = dependencies(fetch: {:error, :not_found})
 

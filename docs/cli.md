@@ -119,7 +119,7 @@ A session resumes from its last complete conversation boundary. Successful turns
 
 Interactive mode resolves configuration and inspects the bounded Ollama inventory before displaying its session card. Exactly one compatible model is selected automatically. When several compatible models exist, the shell opens with `selection required` as its model and rejects task prompts until `/model` selects one. The shell owns a stable generated or supplied session identifier and routes ordinary text through the named-session task path. Successful later turns resume the same durable journal. Slash-prefixed input is parsed as a CLI command and is never sent to the provider as task text.
 
-The current commands are:
+The available commands are:
 
 | Command | Behavior |
 | --- | --- |
@@ -139,7 +139,7 @@ Model discovery preserves Ollama's inventory order and exposes only models that 
 
 Session names are display metadata and need not be unique. An ambiguous name must be replaced with its immutable ID. Unnamed rows show the immutable ID once followed by a sanitized, trimmed preview of the latest successful user message; named rows show the name and ID. Legacy sessions without a preview continue to list normally. Catalog views assign one-based positions, so `/resume 2` selects the second active record from the deterministic filtered list. Exact IDs and unique names take precedence over positions. Session catalog discovery is read-only and bounded; it does not replay journals. Exact IDs use direct lookup, so known sessions can still be archived or restored when a complete listing exceeds its entry limit. Corrupt or unsafe records are shown only by their validated ID as unavailable and cannot be selected. Archived sessions are rejected at the storage boundary for both interactive and headless resume until restored.
 
-The parser reserves direct-command input beginning with `!`, file lookup input beginning with `@`, and the remaining documented slash command names. Those effects return an explicit unavailable result until their policy boundaries are connected.
+The `/help` index labels planned commands and input forms as not available yet. The parser reserves direct-command input beginning with `!`, file lookup input beginning with `@`, and the remaining documented slash command names. Those effects return an explicit unavailable result until their policy boundaries are connected.
 
 The prompt loop is text- and terminal-only. A bounded provider, runner, or tool failure ends only the active turn; the shell reports the failure and accepts another prompt from the last complete durable history. It restores its terminal boundary after exit, end of input, or an input failure and prints `Session ID: ID` on ordinary exit. Tab completes slash-command prefixes. After `/model` loads the compatible inventory, Tab also completes an exact model-name prefix. Completion reads only the current in-memory catalog and performs no network or filesystem work. Active-turn keyboard cancellation, fuzzy selection, provider selection, and queued input remain pending.
 

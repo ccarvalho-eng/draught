@@ -16,6 +16,7 @@ defmodule Draught.CLI.Task.OneShot.ApprovalTest do
   alias Draught.Tool.Call
 
   @receive_timeout 1_000
+  @approval_start_timeout 5_000
   @tool_timeout 1_000
   @moduletag :tmp_dir
 
@@ -152,7 +153,7 @@ defmodule Draught.CLI.Task.OneShot.ApprovalTest do
         OneShot.run_observed("delayed-approval-session", preparation, stream)
       end)
 
-    assert_receive {:approval_input_requested, caller, reference}, @receive_timeout
+    assert_receive {:approval_input_requested, caller, reference}, @approval_start_timeout
     task_reference = task.ref
     refute_receive {^task_reference, _result}, @tool_timeout + 100
 

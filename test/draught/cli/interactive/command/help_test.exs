@@ -7,12 +7,14 @@ defmodule Draught.CLI.Interactive.Command.HelpTest do
     rendered = Help.render()
     output = IO.iodata_to_binary(rendered)
 
-    assert output =~ "Available now:"
+    assert output =~ "Available commands:"
     assert output =~ "/status"
     assert output =~ "/sessions"
-    assert output =~ "Planned commands (not available yet):"
+    assert output =~ "/skills"
+    assert output =~ "/skill NAME"
+    assert output =~ "Unavailable commands:"
     assert output =~ "/provider"
-    assert output =~ "Planned input forms (not available yet):"
+    assert output =~ "Unavailable input forms:"
     assert output =~ "Reserved for confined direct commands"
   end
 end

@@ -271,6 +271,39 @@ The instruction boundary preserves these invariants:
 - Named sessions retain the first durably journaled system message and do not load changed guidance during resume.
 - An empty named-session journal has no authoritative instruction snapshot and is not automatically resumable.
 
+### Skill instruction boundary
+
+Skills are selected user guidance, not executable extensions. Discovery reads bounded metadata through an injected repository port; only explicit invocation loads a complete instruction body. The selected skill then enters the existing named-session turn without acquiring a parallel execution path.
+
+```mermaid
+flowchart LR
+  WorkspaceDraught[Workspace Draught skills] --> Repository[Skill repository port]
+  WorkspaceAgents[Workspace shared skills] --> Repository
+  UserDraught[User Draught skills] --> Repository
+  UserAgents[User shared skills] --> Repository
+
+  Repository --> Validation[Name, metadata, file, and size validation]
+  Validation --> Catalog[Metadata-only catalog]
+  Catalog --> List[Interactive skill list]
+  Catalog --> Selection[Exact skill selection]
+  Selection --> Body[Bounded instruction load]
+  Body --> Frame[Guidance framing]
+  Frame --> Turn[Ordinary named-session turn]
+
+  Authority[Tools, approvals, web, confinement, and limits] --> Turn
+  Frame -. cannot modify .-> Authority
+```
+
+The skill boundary preserves these invariants:
+
+- Root precedence is deterministic, and the first valid definition of a name wins without merging bodies.
+- Catalog listing never returns instruction bodies or filesystem locations to the interface.
+- Roots are scanned one level deep under fixed per-root, combined-catalog, frontmatter, and document limits.
+- Symbolic links and non-regular entries fail closed; malformed entries are counted and skipped without ending the session.
+- Complete instructions are read only for an exact explicit selection and are framed without their local path.
+- Skill text remains user guidance. Runtime authority continues to come exclusively from validated configuration and capability boundaries.
+- Skill invocation uses the ordinary provider, streaming, journal, approval, cancellation, and failure-isolation path.
+
 ## Agent execution
 
 The runtime is the only layer that coordinates a model with tools. Model output is treated as a proposal: it cannot directly invoke an effect, grant itself capabilities, or bypass approval policy.

@@ -15,6 +15,8 @@ defmodule Draught.CLI.Interactive.Command.CatalogTest do
              :archive,
              :restore,
              :model,
+             :skills,
+             :skill,
              :exit
            ]
 
@@ -32,6 +34,7 @@ defmodule Draught.CLI.Interactive.Command.CatalogTest do
 
     assert %{argument: :optional, name: :model} = Catalog.find("model")
     assert %{argument: :required, name: :rename} = Catalog.find("rename")
+    assert %{argument: :required, name: :skill} = Catalog.find("skill")
     assert %{argument: :none, name: :help} = Catalog.find("help")
     assert Catalog.find("unknown") == nil
   end

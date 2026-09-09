@@ -30,6 +30,8 @@ defmodule Draught.CLI.Interactive.Input do
           | :resume
           | :review
           | :sessions
+          | :skill
+          | :skills
           | :status
           | :tools
           | :web

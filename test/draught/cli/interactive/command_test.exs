@@ -113,6 +113,26 @@ defmodule Draught.CLI.Interactive.CommandTest do
     end
   end
 
+  defmodule SkillRepository do
+    @behaviour Draught.Skill.Repository.Adapter
+
+    @impl Draught.Skill.Repository.Adapter
+    def list(_workspace, _environment, configuration) do
+      send(configuration.owner, :skills_listed)
+      {:ok, configuration.catalog}
+    end
+
+    @impl Draught.Skill.Repository.Adapter
+    def fetch(name, _workspace, _environment, configuration) do
+      send(configuration.owner, {:skill_loaded, name})
+
+      case Map.fetch(configuration.definitions, name) do
+        {:ok, definition} -> {:ok, definition}
+        :error -> {:error, :not_found}
+      end
+    end
+  end
+
   defmodule Provider do
     @behaviour Draught.Provider
 
@@ -286,8 +306,83 @@ defmodule Draught.CLI.Interactive.CommandTest do
     assert plain_output =~ ">_ Draught"
     assert plain_output =~ "model:     qwen3"
     assert plain_output =~ "Session status"
-    assert plain_output =~ "Available now:"
+    assert plain_output =~ "Available commands:"
     assert plain_output =~ "Session ID: 00000000-0000-4000-8000-000000000001"
+    assert_receive :interactive_terminal_restored
+  end
+
+  @tag :tmp_dir
+  test "lists and invokes skills without ending the interactive session", %{
+    tmp_dir: temporary_directory
+  } do
+    metadata = %Draught.Skill.Metadata{
+      description: "Review changes",
+      name: "review",
+      origin: :workspace_draught
+    }
+
+    definition = %Draught.Skill.Definition{
+      description: metadata.description,
+      instructions: "Inspect the complete diff.",
+      name: metadata.name,
+      origin: metadata.origin
+    }
+
+    repository =
+      {SkillRepository,
+       %{
+         catalog: Draught.Skill.Catalog.new([metadata], 0),
+         definitions: %{"review" => definition},
+         owner: self()
+       }}
+
+    {:ok, failure} =
+      Normalized.new(:protocol, "provider_failed", "Provider failed", retryable: false)
+
+    input({:ok, "/skills\n"})
+    input({:ok, "/skill review\n"})
+    input({:ok, "/status\n"})
+    input({:ok, "/exit\n"})
+
+    dependencies =
+      dependencies(
+        cwd: temporary_directory,
+        provider_response: {:recover, self(), failure, response()},
+        skill_repository: repository,
+        state: temporary_directory
+      )
+
+    assert CLI.run([], dependencies) == 0
+    output = plain(receive_output())
+
+    assert output =~ "Skills:"
+    assert output =~ "review"
+    assert output =~ "Review changes"
+    assert output =~ "Using skill review."
+    assert output =~ "Session status"
+    assert_receive :skills_listed
+    assert_receive {:skill_loaded, "review"}
+    assert_receive {:recovery_request, messages}
+
+    assert [prompt] = prompt_contents(messages)
+    assert prompt =~ ~s("instructions":"Inspect the complete diff.")
+    assert_receive :interactive_terminal_restored
+  end
+
+  test "reports an unknown skill and keeps accepting commands" do
+    repository =
+      {SkillRepository,
+       %{catalog: Draught.Skill.Catalog.new([], 0), definitions: %{}, owner: self()}}
+
+    input({:ok, "/skill missing\n"})
+    input({:ok, "/status\n"})
+    input({:ok, "/exit\n"})
+
+    assert CLI.run([], dependencies(skill_repository: repository)) == 0
+    output = plain(receive_output())
+
+    assert output =~ "Skill was not found. Run /skills"
+    assert output =~ "Session status"
     assert_receive :interactive_terminal_restored
   end
 
@@ -828,6 +923,12 @@ defmodule Draught.CLI.Interactive.CommandTest do
     {:ok, dependencies} =
       Dependencies.new(
         discovery_http: DiscoveryHTTP,
+        skill_repository:
+          Keyword.get(
+            options,
+            :skill_repository,
+            {Draught.Skill.Repository.Local, nil}
+          ),
         system: system,
         terminal: {
           TerminalAdapter,

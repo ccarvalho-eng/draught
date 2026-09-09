@@ -4,6 +4,8 @@ defmodule Draught.CLI.UITest do
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.Session.Catalog.Entry
   alias Draught.CLI.UI
+  alias Draught.Skill.Catalog
+  alias Draught.Skill.Metadata
 
   test "separates the input area without speaker names or cursor controls" do
     assert render_input(:open, 12) == "\n╭─ qwen3 ·…╮\n│ › "
@@ -181,6 +183,23 @@ defmodule Draught.CLI.UITest do
       |> IO.iodata_to_binary()
 
     assert output == "Sessions:\n1.   session-01  ollama/qwen3\n"
+  end
+
+  test "renders skill metadata and bounded invalid-entry counts" do
+    metadata = %Metadata{
+      description: "Review changes",
+      name: "review",
+      origin: :workspace_agents
+    }
+
+    output =
+      [metadata]
+      |> Catalog.new(2)
+      |> UI.skills()
+      |> IO.iodata_to_binary()
+
+    assert output ==
+             "Skills:\n1. review  Review changes  (workspace shared)\nSkipped 2 invalid skill entries.\n"
   end
 
   test "renders a bounded preview for an unnamed session" do

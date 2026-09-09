@@ -127,6 +127,8 @@ The available commands are:
 | `/status` | Displays the current immutable ID, display name, provider, model, workspace, web state, and activity. |
 | `/doctor` | Runs the read-only diagnostic command and returns to the prompt. |
 | `/model [reference]` | Lists compatible models or selects one by list number or exact name. |
+| `/skills` | Lists bounded skill metadata from workspace and user roots. |
+| `/skill NAME` | Loads one explicitly selected skill and applies it through the ordinary agent-turn path. |
 | `/sessions` | Lists bounded active, archived, and unavailable records for the current workspace. |
 | `/resume [reference]` | Selects an active session by list number, exact ID, or unique display name. With no argument, lists active sessions. |
 | `/new [ID]` | Starts a fresh unpersisted session using the current base configuration. A generated UUID is used when the ID is omitted. |
@@ -140,6 +142,8 @@ Model discovery preserves Ollama's inventory order and exposes only models that 
 Session names are display metadata and need not be unique. An ambiguous name must be replaced with its immutable ID. Unnamed rows show the immutable ID once followed by a sanitized, trimmed preview of the latest successful user message; named rows show the name and ID. Legacy sessions without a preview continue to list normally. Catalog views assign one-based positions, so `/resume 2` selects the second active record from the deterministic filtered list. Exact IDs and unique names take precedence over positions. Session catalog discovery is read-only and bounded; it does not replay journals. Exact IDs use direct lookup, so known sessions can still be archived or restored when a complete listing exceeds its entry limit. Corrupt or unsafe records are shown only by their validated ID as unavailable and cannot be selected. Archived sessions are rejected at the storage boundary for both interactive and headless resume until restored.
 
 The `/help` index labels planned commands and input forms as not available yet. The parser reserves direct-command input beginning with `!`, file lookup input beginning with `@`, and the remaining documented slash command names. Those effects return an explicit unavailable result until their policy boundaries are connected.
+
+Skill discovery is documented in [Skills](skills.md). Listing exposes only metadata; selecting `/skill NAME` loads and frames the complete instructions for one explicit turn. Skill contents cannot change the task's tool, approval, web, confinement, provider, or runtime authority.
 
 The prompt loop is text- and terminal-only. A bounded provider, runner, or tool failure ends only the active turn; the shell reports the failure and accepts another prompt from the last complete durable history. It restores its terminal boundary after exit, end of input, or an input failure and prints `Session ID: ID` on ordinary exit. Tab completes slash-command prefixes. After `/model` loads the compatible inventory, Tab also completes an exact model-name prefix. Completion reads only the current in-memory catalog and performs no network or filesystem work. Active-turn keyboard cancellation, fuzzy selection, provider selection, and queued input remain pending.
 

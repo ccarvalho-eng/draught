@@ -7,6 +7,7 @@ defmodule Draught.CLI.Interactive.Skill.Command do
   """
 
   alias Draught.CLI.Dependencies
+  alias Draught.CLI.Interactive.Skill.Invocation
   alias Draught.CLI.Interactive.Skill.Reference
   alias Draught.CLI.Interactive.State
   alias Draught.Skill.Name
@@ -27,10 +28,11 @@ defmodule Draught.CLI.Interactive.Skill.Command do
   end
 
   def run(:skill, reference, %State{} = state, %Dependencies{} = dependencies) do
-    with {:ok, validated_reference} <- Name.validate(reference) do
+    with {:ok, parsed} <- Invocation.parse(reference),
+         {:ok, validated_reference} <- Name.validate(parsed.reference) do
       validated_reference
       |> fetch(state, dependencies)
-      |> invocation(validated_reference, state, dependencies)
+      |> invocation(validated_reference, parsed.arguments, state, dependencies)
     end
   end
 
@@ -45,25 +47,25 @@ defmodule Draught.CLI.Interactive.Skill.Command do
     repository.fetch(name, state.workspace, environment, repository_configuration)
   end
 
-  defp invocation({:ok, definition}, name, _state, _dependencies) do
-    render_invocation(definition, name)
+  defp invocation({:ok, definition}, name, arguments, _state, _dependencies) do
+    render_invocation(definition, name, arguments)
   end
 
-  defp invocation({:error, :not_found}, reference, state, dependencies) do
+  defp invocation({:error, :not_found}, reference, arguments, state, dependencies) do
     with {:ok, position} <- Reference.position(reference),
          {:ok, catalog} <- list(state, dependencies),
          {:ok, name} <- Reference.name(position, catalog),
          {:ok, definition} <- fetch(name, state, dependencies) do
-      render_invocation(definition, name)
+      render_invocation(definition, name, arguments)
     end
   end
 
-  defp invocation({:error, reason}, _reference, _state, _dependencies) do
+  defp invocation({:error, reason}, _reference, _arguments, _state, _dependencies) do
     {:error, reason}
   end
 
-  defp render_invocation(definition, name) do
-    case Prompt.render(definition) do
+  defp render_invocation(definition, name, arguments) do
+    case Prompt.render(definition, arguments) do
       {:ok, prompt} -> {:ok, {:invoke, name, prompt}}
       {:error, reason} -> {:error, reason}
     end

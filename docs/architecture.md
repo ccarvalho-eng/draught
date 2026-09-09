@@ -289,13 +289,16 @@ flowchart LR
   WorkspaceAgents[Workspace shared skills] --> Repository
   UserDraught[User Draught skills] --> Repository
   UserAgents[User shared skills] --> Repository
+  BuiltIn[Packaged built-in skills] --> Repository
 
   Repository --> Validation[Name, metadata, file, and size validation]
   Validation --> Catalog[Metadata-only catalog]
   Catalog --> List[Interactive skill list]
   Catalog --> Completion[Effect-free skill completion snapshot]
   Catalog --> Selection[Exact name or position selection]
-  Selection --> Body[Bounded instruction load]
+  Selection --> Body[Bounded instruction and argument load]
+  BuiltIn --> References[Bounded direct references]
+  References --> Body
   Body --> Frame[Guidance framing]
   Frame --> Turn[Ordinary named-session turn]
 
@@ -309,8 +312,10 @@ The skill boundary preserves these invariants:
 - Catalog listing never returns instruction bodies or filesystem locations to the interface.
 - Tab completion consumes only canonical names retained from the last explicit catalog listing and performs no filesystem work.
 - Roots are scanned one level deep under fixed per-root, combined-catalog, frontmatter, and document limits.
+- Packaged skills are lowest precedence. Their direct Markdown references are loaded only after explicit selection, in deterministic order, under per-file, count, cumulative, and final-prompt bounds.
 - Symbolic links and non-regular entries fail closed; malformed entries are counted and skipped without ending the session.
 - Complete instructions are read only for an exact explicit selection and are framed without their local path.
+- Optional invocation arguments are framed as data and do not alter skill or runtime authority.
 - Skill text remains user guidance. Runtime authority continues to come exclusively from validated configuration and capability boundaries.
 - Skill invocation uses the ordinary provider, streaming, journal, approval, cancellation, and failure-isolation path.
 

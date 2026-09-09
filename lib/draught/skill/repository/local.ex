@@ -12,6 +12,7 @@ defmodule Draught.Skill.Repository.Local do
   alias Draught.Skill.Definition
   alias Draught.Skill.Metadata
   alias Draught.Skill.Name
+  alias Draught.Skill.Repository.Local.Bundle
   alias Draught.Skill.Repository.Local.File
   alias Draught.Skill.Repository.Local.Roots
 
@@ -26,11 +27,11 @@ defmodule Draught.Skill.Repository.Local do
   end
 
   @impl Draught.Skill.Repository.Adapter
-  def list(workspace, environment, _configuration)
+  def list(workspace, environment, configuration)
       when is_binary(workspace) and is_map(environment) do
     {entries, rejected} =
       workspace
-      |> Roots.list(environment)
+      |> Roots.list(environment, configuration)
       |> Enum.reduce({[], 0}, &scan_root/2)
 
     catalog =
@@ -46,11 +47,11 @@ defmodule Draught.Skill.Repository.Local do
   end
 
   @impl Draught.Skill.Repository.Adapter
-  def fetch(name, workspace, environment, _configuration)
+  def fetch(name, workspace, environment, configuration)
       when is_binary(workspace) and is_map(environment) do
     with {:ok, validated_name} <- Name.validate(name) do
       workspace
-      |> Roots.list(environment)
+      |> Roots.list(environment, configuration)
       |> Enum.find_value(&load(&1, validated_name))
       |> fetch_result()
     end
@@ -110,7 +111,7 @@ defmodule Draught.Skill.Repository.Local do
 
     with true <- File.directory?(root.path),
          true <- File.directory?(directory),
-         {:ok, content} <- File.complete(skill_file, @maximum_bytes),
+         {:ok, content} <- content(root, directory, skill_file),
          {:ok, definition} <- Definition.parse(content, name, root.origin) do
       definition
     else
@@ -124,5 +125,13 @@ defmodule Draught.Skill.Repository.Local do
 
   defp fetch_result(%Definition{} = definition) do
     {:ok, definition}
+  end
+
+  defp content(%{origin: :builtin}, directory, _skill_file) do
+    Bundle.complete(directory, @maximum_bytes)
+  end
+
+  defp content(_root, _directory, skill_file) do
+    File.complete(skill_file, @maximum_bytes)
   end
 end

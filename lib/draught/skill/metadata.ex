@@ -8,14 +8,15 @@ defmodule Draught.Skill.Metadata do
   alias Draught.Skill.Frontmatter
   alias Draught.Skill.Name
 
-  @origins [:workspace_draught, :workspace_agents, :user_draught, :user_agents]
+  @origins [:workspace_draught, :workspace_agents, :user_draught, :user_agents, :builtin]
   @maximum_description_bytes 1_024
   @control ~r/[[:cntrl:]]/u
 
   @enforce_keys [:description, :name, :origin]
   defstruct [:description, :name, :origin]
 
-  @type origin :: :workspace_draught | :workspace_agents | :user_draught | :user_agents
+  @type origin ::
+          :workspace_draught | :workspace_agents | :user_draught | :user_agents | :builtin
   @type t :: %__MODULE__{
           description: String.t(),
           name: String.t(),

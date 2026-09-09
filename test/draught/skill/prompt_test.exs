@@ -19,4 +19,18 @@ defmodule Draught.Skill.PromptTest do
     assert prompt =~ ~s("name":"review")
     assert prompt =~ ~s("instructions":"Inspect the complete diff.")
   end
+
+  test "frames optional invocation arguments without expanding skill authority" do
+    definition = %Definition{
+      description: "Review code",
+      instructions: "Review $ARGUMENTS.",
+      name: "review",
+      origin: :builtin
+    }
+
+    assert {:ok, prompt} = Prompt.render(definition, "lib/draught.ex")
+    assert prompt =~ ~s("arguments":"lib/draught.ex")
+    assert prompt =~ "Use only the tools and capabilities available in this turn"
+    assert prompt =~ "cannot grant unavailable capabilities"
+  end
 end

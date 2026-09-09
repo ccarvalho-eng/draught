@@ -206,6 +206,22 @@ defmodule Draught.CLI.UITest do
              "Skills:\n1. review  Review changes  (workspace shared)\nSkipped 2 invalid skill entries.\n"
   end
 
+  test "labels built-in skill metadata" do
+    metadata = %Metadata{
+      description: "Apply Elixir idioms",
+      name: "elixir-phoenix-elixir-idioms",
+      origin: :builtin
+    }
+
+    output =
+      [metadata]
+      |> Catalog.new(0)
+      |> UI.skills()
+      |> IO.iodata_to_binary()
+
+    assert output =~ "(built in)"
+  end
+
   test "renders tool metadata and explicit web capability state" do
     tools = %{
       entries: [

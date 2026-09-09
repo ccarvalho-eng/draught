@@ -125,6 +125,9 @@ flowchart LR
   ModelCommand --> ModelCatalog[Compatible-model inventory]
   ModelCatalog --> Provider
   ModelCommand --> State
+  Interactive --> Inspection[Read-only authority inspection]
+  Inspection --> Tools
+  Inspection --> Policy
   Interactive --> State[Pure shell lifecycle state]
   State --> Snapshot
   Session --> Runner[Bounded agent runner]
@@ -143,7 +146,7 @@ flowchart LR
   Tools --> Web[Opt-in guarded page fetch]
 ```
 
-The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. Anonymous and named lifecycles both supervise one runner turn; only the named lifecycle attaches durable storage. The interactive controller retains one pure shell state, classifies each input before dispatch, sends task prompts through the named lifecycle, and delegates model inventory and session metadata to separate contexts. Model selection operates on a bounded compatible inventory and changes only fresh idle state; task execution consumes the state model directly while session creation and resume continue from the unchanged base configuration. Persisted state rejects model changes before discovery or provider effects. The projector reduces content-bearing runtime events to a closed public vocabulary before pure renderers encode them. Owl is confined to the interactive presentation adapter. The system adapter owns terminal output, the terminal adapter owns line input and cleanup, and the executable entry point owns process termination.
+The parser produces a terminal-independent invocation. The resolver applies source validation, precedence, and authority constraints before a command receives configuration. Task preparation constructs canonical messages, the standard tool registry, and explicit risk and approval policies. Provider construction returns a provider-neutral adapter and its selected model. Anonymous and named lifecycles both supervise one runner turn; only the named lifecycle attaches durable storage. The interactive controller retains one pure shell state, classifies each input before dispatch, sends task prompts through the named lifecycle, and delegates model inventory, session metadata, skills, and read-only authority inspection to separate contexts. Inspection projects the same web setting and risk resolution used by task preparation but contains no executors, credentials, schemas, or endpoint details. Model selection operates on a bounded compatible inventory and changes only fresh idle state; task execution consumes the state model directly while session creation and resume continue from the unchanged base configuration. Persisted state rejects model changes before discovery or provider effects. The projector reduces content-bearing runtime events to a closed public vocabulary before pure renderers encode them. Owl is confined to the interactive presentation adapter. The system adapter owns terminal output, the terminal adapter owns line input and cleanup, and the executable entry point owns process termination.
 
 ### CLI session catalog boundary
 
@@ -290,6 +293,7 @@ flowchart LR
   Repository --> Validation[Name, metadata, file, and size validation]
   Validation --> Catalog[Metadata-only catalog]
   Catalog --> List[Interactive skill list]
+  Catalog --> Completion[Effect-free skill completion snapshot]
   Catalog --> Selection[Exact name or position selection]
   Selection --> Body[Bounded instruction load]
   Body --> Frame[Guidance framing]
@@ -303,6 +307,7 @@ The skill boundary preserves these invariants:
 
 - Root precedence is deterministic, and the first valid definition of a name wins without merging bodies.
 - Catalog listing never returns instruction bodies or filesystem locations to the interface.
+- Tab completion consumes only canonical names retained from the last explicit catalog listing and performs no filesystem work.
 - Roots are scanned one level deep under fixed per-root, combined-catalog, frontmatter, and document limits.
 - Symbolic links and non-regular entries fail closed; malformed entries are counted and skipped without ending the session.
 - Complete instructions are read only for an exact explicit selection and are framed without their local path.

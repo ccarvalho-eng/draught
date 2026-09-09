@@ -7,6 +7,7 @@ defmodule Draught.CLI.Interactive.State do
   returned actions but cannot bypass these transitions.
   """
 
+  alias Draught.CLI.Interactive.State.SkillCatalog
   alias Draught.CLI.Session.Catalog.Name
   alias Draught.Validation.Attributes
   alias Draught.Validation.Error
@@ -27,7 +28,8 @@ defmodule Draught.CLI.Interactive.State do
     model_catalog: [],
     model_catalog_displayed?: false,
     persisted?: false,
-    phase: :idle
+    phase: :idle,
+    skill_catalog: []
   ]
 
   @type phase :: :idle | :running | :awaiting_approval | :stopping | :stopped
@@ -43,6 +45,7 @@ defmodule Draught.CLI.Interactive.State do
           queued_prompt: String.t() | nil,
           session_id: String.t(),
           session_label: String.t(),
+          skill_catalog: [String.t()],
           web: boolean(),
           web_search: boolean(),
           workspace: String.t()
@@ -241,10 +244,22 @@ defmodule Draught.CLI.Interactive.State do
     {:error, :model_list_required}
   end
 
+  @doc "Retains bounded skill names after their metadata is explicitly listed."
+  @spec display_skills(t(), term()) :: {:ok, t()} | {:error, :invalid_skill_catalog}
+  def display_skills(%__MODULE__{} = state, names) do
+    case SkillCatalog.validate(names) do
+      {:ok, validated} -> {:ok, %{state | skill_catalog: validated}}
+      {:error, :invalid_skill_catalog} = error -> error
+    end
+  end
+
   @doc "Selects a prepared idle session without carrying transient turn state."
   @spec select(t(), t()) :: {:ok, t()} | {:error, :busy}
-  def select(%__MODULE__{phase: :idle}, %__MODULE__{phase: :idle} = selected) do
-    {:ok, selected}
+  def select(
+        %__MODULE__{phase: :idle, skill_catalog: skill_catalog},
+        %__MODULE__{phase: :idle} = selected
+      ) do
+    {:ok, %{selected | skill_catalog: skill_catalog}}
   end
 
   def select(%__MODULE__{}, %__MODULE__{}) do

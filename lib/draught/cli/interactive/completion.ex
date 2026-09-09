@@ -43,6 +43,10 @@ defmodule Draught.CLI.Interactive.Completion do
     complete(prefix, context.models)
   end
 
+  defp expansion("/skill " <> prefix, context) do
+    complete(prefix, context.skills)
+  end
+
   defp expansion("/" <> _command = prefix, context) do
     command(prefix, context.commands)
   end

@@ -103,6 +103,7 @@ defmodule Draught.CLI.Interactive.Session.TerminalTest do
     assert_receive {:input_read, completion}
     assert "/help" in completion.commands
     assert completion.models == []
+    assert completion.skills == []
     assert_receive {:output, :stdout, "╰──────────╯\n\n"}
   end
 

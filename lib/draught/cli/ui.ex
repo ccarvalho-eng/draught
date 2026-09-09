@@ -44,6 +44,55 @@ defmodule Draught.CLI.UI do
     ]
   end
 
+  @doc "Renders enabled built-in tools and the explicit optional web-tool state."
+  @spec tools(map()) :: iodata()
+  def tools(%{entries: entries, web_fetch: web_fetch, web_search: web_search}) do
+    [
+      "Tools:\n",
+      tool_lines(entries),
+      "Web tools:\n",
+      "  web_fetch: ",
+      enabled(web_fetch),
+      "\n  web_search: ",
+      enabled(web_search),
+      "\n"
+    ]
+  end
+
+  @doc "Renders the effective non-secret workspace and tool authority."
+  @spec permissions(map()) :: iodata()
+  def permissions(%{
+        admitted_risks: admitted_risks,
+        approval: approval,
+        risk: risk,
+        web_fetch: web_fetch,
+        web_search: web_search,
+        workspace: workspace
+      }) do
+    [
+      "Permissions:\n",
+      "  Workspace: ",
+      safe(workspace),
+      "\n  Risk mode: ",
+      Atom.to_string(risk),
+      "\n  Admitted risks: ",
+      risk_list(admitted_risks),
+      "\n  Approval: ",
+      approval(approval),
+      "\n  Web fetch: ",
+      enabled(web_fetch),
+      "\n  Web search: ",
+      enabled(web_search),
+      "\n"
+    ]
+  end
+
+  @doc "Renders a stable failure when a read-only inspection cannot be produced."
+  @spec inspection_error() :: iodata()
+  def inspection_error do
+    "The active tool configuration could not be inspected.\n"
+  end
+
   @doc "Renders a bounded input boundary with persistent session context in its rail."
   @spec input_area(:open | :close, State.t(), pos_integer(), boolean()) :: iodata()
   def input_area(phase, %State{} = state, width, styled? \\ false)
@@ -288,6 +337,25 @@ defmodule Draught.CLI.UI do
     |> Enum.map(fn {entry, position} -> skill_line(entry, position) end)
   end
 
+  defp tool_lines(entries) do
+    entries
+    |> Enum.with_index(1)
+    |> Enum.map(fn {entry, position} -> tool_line(entry, position) end)
+  end
+
+  defp tool_line(%{description: description, name: name, risk: risk}, position) do
+    [
+      Integer.to_string(position),
+      ". ",
+      safe(name),
+      "  ",
+      Atom.to_string(risk),
+      "  ",
+      safe(description),
+      "\n"
+    ]
+  end
+
   defp skill_line(%{description: description, name: name, origin: origin}, position) do
     [
       Integer.to_string(position),
@@ -399,6 +467,30 @@ defmodule Draught.CLI.UI do
 
   defp hint(value) do
     ["\n  Hint: ", safe(value), "\n"]
+  end
+
+  defp approval(:application_policy) do
+    "application policy"
+  end
+
+  defp approval(:automatic) do
+    "automatic for admitted tools"
+  end
+
+  defp approval(:effectful) do
+    "required for effectful tools"
+  end
+
+  defp enabled(true) do
+    "enabled"
+  end
+
+  defp enabled(false) do
+    "disabled"
+  end
+
+  defp risk_list(risks) do
+    Enum.map_join(risks, ", ", &Atom.to_string/1)
   end
 
   defp web(true) do

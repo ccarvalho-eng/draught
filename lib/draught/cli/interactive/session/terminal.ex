@@ -17,12 +17,15 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
   alias Draught.CLI.Writer
 
   @type parsed_input :: {:ok, Input.action()} | {:error, Input.error()}
+  @type inspection_view :: {:permissions, map()} | {:tools, map()}
   @type model_view :: {:models, [String.t()], String.t() | nil} | {:selected, String.t()}
   @type view ::
           :clear
           | :help
+          | :inspection_error
           | :terminal_error
           | {:input_error, atom()}
+          | {:inspection, inspection_view()}
           | {:model_error, term()}
           | {:model_view, model_view()}
           | {:session_closed, String.t()}
@@ -137,6 +140,18 @@ defmodule Draught.CLI.Interactive.Session.Terminal do
 
   defp render(:terminal_error) do
     UI.terminal_error()
+  end
+
+  defp render(:inspection_error) do
+    UI.inspection_error()
+  end
+
+  defp render({:inspection, {:permissions, permissions}}) do
+    UI.permissions(permissions)
+  end
+
+  defp render({:inspection, {:tools, tools}}) do
+    UI.tools(tools)
   end
 
   defp render({:input_error, reason}) do

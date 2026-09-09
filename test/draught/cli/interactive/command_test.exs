@@ -76,6 +76,12 @@ defmodule Draught.CLI.Interactive.CommandTest do
     end
 
     @impl Draught.CLI.Interactive.Terminal.Adapter
+    def read_line(completion, configuration) do
+      send(configuration.owner, {:completion_context, completion})
+      read_line(configuration)
+    end
+
+    @impl Draught.CLI.Interactive.Terminal.Adapter
     def request_line(configuration) do
       reference = make_ref()
 
@@ -311,6 +317,29 @@ defmodule Draught.CLI.Interactive.CommandTest do
     assert_receive :interactive_terminal_restored
   end
 
+  test "inspects effective tools and permissions without starting a task" do
+    input({:ok, "/tools\n"})
+    input({:ok, "/permissions\n"})
+    input({:ok, "/exit\n"})
+
+    assert CLI.run([], dependencies()) == 0
+    output = plain(receive_output())
+
+    assert output =~ "Tools:"
+    assert output =~ "read_file  read  Read one UTF-8 file from the workspace"
+    assert output =~ "run_command  execute"
+    assert output =~ "web_fetch: disabled"
+    assert output =~ "web_search: disabled"
+    assert output =~ "Permissions:"
+    assert output =~ "Workspace: /workspace"
+    assert output =~ "Risk mode: ask"
+    assert output =~ "Admitted risks: read, write, execute, network"
+    assert output =~ "Approval: required for effectful tools"
+    refute output =~ "not available yet"
+    refute_receive {:recovery_request, _messages}
+    assert_receive :interactive_terminal_restored
+  end
+
   @tag :tmp_dir
   test "lists and invokes skills without ending the interactive session", %{
     tmp_dir: temporary_directory
@@ -364,6 +393,8 @@ defmodule Draught.CLI.Interactive.CommandTest do
     assert_receive {:skill_loaded, "1"}
     assert_receive {:skill_loaded, "review"}
     assert_receive {:recovery_request, messages}
+    assert_receive {:completion_context, %{skills: []}}
+    assert_receive {:completion_context, %{skills: ["review"]}}
 
     assert [prompt] = prompt_contents(messages)
     assert prompt =~ ~s("instructions":"Inspect the complete diff.")

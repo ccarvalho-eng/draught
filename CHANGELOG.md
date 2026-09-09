@@ -6,6 +6,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+### Added
+
+- Read-only `/tools` and `/permissions` views for the active built-in catalog, risk admission, approval behavior, workspace, and web capabilities.
+- Tab completion for canonical skill names retained after an explicit `/skills` listing.
+
 ## 0.1.0-beta.4 - 2026-09-09
 
 ### Added

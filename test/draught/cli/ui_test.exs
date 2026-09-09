@@ -206,6 +206,47 @@ defmodule Draught.CLI.UITest do
              "Skills:\n1. review  Review changes  (workspace shared)\nSkipped 2 invalid skill entries.\n"
   end
 
+  test "renders tool metadata and explicit web capability state" do
+    tools = %{
+      entries: [
+        %{
+          description: "Read one UTF-8 file from the workspace",
+          name: "read_file",
+          risk: :read
+        }
+      ],
+      web_fetch: false,
+      web_search: true
+    }
+
+    output =
+      tools
+      |> UI.tools()
+      |> IO.iodata_to_binary()
+
+    assert output ==
+             "Tools:\n1. read_file  read  Read one UTF-8 file from the workspace\nWeb tools:\n  web_fetch: disabled\n  web_search: enabled\n"
+  end
+
+  test "renders the effective permission matrix without configuration secrets" do
+    permissions = %{
+      admitted_risks: [:read, :write, :execute, :network],
+      approval: :effectful,
+      risk: :ask,
+      web_fetch: false,
+      web_search: false,
+      workspace: "/workspace"
+    }
+
+    output =
+      permissions
+      |> UI.permissions()
+      |> IO.iodata_to_binary()
+
+    assert output ==
+             "Permissions:\n  Workspace: /workspace\n  Risk mode: ask\n  Admitted risks: read, write, execute, network\n  Approval: required for effectful tools\n  Web fetch: disabled\n  Web search: disabled\n"
+  end
+
   test "renders a bounded preview for an unnamed session" do
     entry = %{entry("session-01", :active) | preview: "Inspect the failing parser"}
 

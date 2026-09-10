@@ -567,7 +567,9 @@ defmodule Draught.CLITest do
     send(second_provider, {:scripted_provider_result, {:ok, final}})
 
     assert Task.await(task) == 0
-    assert_receive {:cli_output, :stdout, "[tool] replace_in_file requested\n"}, @receive_timeout
+
+    assert_receive {:cli_output, :stdout, "[tool] replace_in_file sample.txt requested\n"},
+                   @receive_timeout
 
     assert_receive {:cli_output, :stdout, "[tool] replace_in_file error (tool_risk_denied)\n"},
                    @receive_timeout
@@ -613,9 +615,9 @@ defmodule Draught.CLITest do
     assert Task.await(task) == 0
 
     assert receive_outputs(6) == [
-             {:stdout, "[tool] replace_in_file requested\n"},
+             {:stdout, "[tool] replace_in_file sample.txt requested\n"},
              {:stdout, "[tool] replace_in_file success\n"},
-             {:stdout, "[tool] read_file requested\n"},
+             {:stdout, "[tool] read_file sample.txt requested\n"},
              {:stdout, "[tool] read_file success\n"},
              {:stdout, "Updated and verified"},
              {:stdout, "\n"}

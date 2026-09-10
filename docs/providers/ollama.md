@@ -53,6 +53,14 @@ Generation options belong to each canonical request:
 Draught.Provider.complete(adapter, request)
 ```
 
+## Malformed tool-call recovery
+
+Some tool-capable models can omit Ollama's expected tool-call wrapper. Ollama then reports the generated markup as ordinary assistant text with no structured tool calls. For tool-enabled requests, Draught buffers each Ollama response until it is classified and retries one malformed response before anything is displayed or retained.
+
+Draught does not parse or execute leaked markup. A second malformed response returns the retryable `ollama_malformed_tool_call` error, leaving the interactive session available for another turn. Requests without tools retain incremental streaming.
+
+Existing journals are not rewritten. Start a new session if an earlier release already retained leaked tool-call markup.
+
 ## Inventory and selection
 
 Inventory discovery preserves the order returned by Ollama. Each entry is classified as compatible or incompatible against the complete required capability set. Incompatible models remain visible to diagnostics but are excluded from automatic selection.
@@ -93,6 +101,7 @@ The read-only `draught doctor` command uses this inventory when model selection 
 | Required capability is absent | `ollama_unsupported_<capability>` |
 | Discovery payload is invalid | `invalid_ollama_response` |
 | Discovery response exceeds its configured limit | `ollama_response_too_large` |
+| Tool-call markup is still malformed after one retry | `ollama_malformed_tool_call` |
 
 Errors do not retain discovery response bodies, request headers, model output, or transport exceptions.
 

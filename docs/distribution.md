@@ -16,7 +16,7 @@ Choose the target that matches the current system:
 Set `TARGET` to that value and download the versioned archive and checksum:
 
 ```sh
-VERSION=0.1.0-beta.8
+VERSION=0.1.0-beta.9
 TARGET=macos_arm64
 BASE_URL="https://github.com/ccarvalho-eng/draught/releases/download/v${VERSION}"
 ARCHIVE="draught-${TARGET}.tar.gz"

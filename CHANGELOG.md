@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.1.0-beta.9 - 2026-09-10
+
+### Added
+
+- Streamed Elixir and Erlang fenced code uses bounded terminal syntax highlighting with lossless plain-text fallback.
+
+### Changed
+
+- Interactive output uses semantic terminal colors, including an amber workspace label and distinct command and outcome states.
+- Built-in skill names are displayed and accepted as compact `elixir-phx-*` references while canonical names remain compatible.
+- Built-in skill catalogs use short, distinctive descriptions designed for quick scanning.
+
 ## 0.1.0-beta.8 - 2026-09-10
 
 ### Changed

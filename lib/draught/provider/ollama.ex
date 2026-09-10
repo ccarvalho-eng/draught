@@ -6,9 +6,9 @@ defmodule Draught.Provider.Ollama do
   @behaviour Draught.Provider
 
   alias Draught.Provider.Ollama.Builder
+  alias Draught.Provider.Ollama.Execution
   alias Draught.Provider.Ollama.Protocol
   alias Draught.Provider.Ollama.Runtime
-  alias Draught.Provider.OpenAI
 
   @type adapter :: {__MODULE__, Runtime.t()}
 
@@ -40,7 +40,7 @@ defmodule Draught.Provider.Ollama do
 
   @impl Draught.Provider
   def complete(request, %Runtime{openai: openai}) do
-    OpenAI.complete(request, openai)
+    Execution.complete(request, openai)
   end
 
   def complete(_request, _runtime) do
@@ -49,7 +49,7 @@ defmodule Draught.Provider.Ollama do
 
   @impl Draught.Provider
   def stream(request, %Runtime{openai: openai}, sink) do
-    OpenAI.stream(request, openai, sink)
+    Execution.stream(request, openai, sink)
   end
 
   def stream(_request, _runtime, _sink) do

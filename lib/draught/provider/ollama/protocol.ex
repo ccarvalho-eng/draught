@@ -128,6 +128,19 @@ defmodule Draught.Provider.Ollama.Protocol do
     error(:configuration, "invalid_ollama_runtime", "Ollama runtime is invalid")
   end
 
+  @doc "Returns a recoverable error when Ollama leaks tool-call markup as text."
+  @spec malformed_tool_call() :: {:error, Normalized.t()}
+  def malformed_tool_call do
+    error(
+      :protocol,
+      "ollama_malformed_tool_call",
+      "Ollama returned tool-call markup as assistant text",
+      hint:
+        "Retry the turn or start a new session if the model continues returning malformed calls.",
+      retryable: true
+    )
+  end
+
   @doc "Returns a sanitized HTTP-status error."
   @spec http(non_neg_integer()) :: {:error, Normalized.t()}
   def http(status) do

@@ -8,6 +8,8 @@ defmodule Draught.Skill.Name do
 
   @maximum_bytes 64
   @pattern ~r/\A[a-z0-9]+(?:-[a-z0-9]+)*\z/
+  @builtin_prefix "elixir-phoenix-"
+  @builtin_shorthand "elixir-phx-"
 
   @doc "Validates one bounded canonical skill name."
   @spec validate(term()) :: {:ok, String.t()} | {:error, :invalid_name}
@@ -21,6 +23,26 @@ defmodule Draught.Skill.Name do
 
   def validate(_value) do
     {:error, :invalid_name}
+  end
+
+  @doc "Returns the compact public name used for a built-in skill."
+  @spec display(String.t(), atom()) :: String.t()
+  def display(@builtin_prefix <> suffix, :builtin) do
+    @builtin_shorthand <> suffix
+  end
+
+  def display(name, _origin) do
+    name
+  end
+
+  @doc "Expands a compact built-in reference to its canonical repository name."
+  @spec expand_shorthand(String.t()) :: {:ok, String.t()} | :error
+  def expand_shorthand(@builtin_shorthand <> suffix) when suffix != "" do
+    {:ok, @builtin_prefix <> suffix}
+  end
+
+  def expand_shorthand(_name) do
+    :error
   end
 
   defp result(true, value) do

@@ -92,6 +92,39 @@ defmodule Draught.CLI.Interactive.Skill.CommandTest do
     assert_receive {:skill_fetch, "review"}
   end
 
+  test "resolves a built-in shorthand after an exact custom lookup misses" do
+    definition = %Definition{
+      description: "Apply Elixir idioms",
+      instructions: "Prefer explicit OTP boundaries.",
+      name: "elixir-phoenix-elixir-idioms",
+      origin: :builtin
+    }
+
+    dependencies =
+      dependencies(fetch: %{"elixir-phoenix-elixir-idioms" => {:ok, definition}})
+
+    assert {:ok, {:invoke, "elixir-phx-elixir-idioms", prompt}} =
+             Command.run(:skill, "elixir-phx-elixir-idioms", state(), dependencies)
+
+    assert prompt =~ ~s("instructions":"Prefer explicit OTP boundaries.")
+    assert_receive {:skill_fetch, "elixir-phx-elixir-idioms"}
+    assert_receive {:skill_fetch, "elixir-phoenix-elixir-idioms"}
+  end
+
+  test "prefers an exact custom skill over the built-in shorthand" do
+    custom = definition("elixir-phx-review", "Use workspace guidance")
+
+    dependencies =
+      dependencies(fetch: %{"elixir-phx-review" => {:ok, custom}})
+
+    assert {:ok, {:invoke, "elixir-phx-review", prompt}} =
+             Command.run(:skill, "elixir-phx-review", state(), dependencies)
+
+    assert prompt =~ ~s("instructions":"Use workspace guidance")
+    assert_receive {:skill_fetch, "elixir-phx-review"}
+    refute_receive {:skill_fetch, "elixir-phoenix-review"}
+  end
+
   test "passes bounded trailing arguments to the selected skill" do
     definition = %Definition{
       description: "Review changes",

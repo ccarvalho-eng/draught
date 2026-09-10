@@ -56,7 +56,20 @@ defmodule Draught.CLI.Interactive.Skill.Command do
     {system, system_configuration} = dependencies.system
     {repository, repository_configuration} = dependencies.skill_repository
     environment = system.environment(system_configuration)
-    repository.fetch(name, state.workspace, environment, repository_configuration)
+
+    case repository.fetch(name, state.workspace, environment, repository_configuration) do
+      {:error, :not_found} ->
+        fetch_shorthand(
+          name,
+          state.workspace,
+          environment,
+          repository,
+          repository_configuration
+        )
+
+      result ->
+        result
+    end
   end
 
   defp invocation({:ok, definition}, name, arguments, _state, _dependencies) do
@@ -110,5 +123,15 @@ defmodule Draught.CLI.Interactive.Skill.Command do
     {repository, repository_configuration} = dependencies.skill_repository
     environment = system.environment(system_configuration)
     repository.list(state.workspace, environment, repository_configuration)
+  end
+
+  defp fetch_shorthand(name, workspace, environment, repository, configuration) do
+    case Name.expand_shorthand(name) do
+      {:ok, canonical_name} ->
+        repository.fetch(canonical_name, workspace, environment, configuration)
+
+      :error ->
+        {:error, :not_found}
+    end
   end
 end

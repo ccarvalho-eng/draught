@@ -9,10 +9,8 @@ defmodule Draught.CLI.UI do
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.Session.Catalog.Entry
   alias Draught.CLI.UI.Owl
-  alias Draught.CLI.UI.SafeLine
+  alias Draught.CLI.UI.SkillDescription
   alias Draught.Error.Normalized
-
-  @skill_description_bytes 44
 
   @doc "Renders the initial bounded session card for a known terminal width."
   @spec banner(State.t(), pos_integer(), boolean()) :: iodata()
@@ -27,15 +25,15 @@ defmodule Draught.CLI.UI do
     [
       "Session status\n",
       "  ID: ",
-      safe(state.session_id),
+      SkillDescription.safe(state.session_id),
       "\n  Name: ",
-      safe(state.session_label),
+      SkillDescription.safe(state.session_label),
       "\n  Provider: ",
-      safe(state.provider),
+      SkillDescription.safe(state.provider),
       "\n  Model: ",
       model(state.model),
       "\n  Workspace: ",
-      safe(state.workspace),
+      SkillDescription.safe(state.workspace),
       "\n  Web fetch: ",
       web(state.web),
       "\n  Web search: ",
@@ -74,7 +72,7 @@ defmodule Draught.CLI.UI do
     [
       "Permissions:\n",
       "  Workspace: ",
-      safe(workspace),
+      SkillDescription.safe(workspace),
       "\n  Risk mode: ",
       Atom.to_string(risk),
       "\n  Admitted risks: ",
@@ -147,13 +145,23 @@ defmodule Draught.CLI.UI do
   @doc "Renders a completed interactive model selection."
   @spec model_selected(String.t()) :: iodata()
   def model_selected(selected_model) do
-    ["Selected model ", safe(selected_model), " and saved it as the user default.\n"]
+    [
+      "Selected model ",
+      SkillDescription.safe(selected_model),
+      " and saved it as the user default.\n"
+    ]
   end
 
   @doc "Renders a bounded model command failure and safe next action."
   @spec model_error(term()) :: iodata()
   def model_error(%Normalized{} = error) do
-    ["Model command failed (", safe(error.code), "): ", safe(error.message), hint(error.hint)]
+    [
+      "Model command failed (",
+      SkillDescription.safe(error.code),
+      "): ",
+      SkillDescription.safe(error.message),
+      hint(error.hint)
+    ]
   end
 
   def model_error(:preference_not_saved) do
@@ -216,7 +224,7 @@ defmodule Draught.CLI.UI do
   @doc "Renders the selected skill before its ordinary agent turn starts."
   @spec skill_selected(String.t()) :: iodata()
   def skill_selected(name) when is_binary(name) do
-    ["Using skill ", safe(name), ".\n"]
+    ["Using skill ", SkillDescription.safe(name), ".\n"]
   end
 
   @doc "Renders a bounded skill discovery or selection failure."
@@ -251,25 +259,31 @@ defmodule Draught.CLI.UI do
   @doc "Renders one completed session-management transition."
   @spec session_event(atom(), String.t()) :: iodata()
   def session_event(:archived, identifier) do
-    ["Archived session ", safe(identifier), ".\n"]
+    ["Archived session ", SkillDescription.safe(identifier), ".\n"]
   end
 
   def session_event(:renamed, label) do
-    ["Session renamed to ", safe(label), ".\n"]
+    ["Session renamed to ", SkillDescription.safe(label), ".\n"]
   end
 
   def session_event(:restored, identifier) do
-    ["Restored session ", safe(identifier), ".\n"]
+    ["Restored session ", SkillDescription.safe(identifier), ".\n"]
   end
 
   def session_event(:selected, identifier) do
-    ["Selected session ", safe(identifier), ".\n"]
+    ["Selected session ", SkillDescription.safe(identifier), ".\n"]
   end
 
   @doc "Renders a bounded session-management failure and safe next action."
   @spec session_error(term()) :: iodata()
   def session_error(%Normalized{} = error) do
-    ["Session command failed (", safe(error.code), "): ", safe(error.message), hint(error.hint)]
+    [
+      "Session command failed (",
+      SkillDescription.safe(error.code),
+      "): ",
+      SkillDescription.safe(error.message),
+      hint(error.hint)
+    ]
   end
 
   def session_error(:ambiguous) do
@@ -299,7 +313,7 @@ defmodule Draught.CLI.UI do
   @doc "Renders the stable final session identifier record."
   @spec session_closed(String.t()) :: iodata()
   def session_closed(identifier) when is_binary(identifier) do
-    ["Session ID: ", safe(identifier), "\n"]
+    ["Session ID: ", SkillDescription.safe(identifier), "\n"]
   end
 
   @doc "Renders a safe interactive startup failure."
@@ -316,10 +330,6 @@ defmodule Draught.CLI.UI do
   @spec terminal_error() :: iodata()
   def terminal_error do
     "Interactive input is unavailable.\n"
-  end
-
-  defp safe(value) do
-    SafeLine.text(value, 2_048)
   end
 
   defp visible?(%Entry{}, :all) do
@@ -371,16 +381,16 @@ defmodule Draught.CLI.UI do
     [
       Integer.to_string(position),
       ". ",
-      safe(name),
+      SkillDescription.safe(name),
       "  ",
       Atom.to_string(risk),
       "  ",
-      safe(description),
+      SkillDescription.safe(description),
       "\n"
     ]
   end
 
-  defp skill_line({%{description: description, name: name}, position}, width) do
+  defp skill_line({entry, position}, width) do
     position =
       position
       |> Integer.to_string()
@@ -389,9 +399,9 @@ defmodule Draught.CLI.UI do
     [
       position,
       ". ",
-      safe(name),
+      SkillDescription.display_name(entry),
       "  ",
-      skill_description(description),
+      SkillDescription.catalog_summary(entry),
       "\n"
     ]
   end
@@ -414,22 +424,6 @@ defmodule Draught.CLI.UI do
 
   defp skill_origin(:builtin) do
     "Built-in skills"
-  end
-
-  defp skill_description(description) do
-    description
-    |> SafeLine.text(2_048)
-    |> bounded_skill_description()
-  end
-
-  defp bounded_skill_description(description)
-       when byte_size(description) <= @skill_description_bytes do
-    description
-  end
-
-  defp bounded_skill_description(description) do
-    prefix = SafeLine.text(description, @skill_description_bytes - 3)
-    prefix <> "..."
   end
 
   defp rejected_skills(0) do
@@ -465,15 +459,15 @@ defmodule Draught.CLI.UI do
   end
 
   defp session_identity(%Entry{id: id, label: label}) when label != id do
-    safe(label)
+    SkillDescription.safe(label)
   end
 
   defp session_identity(%Entry{preview: preview}) when is_binary(preview) do
-    safe(preview)
+    SkillDescription.safe(preview)
   end
 
   defp session_identity(%Entry{id: id}) do
-    safe(id)
+    SkillDescription.safe(id)
   end
 
   defp current(true) do
@@ -495,7 +489,7 @@ defmodule Draught.CLI.UI do
       Integer.to_string(position),
       ". ",
       current(entry == current_model),
-      safe(entry),
+      SkillDescription.safe(entry),
       "\n"
     ]
   end
@@ -505,7 +499,7 @@ defmodule Draught.CLI.UI do
   end
 
   defp model(value) do
-    safe(value)
+    SkillDescription.safe(value)
   end
 
   defp session_details(%Entry{availability: :unavailable}) do
@@ -517,7 +511,7 @@ defmodule Draught.CLI.UI do
   end
 
   defp session_details(%Entry{} = entry) do
-    [safe(entry.provider), "/", safe(entry.model)]
+    [SkillDescription.safe(entry.provider), "/", SkillDescription.safe(entry.model)]
   end
 
   defp hint(nil) do
@@ -525,7 +519,7 @@ defmodule Draught.CLI.UI do
   end
 
   defp hint(value) do
-    ["\n  Hint: ", safe(value), "\n"]
+    ["\n  Hint: ", SkillDescription.safe(value), "\n"]
   end
 
   defp approval(:application_policy) do

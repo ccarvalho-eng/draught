@@ -95,7 +95,7 @@ defmodule Draught.CLI.UI.Owl do
       " ",
       state.workspace
       |> Workspace.display()
-      |> Theme.tag(:path, styled?),
+      |> Theme.tag(:workspace, styled?),
       "\n",
       label("session:", styled?),
       "   ",

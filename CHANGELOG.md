@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.1.0-beta.10 - 2026-09-10
+
+### Fixed
+
+- Failed tool operations now provide explicit model feedback that the operation was not performed, preventing blank denial results from being mistaken for success.
+- Interactive provider timeouts now state that only the current turn stopped and the session remains active.
+
 ## 0.1.0-beta.9 - 2026-09-10
 
 ### Added

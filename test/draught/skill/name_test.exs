@@ -3,6 +3,21 @@ defmodule Draught.Skill.NameTest do
 
   alias Draught.Skill.Name
 
+  test "shortens built-in Phoenix names for display" do
+    assert Name.display("elixir-phoenix-review", :builtin) == "elixir-phx-review"
+
+    assert Name.display("elixir-phoenix-review", :workspace_draught) ==
+             "elixir-phoenix-review"
+  end
+
+  test "expands only valid shorthand prefixes" do
+    assert Name.expand_shorthand("elixir-phx-review") ==
+             {:ok, "elixir-phoenix-review"}
+
+    assert Name.expand_shorthand("elixir-phoenix-review") == :error
+    assert Name.expand_shorthand("elixir-phx-") == :error
+  end
+
   test "accepts bounded kebab-case names" do
     assert Name.validate("ecto-migration-checker") == {:ok, "ecto-migration-checker"}
     assert Name.validate("skill-2") == {:ok, "skill-2"}

@@ -14,6 +14,7 @@ defmodule Draught.CLI.Interactive.Controller do
   alias Draught.CLI.Interactive.Session.Terminal
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.Interactive.Turn
+  alias Draught.Skill.Name
 
   @internal_status ExitStatus.value(:internal)
   @success_status ExitStatus.value(:success)
@@ -318,7 +319,7 @@ defmodule Draught.CLI.Interactive.Controller do
          invocation,
          dependencies
        ) do
-    names = Enum.map(catalog.entries, & &1.name)
+    names = Enum.map(catalog.entries, &Name.display(&1.name, &1.origin))
 
     case State.display_skills(state, names) do
       {:ok, next_state} ->

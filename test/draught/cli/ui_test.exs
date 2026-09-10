@@ -234,7 +234,7 @@ defmodule Draught.CLI.UITest do
       |> IO.iodata_to_binary()
 
     assert output ==
-             "Built-in skills:\n1. elixir-phoenix-elixir-idioms  Apply Elixir idioms\n"
+             "Built-in skills:\n1. elixir-phx-elixir-idioms  Let the BEAM carry the heavy bits\n"
   end
 
   test "right-aligns selectable skill references" do

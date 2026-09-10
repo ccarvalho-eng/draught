@@ -6,6 +6,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.1.0-beta.8 - 2026-09-10
+
+### Changed
+
+- Human-readable tool activity now identifies bounded, repository-relative targets for built-in filesystem operations.
+- Command approvals now use compact shell-style command lines, with structured output retained as a safety fallback for unusual arguments.
+
 ## 0.1.0-beta.7 - 2026-09-09
 
 ### Fixed

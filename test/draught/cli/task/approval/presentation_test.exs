@@ -17,16 +17,43 @@ defmodule Draught.CLI.Task.Approval.PresentationTest do
     assert index(rendered, "Proposed diff:") < index(rendered, "Operation (JSON):")
   end
 
-  test "uses JSON alone for other tools and fails when JSON cannot be rendered" do
-    command = request("run_command", ~s({"arguments":["--version"],"executable":"git"}))
+  test "renders commands as a compact shell-style line" do
+    command =
+      request(
+        "run_command",
+        Jason.encode!(%{
+          "arguments" => ["test", "test/my file.exs", "it's"],
+          "executable" => "mix"
+        })
+      )
+
     assert {:ok, output} = Presentation.render(command, false)
     rendered = IO.iodata_to_binary(output)
 
     refute rendered =~ "Proposed diff"
-    assert rendered =~ ~s("executable": "git")
+    refute rendered =~ "Operation (JSON)"
+    assert rendered == ~s([command] mix test 'test/my file.exs' 'it'"'"'s'\n)
+  end
+
+  test "falls back to JSON for commands that cannot be represented safely" do
+    command =
+      request(
+        "run_command",
+        Jason.encode!(%{"arguments" => ["line\nbreak"], "executable" => "printf"})
+      )
+
+    assert {:ok, output} = Presentation.render(command, false)
+    rendered = IO.iodata_to_binary(output)
+
+    assert rendered =~ "Operation (JSON):\n"
+    assert rendered =~ ~s("line\\nbreak")
+    refute rendered =~ "line\nbreak"
 
     invalid = %{command | preview: "invalid"}
     assert {:error, :unavailable} = Presentation.render(invalid, false)
+
+    non_object = %{command | preview: "[]"}
+    assert {:error, :unavailable} = Presentation.render(non_object, false)
   end
 
   defp request(tool, preview) do

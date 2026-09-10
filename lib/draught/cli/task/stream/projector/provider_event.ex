@@ -6,6 +6,7 @@ defmodule Draught.CLI.Task.Stream.Projector.ProviderEvent do
   alias Draught.CLI.Output.Sanitizer
   alias Draught.CLI.Task.Stream.Event
   alias Draught.CLI.Task.Stream.Projector.State
+  alias Draught.CLI.Task.Stream.Projector.ToolTarget
   alias Draught.Error.Normalized
   alias Draught.Event.Provider.Delta
   alias Draught.Event.Provider.ToolCall
@@ -40,7 +41,8 @@ defmodule Draught.CLI.Task.Stream.Projector.ProviderEvent do
       Event.new(:tool_call, state.sequence,
         iteration: iteration,
         name: Sanitizer.text(call.name),
-        prefix_newline: state.line_open
+        prefix_newline: state.line_open,
+        target: ToolTarget.from_call(call)
       )
 
     {:emit, State.advance(state, false), event}

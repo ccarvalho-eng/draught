@@ -18,7 +18,13 @@ defmodule Draught.CLI.Task.Stream.InteractiveRendererTest do
 
   test "separates fallback responses and distinguishes bounded tool outcomes" do
     fallback = Event.new(:success, 1, content: "Done", streamed: false, heading: true)
-    call = Event.new(:tool_call, 2, name: "read_file", prefix_newline: true)
+
+    call =
+      Event.new(:tool_call, 2,
+        name: "read_file",
+        prefix_newline: true,
+        target: "novels/frostgard/AGENTS.md"
+      )
 
     result =
       Event.new(:tool_result, 3,
@@ -28,7 +34,15 @@ defmodule Draught.CLI.Task.Stream.InteractiveRendererTest do
       )
 
     assert render(fallback) == "\nDone\n"
-    assert render(call) == "\n  Tool: read_file (requested)\n"
+
+    assert render(call) ==
+             "\n  Tool: read_file novels/frostgard/AGENTS.md (requested)\n"
+
+    assert {:ok, text_call} = Text.render(call)
+
+    assert IO.iodata_to_binary(text_call) ==
+             "\n[tool] read_file novels/frostgard/AGENTS.md requested\n"
+
     assert render(result) == "  Tool: read_file (error: not_found)\n"
   end
 

@@ -18,7 +18,16 @@ defmodule Draught.CLI.Task.Stream.Renderer.Interactive do
   end
 
   def render(%Event{type: :tool_call} = event, styled?) do
-    {:ok, [separator(event), "  ", UI.tool_label(styled?), ": ", event.name, " (requested)\n"]}
+    {:ok,
+     [
+       separator(event),
+       "  ",
+       UI.tool_label(styled?),
+       ": ",
+       event.name,
+       target(event),
+       " (requested)\n"
+     ]}
   end
 
   def render(%Event{type: :tool_result} = event, styled?) do
@@ -67,5 +76,13 @@ defmodule Draught.CLI.Task.Stream.Renderer.Interactive do
 
   defp error_code(code) do
     [": ", code]
+  end
+
+  defp target(%Event{target: nil}) do
+    ""
+  end
+
+  defp target(%Event{target: target}) do
+    [" ", target]
   end
 end

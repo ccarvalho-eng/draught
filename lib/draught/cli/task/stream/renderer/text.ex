@@ -12,7 +12,7 @@ defmodule Draught.CLI.Task.Stream.Renderer.Text do
   end
 
   def render(%Event{type: :tool_call} = event) do
-    {:ok, [prefix(event), "[tool] ", event.name, " requested\n"]}
+    {:ok, [prefix(event), "[tool] ", event.name, target(event), " requested\n"]}
   end
 
   def render(%Event{type: :tool_result} = event) do
@@ -62,6 +62,14 @@ defmodule Draught.CLI.Task.Stream.Renderer.Text do
 
   defp error_code(code) do
     [" (", code, ")"]
+  end
+
+  defp target(%Event{target: nil}) do
+    ""
+  end
+
+  defp target(%Event{target: target}) do
+    [" ", target]
   end
 
   defp trailing_newline(%Event{prefix_newline: true}) do

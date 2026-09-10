@@ -24,6 +24,7 @@ defmodule Draught.CLI.Task.Stream.Event do
     :sequence,
     :status,
     :streamed,
+    :target,
     :type,
     :usage
   ]
@@ -44,6 +45,7 @@ defmodule Draught.CLI.Task.Stream.Event do
           sequence: pos_integer(),
           status: atom() | nil,
           streamed: boolean() | nil,
+          target: String.t() | nil,
           type: type(),
           usage: map() | nil
         }

@@ -39,7 +39,7 @@ defmodule Draught.CLI.Task.Stream.ProjectorTest do
 
     assert {:skip, ^state} = Projector.project(state, {:provider_event, 1, reasoning})
 
-    call = call("secret argument")
+    call = call("lib/example.ex", %{"content" => "secret argument"})
 
     assert {:emit, after_call, projected_call} =
              Projector.project(state, {:provider_event, 1, tool_call(call)})
@@ -47,6 +47,7 @@ defmodule Draught.CLI.Task.Stream.ProjectorTest do
     assert projected_call.sequence == 1
     assert projected_call.type == :tool_call
     assert projected_call.name == "read_file"
+    assert projected_call.target == "lib/example.ex"
     projected_call_fields = Map.from_struct(projected_call)
     refute Map.has_key?(projected_call_fields, :arguments)
     projected_call_inspection = inspect(projected_call)
@@ -63,6 +64,42 @@ defmodule Draught.CLI.Task.Stream.ProjectorTest do
     projected_result_inspection = inspect(projected_result)
     refute projected_result_inspection =~ "secret tool output"
     assert after_result.sequence == 3
+  end
+
+  test "projects only safe relative targets for filesystem tool calls" do
+    state = State.new(:text, 1_024, presentation: :interactive)
+
+    assert {:emit, after_relative, relative} =
+             Projector.project(
+               state,
+               {:provider_event, 1, tool_call(call("novels/frostgard\n/AGENTS.md"))}
+             )
+
+    assert relative.target == "novels/frostgard /AGENTS.md"
+
+    assert {:emit, after_absolute, absolute} =
+             Projector.project(
+               after_relative,
+               {:provider_event, 1, tool_call(call("/Users/example/private.txt"))}
+             )
+
+    assert absolute.target == nil
+
+    assert {:emit, after_bounded, bounded} =
+             Projector.project(
+               after_absolute,
+               {:provider_event, 1, tool_call(call(String.duplicate("a", 200)))}
+             )
+
+    assert byte_size(bounded.target) == 160
+
+    assert {:emit, _after_unsupported, unsupported} =
+             Projector.project(
+               after_bounded,
+               {:provider_event, 1, tool_call(call("run_command", "private.txt", %{}))}
+             )
+
+    assert unsupported.target == nil
   end
 
   test "suppresses terminal content already delivered as text deltas" do
@@ -154,8 +191,13 @@ defmodule Draught.CLI.Task.Stream.ProjectorTest do
     event
   end
 
-  defp call(arguments) do
-    {:ok, value} = Call.new(id: "call-1", name: "read_file", arguments: %{"path" => arguments})
+  defp call(path, arguments \\ %{}) do
+    call("read_file", path, arguments)
+  end
+
+  defp call(name, path, arguments) do
+    arguments = Map.put(arguments, "path", path)
+    {:ok, value} = Call.new(id: "call-1", name: name, arguments: arguments)
     value
   end
 

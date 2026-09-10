@@ -53,6 +53,8 @@ defmodule Draught.Tool.Execution.InvocationTest do
     assert result.status == :error
     assert result.error.kind == :policy
     assert result.error.code == "tool_risk_denied"
+    assert result.content =~ "The requested operation was not performed"
+    assert result.content =~ "Do not report it as completed"
     refute_received {:executed, _, _}
   end
 

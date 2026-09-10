@@ -311,11 +311,16 @@ defmodule Draught.Execution.Runner.WebSecurityTest do
       Result.new(
         call_id: call.id,
         name: call.name,
-        content: "",
+        content: failure_feedback(code),
         status: :error,
         error: error
       )
 
     result
+  end
+
+  defp failure_feedback(code) do
+    "Tool execution failed (#{code}).\n" <>
+      "The requested operation was not performed. Do not report it as completed."
   end
 end

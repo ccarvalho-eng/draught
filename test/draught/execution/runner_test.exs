@@ -211,7 +211,16 @@ defmodule Draught.Execution.RunnerTest do
       })
 
     tools = tool_response([call])
-    denied = error_result(call, :policy, "approval_required", "Tool execution requires approval")
+
+    denied =
+      error_result(
+        call,
+        :policy,
+        "approval_required",
+        "Tool execution requires approval",
+        failure_feedback("approval_required")
+      )
+
     second_request = request([user, tools.message, tool_message(denied)], registry)
     final = response("denied")
     provider = fake([route(first_request, {:ok, tools}), route(second_request, {:ok, final})])
@@ -229,7 +238,16 @@ defmodule Draught.Execution.RunnerTest do
     first_request = request([user], registry)
     call = call("call-1", "missing", %{})
     tools = tool_response([call])
-    unknown = error_result(call, :tool, "unknown_tool", "Tool is not registered")
+
+    unknown =
+      error_result(
+        call,
+        :tool,
+        "unknown_tool",
+        "Tool is not registered",
+        failure_feedback("unknown_tool")
+      )
+
     second_request = request([user, tools.message, tool_message(unknown)], registry)
     final = response("recovered")
     provider = fake([route(first_request, {:ok, tools}), route(second_request, {:ok, final})])
@@ -283,7 +301,16 @@ defmodule Draught.Execution.RunnerTest do
     first_request = request([user], registry)
     call = call("call-1", "slow", %{})
     tools = tool_response([call])
-    timeout = error_result(call, :timeout, "tool_timeout", "Tool exceeded the configured timeout")
+
+    timeout =
+      error_result(
+        call,
+        :timeout,
+        "tool_timeout",
+        "Tool exceeded the configured timeout",
+        failure_feedback("tool_timeout")
+      )
+
     second_request = request([user, tools.message, tool_message(timeout)], registry)
     final = response("continued")
     provider = fake([route(first_request, {:ok, tools}), route(second_request, {:ok, final})])
@@ -568,7 +595,7 @@ defmodule Draught.Execution.RunnerTest do
     result
   end
 
-  defp error_result(call, kind, code, message, content \\ "") do
+  defp error_result(call, kind, code, message, content) do
     {:ok, error} = Normalized.new(kind, code, message, retryable: false)
 
     {:ok, result} =
@@ -581,6 +608,11 @@ defmodule Draught.Execution.RunnerTest do
       )
 
     result
+  end
+
+  defp failure_feedback(code) do
+    "Tool execution failed (#{code}).\n" <>
+      "The requested operation was not performed. Do not report it as completed."
   end
 
   defp tool_message(result) do

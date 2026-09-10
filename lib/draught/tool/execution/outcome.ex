@@ -9,6 +9,7 @@ defmodule Draught.Tool.Execution.Outcome do
   alias Draught.Error.Normalized
   alias Draught.Tool.Call
   alias Draught.Tool.Execution.Failure
+  alias Draught.Tool.Execution.Feedback
   alias Draught.Tool.Output
   alias Draught.Tool.Result
   alias Draught.Validation.Error
@@ -54,7 +55,7 @@ defmodule Draught.Tool.Execution.Outcome do
       Result.new(
         call_id: call.id,
         name: call.name,
-        content: "",
+        content: Feedback.content(error),
         status: :error,
         error: error
       )

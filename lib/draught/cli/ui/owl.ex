@@ -9,6 +9,7 @@ defmodule Draught.CLI.UI.Owl do
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.UI.Owl.InputArea
   alias Draught.CLI.UI.SafeLine
+  alias Draught.CLI.UI.Theme
   alias Draught.CLI.UI.Workspace
   alias Elixir.Owl.Box
   alias Elixir.Owl.Data
@@ -38,10 +39,7 @@ defmodule Draught.CLI.UI.Owl do
   @doc "Renders a fixed tool label without styling untrusted conversation text."
   @spec tool_label(boolean()) :: iodata()
   def tool_label(styled?) do
-    "Tool"
-    |> Data.tag(style(:bright, styled?))
-    |> styling(styled?)
-    |> Data.to_chardata()
+    Theme.chardata("Tool", :accent, styled?)
   end
 
   defp render_banner(state, width, styled?) when width >= @minimum_box_width do
@@ -57,13 +55,12 @@ defmodule Draught.CLI.UI.Owl do
     |> content(styled?)
     |> Box.new(
       border_style: :solid_rounded,
-      border_tag: style(:light_black, styled?),
+      border_tag: Theme.style(:muted, styled?),
       max_width: width,
       min_width: width,
       padding_x: 1,
       truncate_lines: true
     )
-    |> styling(styled?)
     |> Data.to_chardata()
     |> then(&[&1, "\n"])
   end
@@ -86,7 +83,9 @@ defmodule Draught.CLI.UI.Owl do
       "\n\n",
       label("model:", styled?),
       "     ",
-      model(state.model),
+      state.model
+      |> model()
+      |> Theme.tag(:model, styled?),
       "   /model to change\n",
       label("provider:", styled?),
       "  ",
@@ -94,7 +93,9 @@ defmodule Draught.CLI.UI.Owl do
       "\n",
       label("directory:", styled?),
       " ",
-      Workspace.display(state.workspace),
+      state.workspace
+      |> Workspace.display()
+      |> Theme.tag(:path, styled?),
       "\n",
       label("session:", styled?),
       "   ",
@@ -107,27 +108,11 @@ defmodule Draught.CLI.UI.Owl do
   end
 
   defp title(styled?) do
-    Data.tag([">_ Draught ", version()], style([:cyan, :bright], styled?))
+    Theme.tag([">_ Draught ", version()], :accent, styled?)
   end
 
   defp label(value, styled?) do
-    Data.tag(value, style(:light_black, styled?))
-  end
-
-  defp styling(data, true) do
-    data
-  end
-
-  defp styling(data, false) do
-    Data.untag(data)
-  end
-
-  defp style(sequence, true) do
-    sequence
-  end
-
-  defp style(_sequence, false) do
-    []
+    Theme.tag(value, :muted, styled?)
   end
 
   defp safe(value) do

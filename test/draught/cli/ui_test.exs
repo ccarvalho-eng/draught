@@ -72,6 +72,8 @@ defmodule Draught.CLI.UITest do
       |> IO.iodata_to_binary()
 
     assert output =~ "\e["
+    assert output =~ IO.ANSI.magenta()
+    assert output =~ IO.ANSI.cyan()
     assert String.ends_with?(output, "\e[0m ")
     assert Regex.replace(~r/\e\[[0-9;]*m/, output, "") == render_input(:open, 40)
   end

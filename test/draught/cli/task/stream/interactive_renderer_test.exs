@@ -43,6 +43,19 @@ defmodule Draught.CLI.Task.Stream.InteractiveRendererTest do
     assert IO.iodata_to_binary(text_call) ==
              "\n[tool] read_file novels/frostgard/AGENTS.md requested\n"
 
+    assert {:ok, styled_call} = Interactive.render(call, true)
+    styled_call = IO.iodata_to_binary(styled_call)
+
+    assert styled_call =~ IO.ANSI.magenta()
+    assert styled_call =~ IO.ANSI.cyan()
+    assert strip_style(styled_call) == render(call)
+
+    assert {:ok, styled_result} = Interactive.render(result, true)
+    styled_result = IO.iodata_to_binary(styled_result)
+
+    assert styled_result =~ IO.ANSI.red()
+    assert strip_style(styled_result) == render(result)
+
     assert render(result) == "  Tool: read_file (error: not_found)\n"
   end
 
@@ -66,5 +79,9 @@ defmodule Draught.CLI.Task.Stream.InteractiveRendererTest do
   defp render(event) do
     {:ok, rendered} = Interactive.render(event, false)
     IO.iodata_to_binary(rendered)
+  end
+
+  defp strip_style(value) do
+    Regex.replace(~r/\e\[[0-9;]*m/, value, "")
   end
 end

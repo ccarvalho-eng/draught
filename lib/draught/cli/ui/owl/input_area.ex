@@ -8,6 +8,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
   is reset before the editor renders user text.
   """
 
+  alias Draught.CLI.UI.Theme
   alias Elixir.Owl.Data
 
   @maximum_width 512
@@ -20,8 +21,8 @@ defmodule Draught.CLI.UI.Owl.InputArea do
       "\n",
       top(model, workspace, width, styled?),
       "\n",
-      decorate("│ ", :light_black, styled?),
-      decorate("›", [:cyan, :bright], styled?),
+      decorate("│ ", :muted, styled?),
+      decorate("›", :accent, styled?),
       " "
     ]
   end
@@ -35,7 +36,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
   end
 
   def render(:close, _model, _workspace, width, styled?) when width >= 8 do
-    [decorate(["╰", rule(width - 2), "╯"], :light_black, styled?), "\n"]
+    [decorate(["╰", rule(width - 2), "╯"], :muted, styled?), "\n"]
   end
 
   def render(:close, _model, _workspace, _width, _styled?) do
@@ -56,13 +57,13 @@ defmodule Draught.CLI.UI.Owl.InputArea do
     remainder = available - Data.length(label)
 
     [
-      decorate("╭─ ", :light_black, styled?),
-      decorate(model, [:yellow, :bright], styled?),
-      decorate(" · ", :light_black, styled?),
-      decorate(workspace, :green, styled?),
-      decorate(@hint, :light_black, styled?),
-      decorate(rule(remainder), :light_black, styled?),
-      decorate("╮", :light_black, styled?)
+      decorate("╭─ ", :muted, styled?),
+      decorate(model, :model, styled?),
+      decorate(" · ", :muted, styled?),
+      decorate(workspace, :path, styled?),
+      decorate(@hint, :muted, styled?),
+      decorate(rule(remainder), :muted, styled?),
+      decorate("╮", :muted, styled?)
     ]
   end
 
@@ -70,9 +71,9 @@ defmodule Draught.CLI.UI.Owl.InputArea do
     truncated = truncate(label, available)
 
     [
-      decorate("╭─ ", :light_black, styled?),
-      decorate(truncated, :light_black, styled?),
-      decorate("╮", :light_black, styled?)
+      decorate("╭─ ", :muted, styled?),
+      decorate(truncated, :muted, styled?),
+      decorate("╮", :muted, styled?)
     ]
   end
 
@@ -80,7 +81,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
     model
     |> Kernel.<>(" · " <> workspace)
     |> truncate(width)
-    |> decorate(:light_black, styled?)
+    |> decorate(:muted, styled?)
   end
 
   defp truncate(content, width) do
@@ -93,11 +94,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
     String.duplicate("─", min(width, @maximum_width - 2))
   end
 
-  defp decorate(content, sequences, true) do
-    IO.ANSI.format([sequences, content, :reset], true)
-  end
-
-  defp decorate(content, _sequences, false) do
-    content
+  defp decorate(content, role, styled?) do
+    Theme.chardata(content, role, styled?)
   end
 end

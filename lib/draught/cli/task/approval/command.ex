@@ -7,14 +7,15 @@ defmodule Draught.CLI.Task.Approval.Command do
   """
 
   alias Draught.CLI.Output.Sanitizer
+  alias Draught.CLI.UI.Theme
   alias Draught.Tool.Builtin.RunCommand.Input
 
   @line_breaks ~r/[\n\r\x{2028}\x{2029}]/u
   @safe_token ~r/\A[A-Za-z0-9_@%+=:,\.\/-]+\z/u
 
   @doc "Renders a complete command preview, or marks unsafe input unavailable."
-  @spec render(String.t()) :: {:ok, iodata()} | {:error, :unavailable}
-  def render(preview) when is_binary(preview) do
+  @spec render(String.t(), boolean()) :: {:ok, iodata()} | {:error, :unavailable}
+  def render(preview, styled?) when is_binary(preview) and is_boolean(styled?) do
     with {:ok, operation} when is_map(operation) <- Jason.decode(preview),
          {:ok, input} <- Input.new(operation),
          true <- terminal_safe?(input) do
@@ -25,13 +26,13 @@ defmodule Draught.CLI.Task.Approval.Command do
         |> Enum.map(&quote_token/1)
         |> Enum.intersperse(" ")
 
-      {:ok, ["[command] ", command, "\n"]}
+      {:ok, [Theme.chardata("[command]", :command, styled?), " ", command, "\n"]}
     else
       _unavailable -> {:error, :unavailable}
     end
   end
 
-  def render(_preview) do
+  def render(_preview, _styled?) do
     {:error, :unavailable}
   end
 

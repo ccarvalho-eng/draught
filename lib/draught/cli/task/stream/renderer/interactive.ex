@@ -10,6 +10,9 @@ defmodule Draught.CLI.Task.Stream.Renderer.Interactive do
   alias Draught.CLI.Task.Stream.Event
   alias Draught.CLI.Task.Stream.Renderer.Text
   alias Draught.CLI.UI
+  alias Draught.CLI.UI.Theme
+
+  @status_roles %{error: :error, success: :success}
 
   @doc "Renders safe conversation content and distinct, optionally styled tool activity."
   @spec render(Event.t(), boolean()) :: {:ok, iodata()}
@@ -25,8 +28,10 @@ defmodule Draught.CLI.Task.Stream.Renderer.Interactive do
        UI.tool_label(styled?),
        ": ",
        event.name,
-       target(event),
-       " (requested)\n"
+       target(event, styled?),
+       " ",
+       Theme.chardata("(requested)", :muted, styled?),
+       "\n"
      ]}
   end
 
@@ -39,8 +44,7 @@ defmodule Draught.CLI.Task.Stream.Renderer.Interactive do
        ": ",
        event.name,
        " (",
-       Atom.to_string(event.status),
-       error_code(event.code),
+       outcome(event, styled?),
        ")\n"
      ]}
   end
@@ -78,11 +82,17 @@ defmodule Draught.CLI.Task.Stream.Renderer.Interactive do
     [": ", code]
   end
 
-  defp target(%Event{target: nil}) do
+  defp outcome(event, styled?) do
+    content = [Atom.to_string(event.status), error_code(event.code)]
+    role = Map.get(@status_roles, event.status, :muted)
+    Theme.chardata(content, role, styled?)
+  end
+
+  defp target(%Event{target: nil}, _styled?) do
     ""
   end
 
-  defp target(%Event{target: target}) do
-    [" ", target]
+  defp target(%Event{target: target}, styled?) do
+    [" ", Theme.chardata(target, :path, styled?)]
   end
 end

@@ -17,7 +17,7 @@ defmodule Draught.CLI.Task.Approval.Presentation do
   @spec render(Request.t(), boolean()) :: {:ok, iodata()} | {:error, :unavailable}
   def render(%Request{tool: "run_command", preview: preview} = request, styled?)
       when is_binary(preview) and is_boolean(styled?) do
-    case Command.render(preview) do
+    case Command.render(preview, styled?) do
       {:ok, command} -> {:ok, command}
       {:error, :unavailable} -> render_json(request, styled?)
     end

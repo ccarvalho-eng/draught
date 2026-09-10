@@ -33,6 +33,12 @@ defmodule Draught.CLI.Task.Approval.PresentationTest do
     refute rendered =~ "Proposed diff"
     refute rendered =~ "Operation (JSON)"
     assert rendered == ~s([command] mix test 'test/my file.exs' 'it'"'"'s'\n)
+
+    assert {:ok, styled_output} = Presentation.render(command, true)
+    styled_output = IO.iodata_to_binary(styled_output)
+
+    assert styled_output =~ IO.ANSI.yellow()
+    assert strip_style(styled_output) == rendered
   end
 
   test "falls back to JSON for commands that cannot be represented safely" do
@@ -82,5 +88,9 @@ defmodule Draught.CLI.Task.Approval.PresentationTest do
   defp index(value, pattern) do
     {position, _length} = :binary.match(value, pattern)
     position
+  end
+
+  defp strip_style(value) do
+    Regex.replace(~r/\e\[[0-9;]*m/, value, "")
   end
 end

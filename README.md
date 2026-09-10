@@ -9,7 +9,7 @@ Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. R
 
 ## Installation
 
-Download the archive for the current operating system and architecture from the `v0.1.0-beta.9` release. The available targets are:
+Download the archive for the current operating system and architecture from the `v0.1.0-beta.10` release. The available targets are:
 
 | System | Architecture | Target |
 | --- | --- | --- |
@@ -21,7 +21,7 @@ Download the archive for the current operating system and architecture from the 
 Set `TARGET` to the matching value, then verify and install the archive:
 
 ```shell
-VERSION=0.1.0-beta.9
+VERSION=0.1.0-beta.10
 TARGET=macos_arm64
 BASE_URL="https://github.com/ccarvalho-eng/draught/releases/download/v${VERSION}"
 ARCHIVE="draught-${TARGET}.tar.gz"

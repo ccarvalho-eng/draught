@@ -19,7 +19,16 @@ defmodule Draught.CLI.Task.Stream do
   @minimum_indicator_columns 40
 
   @enforce_keys [:clock, :mode]
-  defstruct [:approval, :clock, :indicator, :projector, :system, mode: :silent, writable: true]
+  defstruct [
+    :approval,
+    :clock,
+    :indicator,
+    :projector,
+    :renderer,
+    :system,
+    mode: :silent,
+    writable: true
+  ]
 
   @type t :: %__MODULE__{
           mode: :silent | :visible,
@@ -27,6 +36,7 @@ defmodule Draught.CLI.Task.Stream do
           clock: (-> integer()),
           indicator: Builder.state() | nil,
           projector: Projector.state() | nil,
+          renderer: Output.renderer(),
           system: {module(), term()} | nil,
           writable: boolean()
         }
@@ -38,13 +48,15 @@ defmodule Draught.CLI.Task.Stream do
     color = Keyword.get(options, :color, :auto)
     indicator_enabled = indicator_enabled?(format, system, color)
     presentation = presentation(format, system, color)
+    projector = Projector.new(format, maximum_bytes, presentation)
 
     %__MODULE__{
       approval: Keyword.get(options, :approval),
       clock: clock(options),
       indicator: Builder.new(indicator_enabled, options),
       mode: :visible,
-      projector: Projector.new(format, maximum_bytes, presentation),
+      projector: projector,
+      renderer: Output.new_renderer(projector),
       system: system
     }
   end
@@ -164,10 +176,15 @@ defmodule Draught.CLI.Task.Stream do
   end
 
   defp emit(stream, projector, event, mode) do
-    case Output.emit(stream.system, projector, event, mode) do
-      {:ok, recorded} -> {:ok, %{stream | projector: recorded}}
-      {:error, reason} when reason in [:encoding, :output_limit] -> {:error, reason, stream}
-      {:error, :write} -> {:error, :write, %{stream | writable: false}}
+    case Output.emit(stream.system, projector, stream.renderer, event, mode) do
+      {:ok, recorded, renderer} ->
+        {:ok, %{stream | projector: recorded, renderer: renderer}}
+
+      {:error, reason} when reason in [:encoding, :output_limit] ->
+        {:error, reason, stream}
+
+      {:error, :write} ->
+        {:error, :write, %{stream | writable: false}}
     end
   end
 

@@ -170,6 +170,9 @@ defmodule Draught.MixProject do
     [
       {:burrito, "== 1.6.0"},
       {:jason, "~> 1.4"},
+      {:makeup, "~> 1.2"},
+      {:makeup_elixir, "~> 1.0"},
+      {:makeup_erlang, "~> 1.1"},
       {:mint, "~> 1.10"},
       {:owl, "~> 0.13.1"},
       {:req, "~> 0.5"},

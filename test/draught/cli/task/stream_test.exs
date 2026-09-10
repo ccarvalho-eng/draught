@@ -132,6 +132,26 @@ defmodule Draught.CLI.Task.StreamTest do
     refute_receive {:write, _stream, _content}
   end
 
+  test "highlights fenced Elixir across streamed deltas and flushes before completion" do
+    stream = stream(:text, tty: true, columns: 80, color: :always)
+
+    assert {:ok, stream} = Stream.observe(stream, {:provider_event, 1, delta("```el")})
+    assert_receive {:write, :stdout, "\n"}
+
+    assert {:ok, stream} = Stream.observe(stream, {:provider_event, 1, delta("ixir\n")})
+    assert_receive {:write, :stdout, opening}
+    assert strip_style(opening) == "```elixir\n"
+
+    assert {:ok, stream} = Stream.observe(stream, {:provider_event, 1, delta("def run")})
+    refute_receive {:write, _stream, _content}
+
+    response = response("```elixir\ndef run")
+    assert {:ok, retained} = Stream.observe(stream, {:provider_result, 1, {:ok, response}})
+    assert {:ok, _finished} = Stream.finish(retained, {:ok, response})
+    assert_receive {:write, :stdout, pending}
+    assert strip_style(pending) == "def run\n"
+  end
+
   test "bounds and then disables indicator output while preserving its final clear" do
     frame_budget = byte_size("\r\e[2K⠋ Lollygagging…\r\e[2K")
 
@@ -245,5 +265,9 @@ defmodule Draught.CLI.Task.StreamTest do
     {:ok, assistant} = Conversation.assistant(content: content)
     {:ok, value} = Response.new(message: assistant, finish_reason: :stop)
     value
+  end
+
+  defp strip_style(value) do
+    Regex.replace(~r/\e\[[0-9;]*m/, value, "")
   end
 end

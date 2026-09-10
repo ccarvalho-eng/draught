@@ -6,23 +6,52 @@ defmodule Draught.CLI.Task.Stream.Output do
   alias Draught.CLI.Task.Stream.Emitter
   alias Draught.CLI.Task.Stream.Projector.State
   alias Draught.CLI.Task.Stream.Renderer.Interactive
+  alias Draught.CLI.Task.Stream.Renderer.Interactive.Markdown
   alias Draught.CLI.Task.Stream.Renderer.JSONL
   alias Draught.CLI.Task.Stream.Renderer.Text
 
   @maximum_terminal_bytes 65_536
 
   @type mode :: :bounded | :terminal
+  @type renderer :: Markdown.State.t() | nil
+  @type legacy_result :: {:ok, State.t()} | {:error, :encoding | :output_limit | :write}
   @type result ::
-          {:ok, State.t()} | {:error, :encoding | :output_limit | :write}
+          {:ok, State.t(), renderer()} | {:error, :encoding | :output_limit | :write}
 
-  @doc "Renders one projected event and writes it to its deterministic stream."
-  @spec emit({module(), term()}, State.t(), Draught.CLI.Task.Stream.Event.t(), mode()) :: result()
+  @doc "Builds optional state for the selected stream renderer."
+  @spec new_renderer(State.t()) :: renderer()
+  def new_renderer(%State{format: :text, presentation: :interactive, styled: true}) do
+    Markdown.new()
+  end
+
+  def new_renderer(%State{}) do
+    nil
+  end
+
+  @doc "Renders one event without retaining optional interactive presentation state."
+  @spec emit({module(), term()}, State.t(), Draught.CLI.Task.Stream.Event.t(), mode()) ::
+          legacy_result()
   def emit(system, projector, event, mode) do
-    with {:ok, rendered} <- render(projector, event),
+    case emit(system, projector, nil, event, mode) do
+      {:ok, recorded, _renderer} -> {:ok, recorded}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  @doc "Renders one event while retaining optional interactive presentation state."
+  @spec emit(
+          {module(), term()},
+          State.t(),
+          renderer(),
+          Draught.CLI.Task.Stream.Event.t(),
+          mode()
+        ) :: result()
+  def emit(system, projector, renderer, event, mode) do
+    with {:ok, rendered, updated_renderer} <- render(projector, renderer, event),
          bytes = IO.iodata_length(rendered),
          :ok <- within_limit(projector, bytes, mode),
-         :ok <- Emitter.write(system, output_stream(projector.format, event), rendered) do
-      {:ok, record_bytes(projector, bytes, mode)}
+         :ok <- write(system, projector, event, rendered, bytes) do
+      {:ok, record_bytes(projector, bytes, mode), updated_renderer}
     else
       {:error, :encoding} -> {:error, :encoding}
       {:error, :output_limit} -> {:error, :output_limit}
@@ -30,16 +59,32 @@ defmodule Draught.CLI.Task.Stream.Output do
     end
   end
 
-  defp render(%State{format: :text, presentation: :interactive, styled: styled?}, event) do
-    Interactive.render(event, styled?)
+  defp render(
+         %State{format: :text, presentation: :interactive, styled: styled?},
+         renderer,
+         event
+       ) do
+    Interactive.render(event, styled?, renderer)
   end
 
-  defp render(%State{format: :text}, event) do
-    Text.render(event)
+  defp render(%State{format: :text}, renderer, event) do
+    {:ok, rendered} = Text.render(event)
+    {:ok, rendered, renderer}
   end
 
-  defp render(%State{format: :jsonl}, event) do
-    JSONL.render(event)
+  defp render(%State{format: :jsonl}, renderer, event) do
+    case JSONL.render(event) do
+      {:ok, rendered} -> {:ok, rendered, renderer}
+      {:error, :encoding} -> {:error, :encoding}
+    end
+  end
+
+  defp write(_system, _projector, _event, _rendered, 0) do
+    :ok
+  end
+
+  defp write(system, projector, event, rendered, _bytes) do
+    Emitter.write(system, output_stream(projector.format, event), rendered)
   end
 
   defp within_limit(_projector, bytes, :terminal) do

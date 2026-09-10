@@ -10,6 +10,11 @@ defmodule Draught.CLI.UI.Theme do
 
   @styles %{
     accent: [:magenta, :bright],
+    code_comment: :light_black,
+    code_keyword: [:magenta, :bright],
+    code_name: :cyan,
+    code_number: :yellow,
+    code_string: :green,
     command: [:yellow, :bright],
     error: :red,
     model: [:magenta, :bright],
@@ -18,7 +23,19 @@ defmodule Draught.CLI.UI.Theme do
     success: :green
   }
 
-  @type role :: :accent | :command | :error | :model | :muted | :path | :success
+  @type role ::
+          :accent
+          | :code_comment
+          | :code_keyword
+          | :code_name
+          | :code_number
+          | :code_string
+          | :command
+          | :error
+          | :model
+          | :muted
+          | :path
+          | :success
 
   @doc "Tags presentation data with a semantic role when styling is enabled."
   @spec tag(Data.t(), role(), boolean()) :: Data.t()

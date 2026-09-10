@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.1.0-beta.7 - 2026-09-09
+
+### Fixed
+
+- Ollama tool-enabled requests now retry once when a model leaks bare tool-call markup as assistant text. Malformed output is not displayed, executed, or retained in session history.
+
 ## 0.1.0-beta.6 - 2026-09-09
 
 ### Changed

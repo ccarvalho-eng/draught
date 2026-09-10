@@ -9,10 +9,8 @@ defmodule Draught.CLI.UI do
   alias Draught.CLI.Interactive.State
   alias Draught.CLI.Session.Catalog.Entry
   alias Draught.CLI.UI.Owl
-  alias Draught.CLI.UI.SafeLine
+  alias Draught.CLI.UI.SkillDescription
   alias Draught.Error.Normalized
-
-  @skill_description_bytes 44
 
   @doc "Renders the initial bounded session card for a known terminal width."
   @spec banner(State.t(), pos_integer(), boolean()) :: iodata()
@@ -319,7 +317,7 @@ defmodule Draught.CLI.UI do
   end
 
   defp safe(value) do
-    SafeLine.text(value, 2_048)
+    SkillDescription.safe(value)
   end
 
   defp visible?(%Entry{}, :all) do
@@ -391,7 +389,7 @@ defmodule Draught.CLI.UI do
       ". ",
       safe(name),
       "  ",
-      skill_description(description),
+      SkillDescription.summary(description),
       "\n"
     ]
   end
@@ -414,22 +412,6 @@ defmodule Draught.CLI.UI do
 
   defp skill_origin(:builtin) do
     "Built-in skills"
-  end
-
-  defp skill_description(description) do
-    description
-    |> SafeLine.text(2_048)
-    |> bounded_skill_description()
-  end
-
-  defp bounded_skill_description(description)
-       when byte_size(description) <= @skill_description_bytes do
-    description
-  end
-
-  defp bounded_skill_description(description) do
-    prefix = SafeLine.text(description, @skill_description_bytes - 3)
-    prefix <> "..."
   end
 
   defp rejected_skills(0) do

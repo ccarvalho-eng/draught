@@ -20,7 +20,8 @@ defmodule Draught.CLI.UI.Theme do
     model: [:magenta, :bright],
     muted: :light_black,
     path: :cyan,
-    success: :green
+    success: :green,
+    workspace: :yellow
   }
 
   @type role ::
@@ -36,6 +37,7 @@ defmodule Draught.CLI.UI.Theme do
           | :muted
           | :path
           | :success
+          | :workspace
 
   @doc "Tags presentation data with a semantic role when styling is enabled."
   @spec tag(Data.t(), role(), boolean()) :: Data.t()

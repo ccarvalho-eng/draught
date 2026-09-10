@@ -60,7 +60,7 @@ defmodule Draught.CLI.UI.Owl.InputArea do
       decorate("╭─ ", :muted, styled?),
       decorate(model, :model, styled?),
       decorate(" · ", :muted, styled?),
-      decorate(workspace, :path, styled?),
+      decorate(workspace, :workspace, styled?),
       decorate(@hint, :muted, styled?),
       decorate(rule(remainder), :muted, styled?),
       decorate("╮", :muted, styled?)

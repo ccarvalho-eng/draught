@@ -73,7 +73,7 @@ defmodule Draught.CLI.UITest do
 
     assert output =~ "\e["
     assert output =~ IO.ANSI.magenta()
-    assert output =~ IO.ANSI.cyan()
+    assert output =~ IO.ANSI.yellow()
     assert String.ends_with?(output, "\e[0m ")
     assert Regex.replace(~r/\e\[[0-9;]*m/, output, "") == render_input(:open, 40)
   end
@@ -265,9 +265,10 @@ defmodule Draught.CLI.UITest do
     assert output =~ "last listed catalog"
   end
 
-  test "bounds long skill descriptions for compact catalog output" do
+  test "summarizes long skill descriptions without partial words or ellipses" do
     metadata = %Metadata{
-      description: String.duplicate("a", 80),
+      description:
+        "Audit LiveView assigns for memory bloat, dead assigns, and stream candidates.",
       name: "review",
       origin: :workspace_draught
     }
@@ -278,8 +279,8 @@ defmodule Draught.CLI.UITest do
       |> UI.skills()
       |> IO.iodata_to_binary()
 
-    assert output =~ String.duplicate("a", 41) <> "..."
-    refute output =~ String.duplicate("a", 42)
+    assert output =~ "review  Audit LiveView assigns\n"
+    refute output =~ "..."
   end
 
   test "renders tool metadata and explicit web capability state" do

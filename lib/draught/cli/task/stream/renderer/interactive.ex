@@ -55,6 +55,16 @@ defmodule Draught.CLI.Task.Stream.Renderer.Interactive do
     {:ok, [segment_spacing(event), rendered]}
   end
 
+  def render(%Event{type: :failure, code: code} = event, _styled?)
+      when code in ["provider_timeout", "transport_timeout"] do
+    {:ok,
+     [
+       separator(event),
+       "Provider request timed out. This turn stopped, but the session is still active. ",
+       "Retry or continue when ready.\n"
+     ]}
+  end
+
   def render(%Event{type: :failure} = event, _styled?) do
     Text.render(event)
   end

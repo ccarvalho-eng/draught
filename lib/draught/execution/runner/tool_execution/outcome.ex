@@ -11,6 +11,7 @@ defmodule Draught.Execution.Runner.ToolExecution.Outcome do
   alias Draught.Execution.Runner.Failure.Runtime
   alias Draught.Tool.Call
   alias Draught.Tool.Execution.Failure
+  alias Draught.Tool.Execution.Feedback
   alias Draught.Tool.Result
 
   @duplicate_feedback "This exact tool call was already attempted earlier in this turn. " <>
@@ -42,6 +43,8 @@ defmodule Draught.Execution.Runner.ToolExecution.Outcome do
   @spec failure(Normalized.t(), Call.t(), String.t()) ::
           {:ok, Result.t(), Draught.Conversation.Message.Tool.t()} | {:error, Normalized.t()}
   def failure(%Normalized{} = error, %Call{} = call, content) when is_binary(content) do
+    content = failure_content(content, error)
+
     result =
       Result.new(
         call_id: call.id,
@@ -62,5 +65,13 @@ defmodule Draught.Execution.Runner.ToolExecution.Outcome do
       {:ok, message} -> {:ok, result, message}
       {:error, _error} -> {:error, Runtime.tool_crashed()}
     end
+  end
+
+  defp failure_content("", error) do
+    Feedback.content(error)
+  end
+
+  defp failure_content(content, _error) do
+    content
   end
 end

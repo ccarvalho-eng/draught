@@ -77,6 +77,19 @@ defmodule Draught.CLI.Task.Stream.InteractiveRendererTest do
     refute render(event) =~ <<27>>
   end
 
+  test "explains that a provider timeout stops only the interactive turn" do
+    event =
+      Event.new(:failure, 1,
+        code: "transport_timeout",
+        message: "Provider request timed out",
+        prefix_newline: true
+      )
+
+    assert render(event) ==
+             "\nProvider request timed out. This turn stopped, but the session is still active. " <>
+               "Retry or continue when ready.\n"
+  end
+
   test "flushes an incomplete highlighted line before tool activity" do
     {opening, opened} = Markdown.consume(Markdown.new(), "```elixir\n")
     {"", pending} = Markdown.consume(opened, "def pending")

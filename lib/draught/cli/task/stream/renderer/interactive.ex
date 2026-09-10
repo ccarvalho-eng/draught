@@ -8,6 +8,7 @@ defmodule Draught.CLI.Task.Stream.Renderer.Interactive do
   """
 
   alias Draught.CLI.Task.Stream.Event
+  alias Draught.CLI.Task.Stream.Renderer.Interactive.Markdown
   alias Draught.CLI.Task.Stream.Renderer.Text
   alias Draught.CLI.UI
   alias Draught.CLI.UI.Theme
@@ -58,6 +59,34 @@ defmodule Draught.CLI.Task.Stream.Renderer.Interactive do
     Text.render(event)
   end
 
+  @doc "Renders one event while advancing optional Markdown presentation state."
+  @spec render(Event.t(), boolean(), Markdown.State.t() | nil) ::
+          {:ok, iodata(), Markdown.State.t() | nil}
+  def render(event, styled?, nil) do
+    {:ok, rendered} = render(event, styled?)
+    {:ok, rendered, nil}
+  end
+
+  def render(%Event{type: :text_delta} = event, true, markdown) do
+    {pending, prepared} = reset_for_heading(markdown, event.heading)
+    {content, updated} = Markdown.consume(prepared, event.content)
+    {:ok, [pending, segment_spacing(event), content], updated}
+  end
+
+  def render(%Event{type: :success} = event, true, markdown) do
+    {leading, prepared} = reset_for_heading(markdown, event.heading)
+    {content, updated} = Markdown.consume(prepared, event.content || "")
+    {pending, reset} = Markdown.flush(updated)
+
+    {:ok, [leading, segment_spacing(event), content, pending, success_newline(event)], reset}
+  end
+
+  def render(event, true, markdown) do
+    {pending, reset} = Markdown.flush(markdown)
+    {:ok, rendered} = render(event, true)
+    {:ok, [pending, rendered], reset}
+  end
+
   defp segment_spacing(%Event{heading: true} = event) do
     [separator(event), "\n"]
   end
@@ -80,6 +109,26 @@ defmodule Draught.CLI.Task.Stream.Renderer.Interactive do
 
   defp error_code(code) do
     [": ", code]
+  end
+
+  defp reset_for_heading(markdown, true) do
+    Markdown.flush(markdown)
+  end
+
+  defp reset_for_heading(markdown, _heading) do
+    {"", markdown}
+  end
+
+  defp success_newline(%Event{streamed: true, prefix_newline: true}) do
+    "\n"
+  end
+
+  defp success_newline(%Event{streamed: true}) do
+    ""
+  end
+
+  defp success_newline(%Event{}) do
+    "\n"
   end
 
   defp outcome(event, styled?) do

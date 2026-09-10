@@ -3,6 +3,7 @@ defmodule Draught.CLI.Task.Stream.InteractiveRendererTest do
 
   alias Draught.CLI.Task.Stream.Event
   alias Draught.CLI.Task.Stream.Renderer.Interactive
+  alias Draught.CLI.Task.Stream.Renderer.Interactive.Markdown
   alias Draught.CLI.Task.Stream.Renderer.JSONL
   alias Draught.CLI.Task.Stream.Renderer.Text
 
@@ -76,12 +77,27 @@ defmodule Draught.CLI.Task.Stream.InteractiveRendererTest do
     refute render(event) =~ <<27>>
   end
 
+  test "flushes an incomplete highlighted line before tool activity" do
+    {opening, opened} = Markdown.consume(Markdown.new(), "```elixir\n")
+    {"", pending} = Markdown.consume(opened, "def pending")
+
+    event = Event.new(:tool_call, 1, name: "read_file", prefix_newline: true)
+    assert {:ok, output, reset} = Interactive.render(event, true, pending)
+
+    assert strip_style([opening, output]) ==
+             "```elixir\ndef pending\n  Tool: read_file (requested)\n"
+
+    assert reset == Markdown.new()
+  end
+
   defp render(event) do
     {:ok, rendered} = Interactive.render(event, false)
     IO.iodata_to_binary(rendered)
   end
 
   defp strip_style(value) do
-    Regex.replace(~r/\e\[[0-9;]*m/, value, "")
+    value
+    |> IO.iodata_to_binary()
+    |> then(&Regex.replace(~r/\e\[[0-9;]*m/, &1, ""))
   end
 end

@@ -47,7 +47,7 @@ defmodule Draught.CLI.Task.Stream.InteractiveRendererTest do
     assert {:ok, styled_call} = Interactive.render(call, true)
     styled_call = IO.iodata_to_binary(styled_call)
 
-    assert styled_call =~ IO.ANSI.magenta()
+    assert styled_call =~ IO.ANSI.green()
     assert styled_call =~ IO.ANSI.cyan()
     assert strip_style(styled_call) == render(call)
 

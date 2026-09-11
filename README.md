@@ -7,7 +7,7 @@
 
 Draught is a provider-agnostic coding-agent CLI and runtime built with Elixir. Run tasks interactively or headlessly with Ollama or an OpenAI-compatible provider.
 
-<img width="650" src="https://github.com/user-attachments/assets/0b3d04c9-7f6f-4bc2-a418-83067da2aaed" />
+<img width="650" src="https://github.com/user-attachments/assets/6e04aca4-65fd-40c4-a079-dd1fc64e24ed" />
 
 ## Installation
 

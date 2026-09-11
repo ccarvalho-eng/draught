@@ -9,7 +9,7 @@ defmodule Draught.CLI.UI.Theme do
   alias Elixir.Owl.Data
 
   @styles %{
-    accent: [:magenta, :bright],
+    accent: [:green, :bright],
     code_comment: :light_black,
     code_keyword: [:magenta, :bright],
     code_name: :cyan,

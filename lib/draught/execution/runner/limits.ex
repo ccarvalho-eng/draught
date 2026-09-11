@@ -11,7 +11,7 @@ defmodule Draught.Execution.Runner.Limits do
   @maximum_output_bytes 16 * 1024 * 1024
   @maximum_timeout_ms 600_000
 
-  defstruct max_iterations: 12,
+  defstruct max_iterations: 100,
             max_output_bytes: 1024 * 1024,
             provider_timeout_ms: 120_000,
             tool_timeout_ms: 30_000

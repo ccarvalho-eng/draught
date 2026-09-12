@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.1.1-beta.10 - 2026-09-10
+
+- Updates screenshot on README
+- Bump iteration limit
+- Change CLI theme accent
+
 ## 0.1.0-beta.10 - 2026-09-10
 
 ### Fixed
